@@ -1,3 +1,232 @@
+//CHAT BLOCKING WITH THREADING (SIN INTERFAZ GRAFICA, DESPUES DE CERRAR CONEXION AUN INTENTA RECIBIR UNA VEZ)
+
+#include <SFML\Network.hpp>
+#include <iostream>
+#include <thread>
+#include <mutex>
+
+sf::TcpSocket socket;
+sf::Socket::Status status;
+std::mutex myMutex;
+bool chat;
+
+void shared_cout(std::string msg, bool received) {
+	std::lock_guard<std::mutex>guard(myMutex);
+	if (msg == "Chat finalizado") {
+		chat = false;
+	}
+	if (msg != "") {
+		if (received) { std::cout << "Mensaje recibido: " << msg << std::endl; }
+		else { std::cout << msg << std::endl; }
+	}
+}
+
+void thread_dataReceived() {
+
+	while (chat) {
+		char buffer[100];
+		size_t bytesReceived;
+		status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos
+		if (status != sf::Socket::Done)
+		{
+			shared_cout("Ha fallado la recepcion de datos ", false);
+		}
+		else {
+			buffer[bytesReceived] = '\0';
+			shared_cout(buffer, true); //se muestra por pantalla lo recibido
+		}
+
+	}
+
+}
+
+int main()
+{
+	shared_cout("¿Seras servidor (s) o cliente (c)? ... ", false);
+	char who;
+	std::cin >> who;
+	std::string textoAEnviar = "";
+	std::string textoAEnviarBefore = "init";
+
+	if (who == 's')
+	{
+		sf::TcpListener listener;
+		status = listener.listen(50000);
+		if (status != sf::Socket::Done)
+		{
+			shared_cout("No se puede vincular con el puerto", false);
+		}
+
+		if (listener.accept(socket) != sf::Socket::Done) //se queda bloquado el thread hasta que es aceptado
+		{
+			shared_cout("Error al aceptar conexion", false);
+		}
+		else {
+			chat = true;
+		}
+
+		listener.close(); //ya no hace falta porque no hay mas solicitudes de conexion
+	}
+	else if (who == 'c')
+	{
+		status = socket.connect("localhost", 50000, sf::milliseconds(15.f)); //bloqueo durante un tiempo
+		if (status != sf::Socket::Done)
+		{
+			shared_cout("No se ha podido conectar", false);
+		}
+		else {
+			chat = true;
+		}
+
+	}
+	else
+	{
+		exit(0);
+	}
+
+	//se muestra por pantalla con quien se ha hecho la conexion, tanto en el server como en el cliente
+	std::string texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
+	std::cout << texto;
+
+	std::thread t1(&thread_dataReceived);
+
+	while (chat) {
+
+		//std::cin >> textoAEnviar;
+		std::getline(std::cin, textoAEnviar);
+
+		if (textoAEnviar != textoAEnviarBefore) {
+			if (textoAEnviar == "exit") {
+				textoAEnviar = "Chat finalizado";
+				chat = false;
+			}
+			status = socket.send(textoAEnviar.c_str(), texto.length());
+			if (status != sf::Socket::Done)
+			{
+				shared_cout("Ha fallado el envio", false);
+			}
+			textoAEnviarBefore = textoAEnviar;
+		}
+
+	}
+	t1.join();
+	socket.disconnect(); //para cerrar la conexion creada, el otro detecta que no hay conexion gracias al status
+	system("pause");
+
+	return 0;
+}
+
+
+
+//CHAT SIMPLE CON BLOCKING I SIN THREADS (SIN INTERFAZ GRAFICA, ENVIA UN MENAJE Y EL OTRO ESCUCHA Y ASI SUCCESIVAMENTE)
+/*
+#include <SFML\Network.hpp>
+#include <iostream>
+
+
+int main()
+{
+	std::cout << "¿Seras servidor (s) o cliente (c)? ... ";
+	char who;
+	std::cin >> who;
+	std::string textoAEnviar = "";
+	sf::TcpSocket socket;
+	sf::Socket::Status status;
+
+	if (who == 's')
+	{
+		sf::TcpListener listener;
+		status = listener.listen(50000);
+		if (status != sf::Socket::Done)
+		{
+			std::cout << "No se puede vincular con el puerto";
+		}
+
+		if (listener.accept(socket) != sf::Socket::Done) //se queda bloquado el thread hasta que es aceptado
+		{
+			std::cout << "Error al aceptar conexion";
+		}
+
+		listener.close(); //ya no hace falta porque no hay mas solicitudes de conexion
+	}
+	else if (who == 'c')
+	{
+		status = socket.connect("localhost", 50000, sf::milliseconds(15.f)); //bloqueo durante un tiempo
+		if (status != sf::Socket::Done)
+		{
+			std::cout << "No se ha podido conectar";
+		}
+
+	}
+	else
+	{
+		exit(0);
+	}
+
+	//se muestra por pantalla con quien se ha hecho la conexion, tanto en el server como en el cliente
+	std::string texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
+	std::cout << texto;
+
+	while (true) {
+		if (who == 's') {
+
+			char buffer[100];
+			size_t bytesReceived;
+			status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos
+			if (status != sf::Socket::Done)
+			{
+				std::cout << "Ha fallado la recepcion de datos ";
+			}
+			else {
+				buffer[bytesReceived] = '\0';
+				std::cout << "Mensaje recibido: " << buffer << std::endl; //se muestra por pantalla lo recibido
+			}
+
+
+			std::cin >> textoAEnviar;
+			status = socket.send(textoAEnviar.c_str(), texto.length());
+			if (status != sf::Socket::Done)
+			{
+				std::cout << "Ha fallado el envio";
+			}
+
+		}
+		else if (who == 'c') {
+
+			std::cin >> textoAEnviar;
+			status = socket.send(textoAEnviar.c_str(), texto.length());
+			if (status != sf::Socket::Done)
+			{
+				std::cout << "Ha fallado el envio";
+			}
+
+
+			char buffer[100];
+			size_t bytesReceived;
+			status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos
+			if (status != sf::Socket::Done)
+			{
+				std::cout << "Ha fallado la recepcion de datos ";
+			}
+			else {
+				buffer[bytesReceived] = '\0';
+				std::cout << "Mensaje recibido: " << buffer << std::endl; //se muestra por pantalla lo recibido
+			}
+		}
+	}
+	socket.disconnect(); //para cerrar la conexion creada, el otro detecta que no hay conexion gracias al status
+	system("pause");
+
+	return 0;
+}
+
+*/
+
+
+
+
+//PRIMERA PROVA AMB INTERFICIE, (NO FUNCIONA)
+/*
 #include <SFML\Network.hpp>
 #include <SFML\Graphics.hpp>
 #include <string>
@@ -117,7 +346,7 @@ void Chat(sf::TcpSocket *socket) {
 					if (status == sf::Socket::Disconnected) {
 						std::cout << "Usuari Desconnectat";
 						exit(0);
-					}*/
+					}
 				}
 				break;
 			case sf::Event::TextEntered:
@@ -126,7 +355,7 @@ void Chat(sf::TcpSocket *socket) {
 				else if (evento.text.unicode == 8 && mensaje.getSize() > 0)
 					mensaje.erase(mensaje.getSize() - 1, mensaje.getSize());
 
-				/*o va aqui?*/
+				//o va aqui?
 				break;
 			}
 		}
@@ -159,21 +388,21 @@ int main()
 	sf::Socket::Status status;
 	//sf::IpAddress ip = "192.168.122.2";
 	sf::IpAddress ip = sf::IpAddress::getLocalAddress();
-	
+
 	std::cout << "¿Seras servidor (s) o cliente (c)? ... ";
 	char c;
 	std::cin >> c;
 	sf::TcpSocket socket;
-	std::string textoAEnviar="";
+	std::string textoAEnviar = "";
 	if (c == 's')
 	{
 		Server(&socket, textoAEnviar);
-		
+
 	}
 	else if (c == 'c')
 	{
-		
-		Cliente(&socket,textoAEnviar, ip);
+
+		Cliente(&socket, textoAEnviar, ip);
 
 	}
 	else
@@ -181,27 +410,27 @@ int main()
 		exit(0);
 	}
 
-		std::string texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
-		std::cout << texto;
+	std::string texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
+	std::cout << texto;
 
-		status = socket.send(textoAEnviar.c_str(), texto.length());
-		
-		char buffer[100];
+	status = socket.send(textoAEnviar.c_str(), texto.length());
 
-		size_t bytesReceived;
+	char buffer[100];
 
-		status = socket.receive(buffer, 100, bytesReceived);
-		if (status == sf::Socket::Done) {
-			buffer[bytesReceived] = '\0';
-			std::cout << "Mensaje recibido: " << buffer << std::endl;
-		}
-		
-		Chat(&socket);
+	size_t bytesReceived;
+
+	status = socket.receive(buffer, 100, bytesReceived);
+	if (status == sf::Socket::Done) {
+		buffer[bytesReceived] = '\0';
+		std::cout << "Mensaje recibido: " << buffer << std::endl;
+	}
+
+	Chat(&socket);
 
 	system("pause");
-	
+
 	return 0;
 
-}
+}*/
 
 
