@@ -136,33 +136,42 @@ int main()
 
 #include <SFML\Network.hpp>
 #include <iostream>
+std::string textoAEnviar = "";
+sf::TcpSocket socket;
 
+sf::Socket::Status status;
 
 int main()
 {
 	std::cout << "¿Seras servidor (s) o cliente (c)? ... ";
 	char who;
 	std::cin >> who;
-	std::string textoAEnviar = "";
-	sf::TcpSocket socket;
 	socket.setBlocking(false);
-	sf::Socket::Status status;
+	//std::string texto = "";
 
 	if (who == 's')
 	{
 		sf::TcpListener listener;
 		status = listener.listen(50000);
-		if (status != sf::Socket::Done)
+		
+		std::cout << "Esperando conexion..." << std::endl;
+		/*if (status != sf::Socket::Done)
 		{
 			std::cout << "No se puede vincular con el puerto";
-		}
+		}*/
 
 		if (listener.accept(socket) != sf::Socket::Done) //se queda bloquado el thread hasta que es aceptado
 		{
-			std::cout << "Error al aceptar conexion";
+			std::cout << "No se ha podido establecer la conexion con " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) << std::endl;
+			//return -1;
 		}
+		else {
+			listener.setBlocking(false);
+			//listener.close();
+		}
+
 		
-			listener.close();
+			//listener.close();
 			
 	
 
@@ -170,51 +179,96 @@ int main()
 	}
 	else if (who == 'c')
 	{
+		std::cout << "Esperando conexion..." << std::endl;
 		status = socket.connect("localhost", 50000, sf::milliseconds(15.f)); //bloqueo durante un tiempo
-		if (status != sf::Socket::Done)
-		{
-			std::cout << "No se ha podido conectar" << std::endl;
+		while (status != sf::Socket::Done) {
+			status = socket.connect("localhost", 50000, sf::milliseconds(15.f));
 		}
+		//texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
+		//std::cout << texto;
+
+		/*if (status == sf::Socket::Error)
+		{
+			
+			std::cout << "Error en la conexion con " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) << std::endl;
+			//return -1;
+		}
+		else if (status == sf::Socket::Disconnected) {
+			std::cout << "Desconexion con " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) << std::endl;
+		}
+		else if(status == sf::Socket::Done){
+			texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
+			std::cout << texto;
+		}
+		else {
+			//falla aqui
+			std::cout << "Cliente no listo aun." << std::endl;
+		}*/
 
 	}
-	else
-	{
-		exit(0);
-	}
+	/*do {
+		if (who == 'c') {
+			status = socket.connect("localhost", 50000, sf::milliseconds(15.f));
+			if (status == sf::Socket::Done) {
+				texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
+				std::cout << texto;
+			}
+		}
+	} while (socket.connect("localhost", 50000, sf::milliseconds(15.f)) != sf::Socket::Done);*/
+	
 
 	//se muestra por pantalla con quien se ha hecho la conexion, tanto en el server como en el cliente
 	std::string texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
 	std::cout << texto;
-
+	
 	while (true) {
 		//if (who == 's') {
 
-			char buffer[100];
-			size_t bytesReceived;
-		
-			status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos
-			if (status == sf::Socket::NotReady) {
-				continue;
-			}
-			else if (status == sf::Socket::Done)
-			{
-				buffer[bytesReceived] = '\0';
-				std::cout << "Mensaje recibido: " << buffer << std::endl; //se muestra por pantalla lo recibido
+		char buffer[100];
+		size_t bytesReceived;
 
-			}
-			else if (status == sf::Socket::Disconnected)
-				break;
-			}
+		status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos
+		if (status == sf::Socket::NotReady) { //es queda aqui atrapat holy shit
+			std::cout << "Not Ready. " << std::endl;
 
-
-			std::getline(std::cin, textoAEnviar);
+			/*std::getline(std::cin, textoAEnviar);
 			status = socket.send(textoAEnviar.c_str(), texto.length());
 			if (status != sf::Socket::Done)
 			{
-				std::cout << "Ha fallado el envio" << std::endl;
-			}
-			
-			
+				std::cout << "Ha fallado el envio." << std::endl;
+				//return -1;
+			}*/
+			continue;
+		}
+		else if (status == sf::Socket::Error) {
+			std::cout << "Error. " << std::endl;
+		}
+		/*else if (status == sf::Socket::Partial) {
+			std::cout << "Partial. " << buffer << std::endl;
+		}*/
+		else if (status == sf::Socket::Done)
+		{
+			buffer[bytesReceived] = '\0';
+			std::cout << "Mensaje recibido: " << buffer << std::endl; //se muestra por pantalla lo recibido
+			/*std::getline(std::cin, textoAEnviar);
+			status = socket.send(textoAEnviar.c_str(), texto.length());
+			if (status != sf::Socket::Done)
+			{
+				std::cout << "Ha fallado el envio." << std::endl;
+				//return -1;
+			}*/
+		}
+		else if (status == sf::Socket::Disconnected)
+			break;
+
+		/*std::getline(std::cin, textoAEnviar);
+		status = socket.send(textoAEnviar.c_str(), texto.length());
+		if (status != sf::Socket::Done)
+		{
+			std::cout << "Ha fallado el envio" << std::endl;
+			//return -1;
+		}*/
+	}
 
 		//}
 		/*else if (who == 'c') {
