@@ -1,1 +1,4 @@
-﻿  ProyectoBase.vcxproj -> D:\Projects\C++\Xarxes_3B\T_1\x64\Debug\ProyectoBase.exe
+﻿  Main.cpp
+d:\projects\c++\xarxes_3b\t_1\proyectobase\main.cpp(182): warning C4244: 'argumento': conversión de 'float' a 'sf::Int32'; posible pérdida de datos
+d:\projects\c++\xarxes_3b\t_1\proyectobase\main.cpp(185): warning C4244: 'argumento': conversión de 'float' a 'sf::Int32'; posible pérdida de datos
+  ProyectoBase.vcxproj -> D:\Projects\C++\Xarxes_3B\T_1\x64\Debug\ProyectoBase.exe
