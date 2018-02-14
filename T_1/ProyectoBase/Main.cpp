@@ -173,8 +173,6 @@ int main()
 		
 			//listener.close();
 			
-	
-
 		 //ya no hace falta porque no hay mas solicitudes de conexion
 	}
 	else if (who == 'c')
@@ -184,39 +182,10 @@ int main()
 		while (status != sf::Socket::Done) {
 			status = socket.connect("localhost", 50000, sf::milliseconds(15.f));
 		}
-		//texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
-		//std::cout << texto;
-
-		/*if (status == sf::Socket::Error)
-		{
-			
-			std::cout << "Error en la conexion con " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) << std::endl;
-			//return -1;
-		}
-		else if (status == sf::Socket::Disconnected) {
-			std::cout << "Desconexion con " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) << std::endl;
-		}
-		else if(status == sf::Socket::Done){
-			texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
-			std::cout << texto;
-		}
-		else {
-			//falla aqui
-			std::cout << "Cliente no listo aun." << std::endl;
-		}*/
+		
 
 	}
-	/*do {
-		if (who == 'c') {
-			status = socket.connect("localhost", 50000, sf::milliseconds(15.f));
-			if (status == sf::Socket::Done) {
-				texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
-				std::cout << texto;
-			}
-		}
-	} while (socket.connect("localhost", 50000, sf::milliseconds(15.f)) != sf::Socket::Done);*/
 	
-
 	//se muestra por pantalla con quien se ha hecho la conexion, tanto en el server como en el cliente
 	std::string texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
 	std::cout << texto;
@@ -226,41 +195,33 @@ int main()
 
 		char buffer[100];
 		size_t bytesReceived;
-
-		status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos
-		if (status == sf::Socket::NotReady) { //es queda aqui atrapat holy shit
-			std::cout << "Not Ready. " << std::endl;
-
-			/*std::getline(std::cin, textoAEnviar);
-			status = socket.send(textoAEnviar.c_str(), texto.length());
-			if (status != sf::Socket::Done)
-			{
-				std::cout << "Ha fallado el envio." << std::endl;
-				//return -1;
+		if (who == 's') {
+			status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos
+			if (status == sf::Socket::NotReady) { //es queda aqui atrapat holy shit
+				//std::cout << "Not Ready. " << std::endl;
+				continue;
+			}
+			else if (status == sf::Socket::Error) {
+				std::cout << "Error. " << std::endl;
+			}
+			/*else if (status == sf::Socket::Partial) {
+				std::cout << "Partial. " << buffer << std::endl;
 			}*/
-			continue;
-		}
-		else if (status == sf::Socket::Error) {
-			std::cout << "Error. " << std::endl;
-		}
-		/*else if (status == sf::Socket::Partial) {
-			std::cout << "Partial. " << buffer << std::endl;
-		}*/
-		else if (status == sf::Socket::Done)
-		{
-			buffer[bytesReceived] = '\0';
-			std::cout << "Mensaje recibido: " << buffer << std::endl; //se muestra por pantalla lo recibido
-			/*std::getline(std::cin, textoAEnviar);
-			status = socket.send(textoAEnviar.c_str(), texto.length());
-			if (status != sf::Socket::Done)
+			else if (status == sf::Socket::Done)
 			{
-				std::cout << "Ha fallado el envio." << std::endl;
-				//return -1;
-			}*/
+				buffer[bytesReceived] = '\0';
+				std::cout << "Mensaje recibido: " << buffer << std::endl; //se muestra por pantalla lo recibido
+				/*std::getline(std::cin, textoAEnviar);
+				status = socket.send(textoAEnviar.c_str(), texto.length());
+				if (status != sf::Socket::Done)
+				{
+					std::cout << "Ha fallado el envio." << std::endl;
+					//return -1;
+				}*/
+			}
+			else if (status == sf::Socket::Disconnected)
+				break;
 		}
-		else if (status == sf::Socket::Disconnected)
-			break;
-
 		/*std::getline(std::cin, textoAEnviar);
 		status = socket.send(textoAEnviar.c_str(), texto.length());
 		if (status != sf::Socket::Done)
@@ -268,32 +229,14 @@ int main()
 			std::cout << "Ha fallado el envio" << std::endl;
 			//return -1;
 		}*/
-	}
 
 		//}
-		/*else if (who == 'c') {
+		else if (who == 'c') {
 
 			std::cin >> textoAEnviar;
 			status = socket.send(textoAEnviar.c_str(), texto.length());
-			if (status != sf::Socket::Done)
-			{
-				std::cout << "Ha fallado el envio";
-			}
-
-
-			char buffer[100];
-			size_t bytesReceived;
-			status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos
-			if (status != sf::Socket::Done)
-			{
-				std::cout << "Ha fallado la recepcion de datos ";
-			}
-			else {
-				buffer[bytesReceived] = '\0';
-				std::cout << "Mensaje recibido: " << buffer << std::endl; //se muestra por pantalla lo recibido
-			}
-		}*/
-	
+		}
+	}
 	socket.disconnect(); //para cerrar la conexion creada, el otro detecta que no hay conexion gracias al status
 	system("pause");
 
