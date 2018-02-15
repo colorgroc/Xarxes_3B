@@ -1,4 +1,5 @@
-﻿#include <SFML\Graphics.hpp>
+﻿/*
+#include <SFML\Graphics.hpp>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -28,12 +29,12 @@ void shared_cout(std::string msg, bool received) {
 
 void thread_dataReceived() {
 
-	while (chat) {
+	while (true) {
 		char buffer[100];
 		size_t bytesReceived;
 		status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos -- pq no bloquegi: sock.setbloquing(false)
 		if (status == sf::Socket::Disconnected) {
-			chat = false;
+			break;
 		}
 		else if (status != sf::Socket::Done)
 		{
@@ -112,7 +113,7 @@ int main()
 		std::cout << "Can't load the font file" << std::endl;
 	}
 
-	mensaje = " >";
+	mensaje = "";
 
 	sf::Text chattingText(mensaje, font, 14);
 	chattingText.setFillColor(sf::Color(0, 160, 0));
@@ -145,21 +146,36 @@ int main()
 				{
 					////////////////////
 					if (chat) {
-						std::string s_mensaje = mensaje;
-						status = socket.send(s_mensaje.c_str(), s_mensaje.length());
-
-						if (status != sf::Socket::Done)
-						{
-							aMensajes.push_back("Ha fallado el envio");
+						std::string s_mensaje;
+						if (mensaje == "exit") {
+							s_mensaje = "Chat finalizado";
 						}
+						else {
+							s_mensaje = mensaje;
+						}
+							status = socket.send(s_mensaje.c_str(), s_mensaje.length());
+							
+							shared_cout(mensaje, false);
+
+							if (status != sf::Socket::Done)
+							{
+								if(status == sf::Socket::Error)
+									shared_cout("Ha fallado el envio", false);
+								if (status == sf::Socket::Disconnected)
+									shared_cout("Disconnected", false);
+
+							}
+							if(mensaje == "exit") {
+								socket.disconnect();
+								t1.join();
+							}
 					}
 					///////////////////
-					aMensajes.push_back(mensaje);
 					if (aMensajes.size() > 25)
 					{
 						aMensajes.erase(aMensajes.begin(), aMensajes.begin() + 1);
 					}
-					mensaje = ">";
+					mensaje = "";
 				}
 				break;
 			case sf::Event::TextEntered:
@@ -179,6 +195,7 @@ int main()
 			chattingText.setString(chatting);
 			window.draw(chattingText);
 		}
+		
 		std::string mensaje_ = mensaje + "_";
 		text.setString(mensaje_);
 		window.draw(text);
@@ -187,13 +204,10 @@ int main()
 		window.display();
 		window.clear();
 	}
-
 }
+*/
 
 
-
-
-/*
 //CHAT BLOCKING WITH THREADING (SIN INTERFAZ GRAFICA, DESPUES DE CERRAR CONEXION AUN INTENTA RECIBIR UNA VEZ)
 
 #include <SFML\Network.hpp>
@@ -309,7 +323,7 @@ int main()
 	system("pause");
 	return 0;
 }
-*/
+
 //--------------------------------------------------------------------------------------------------------------------------------
 
 /*
