@@ -1,4 +1,4 @@
-﻿ //INTERFICIE AMB THREADING
+﻿/* //INTERFICIE AMB THREADING
 #include <SFML\Graphics.hpp>
 #include <string>
 #include <iostream>
@@ -17,6 +17,8 @@ bool chat;
 int puerto = 50000;
 std::vector<std::string> aMensajes;
 sf::String mensaje;
+
+
 
 void shared_cout(std::string msg, bool received) {
 	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
@@ -102,10 +104,10 @@ int main()
 	std::thread t1(&thread_dataReceived);
 	////////////////////////////////
 	
-
+	sf::RenderWindow window;
 	sf::Vector2i screenDimensions(800, 600);
 
-	sf::RenderWindow window;
+
 	window.create(sf::VideoMode(screenDimensions.x, screenDimensions.y), "Chat");
 
 	sf::Font font;
@@ -117,17 +119,17 @@ int main()
 	mensaje = "";
 
 	sf::Text chattingText(mensaje, font, 14);
-	chattingText.setFillColor(sf::Color(0, 160, 0));
+	chattingText.setFillColor(sf::Color(255, 160, 0));
 	chattingText.setStyle(sf::Text::Bold);
 
 
 	sf::Text text(mensaje, font, 14);
-	text.setFillColor(sf::Color(0, 160, 0));
-	text.setStyle(sf::Text::Bold);
+	text.setFillColor(sf::Color(0, 191, 255));
+	text.setStyle(sf::Text::Italic);
 	text.setPosition(0, 560);
 
 	sf::RectangleShape separator(sf::Vector2f(800, 5));
-	separator.setFillColor(sf::Color(200, 200, 200, 255));
+	separator.setFillColor(sf::Color(255, 0, 0, 255));
 	separator.setPosition(0, 550);
 
 	while (window.isOpen())
@@ -209,7 +211,7 @@ int main()
 	}
 }
 
-
+*/
 
 
 
@@ -435,11 +437,285 @@ int main()
 }
 */
 
+//INTERFICIE SELECTORS
+#include <SFML\Graphics.hpp>
+#include <string>
+#include <iostream>
+#include <vector>
+
+#define MAX_MENSAJES 30
+
+#include <SFML\Network.hpp>
+#include <thread>
+#include <mutex>
+
+sf::TcpSocket socket;
+sf::Socket::Status status;
+std::mutex myMutex;
+bool chat;
+int puerto = 50000;
+std::vector<std::string> aMensajes;
+sf::String mensaje;
+
+void shared_cout(std::string msg, bool received) {
+	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
+
+	if (msg != "") {
+		if (received) { aMensajes.push_back("Mensaje recibido: " + msg); }
+		else { aMensajes.push_back(msg); }
+	}
+}
+
+int main()
+{
+	/////////////////////////////////
+	
+	std::cout << "¿Seras servidor (s) o cliente (c)? ... " << std::endl;
+	char who;
+	std::cin >> who;
+	std::string textoAEnviar = "";
+	std::vector<sf::TcpSocket*> aSock;
+	sf::SocketSelector ss;
+
+	if (who == 's')
+	{
+		sf::TcpListener listener;
+		
+		status = listener.listen(puerto);
+
+		if (status != sf::Socket::Done)
+		{
+			std::cout << "No se puede vincular con el puerto" << std::endl;
+		}
+		else {
+			ss.add(listener);
+			sf::TcpSocket* sock = new sf::TcpSocket;
+
+			if (listener.accept(*sock) != sf::Socket::Done) //se queda bloquado el thread hasta que m'envien una connexio --> pq no bloquegi: listener.setblocking(false) --> aixo es non-blocking
+			{
+				std::cout << "Error al aceptar conexion" << std::endl;
+				delete sock;
+			}
+			else {
+				chat = true;
+				aSock.push_back(sock);
+				ss.add(*sock);
+				std::string texto = "Conexion con ... " + (sock->getRemoteAddress()).toString() + ":" + std::to_string(sock->getRemotePort()) + "\n";
+				std::cout << texto;
+			}
+		}
+
+		listener.close(); //ya no hace falta porque no hay mas solicitudes de conexion
+	}
+	else if (who == 'c')
+	{
+		//for (int i = 0; i < aSock.size(); i++) {
+			status = socket.connect("localhost", puerto, sf::milliseconds(15.f)); //bloqueo durante un tiempo
+			if (status != sf::Socket::Done)
+			{
+				std::cout << "No se ha podido conectar" << std::endl;
+			}
+			else {
+				chat = true;
+				//for (int i = 0; i < aSock.size(); i++) {
+					std::string texto = "Conexion con ... " + socket.getRemoteAddress().toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
+					std::cout << texto;
+				//}
+			}
+		//}
+
+	}
+	else
+	{
+		exit(0);
+	}
+
+	
+
+	////////////////////////////////
+	//std::cout << aSock.size();
+	
+	sf::Vector2i screenDimensions(800, 600);
+
+	sf::RenderWindow window;
+	window.create(sf::VideoMode(screenDimensions.x, screenDimensions.y), "Chat");
+
+	sf::Font font;
+	if (!font.loadFromFile("calibri.ttf"))
+	{
+		std::cout << "Can't load the font file" << std::endl;
+	}
+
+	mensaje = "";
+
+	sf::Text chattingText(mensaje, font, 14);
+	chattingText.setFillColor(sf::Color(0, 160, 0));
+	chattingText.setStyle(sf::Text::Bold);
+
+
+	sf::Text text(mensaje, font, 14);
+	text.setFillColor(sf::Color(0, 160, 0));
+	text.setStyle(sf::Text::Bold);
+	text.setPosition(0, 560);
+
+	sf::RectangleShape separator(sf::Vector2f(800, 5));
+	separator.setFillColor(sf::Color(200, 200, 200, 255));
+	separator.setPosition(0, 550);
+
+	
+
+	while (window.isOpen())
+	{
+		sf::Event evento;
+		
+		if (chat) {
+			if (aSock.size() > 0) {
+				sf::Packet packet;
+				while (ss.wait()) {
+					for (int i = 0; i < aSock.size(); i++) {
+						if (ss.isReady(*aSock[i]))
+						{
+							// The client has sent some data, we can receive it
+							std::string strRec;
+							status = aSock[i]->receive(packet);
+
+							if (status == sf::Socket::Done)
+							{
+								packet >> strRec;
+								std::cout << "He recibido " << strRec << " del puerto " << aSock[i]->getRemotePort() << std::endl;
+								//break;
+							}
+							else if (status == sf::Socket::Disconnected)
+							{
+								ss.remove(*aSock[i]);
+								std::cout << "Elimino el socket que se ha desconectado\n";
+								chat = false;
+							}
+							else
+							{
+								std::cout << "Error al recibir de " << aSock[i]->getRemotePort() << std::endl;
+							}
+						}
+						
+					}
+				}
+			}
+			else {
+				sf::Packet packet;
+				status = socket.receive(packet);
+				std::string strRec;
+				if (status == sf::Socket::Done)
+				{
+					packet >> strRec;
+					shared_cout(strRec, false);
+					//std::cout << "He recibido " << strRec << " del puerto " << socket.getRemotePort() << std::endl;
+
+				}
+				else if (status == sf::Socket::Disconnected)
+				{
+					shared_cout("Desconectado", false); //se muestra por pantalla lo recibido
+					chat = false;
+				}
+			
+			}
+		}
+	
+		while (window.pollEvent(evento))
+		{
+
+			switch (evento.type)
+			{
+			case sf::Event::Closed:
+				window.close();
+				break;
+			case sf::Event::KeyPressed:
+				if (evento.key.code == sf::Keyboard::Escape)
+					window.close();
+				else if (evento.key.code == sf::Keyboard::Return)
+				{
+					////////////////////
+					if (chat) {
+
+						sf::Packet packet;
+						////////////////////------------------------------------------------
+						std::string s_mensaje;
+
+						if (mensaje == "exit") {
+							s_mensaje = "Chat finalizado";
+						}
+						else {
+							s_mensaje = mensaje;
+						}
+						packet << s_mensaje;
+						if (aSock.size() > 0) {
+							for (int i = 0; i < aSock.size(); i++) {
+								status = aSock[i]->send(packet);
+								//status = socket.send(packet);
+							}
+						}
+						else {
+							status = socket.send(packet);
+						}
+						shared_cout(mensaje, false);
+
+						if (status != sf::Socket::Done)
+						{
+							if (status == sf::Socket::Error)
+								shared_cout("Ha fallado el envio", false);
+							else if (status == sf::Socket::Disconnected)
+								shared_cout("Disconnected", false);
+						}
+
+						if (mensaje == "exit") {
+							chat = false;
+							if (aSock.size() > 0) {
+								for (int i = 0; i < aSock.size(); i++) {
+									aSock[i]->disconnect();
+								}
+							}else
+								socket.disconnect();
+						}
+					}
+					///////////////////
+					if (aMensajes.size() > 25)
+					{
+						aMensajes.erase(aMensajes.begin(), aMensajes.begin() + 1);
+					}
+					mensaje = "";
+				}
+				break;
+			case sf::Event::TextEntered:
+				if (evento.text.unicode >= 32 && evento.text.unicode <= 126)
+					mensaje += (char)evento.text.unicode;
+				else if (evento.text.unicode == 8 && mensaje.getSize() > 0)
+					mensaje.erase(mensaje.getSize() - 1, mensaje.getSize());
+				break;
+			}
+		}
+
+		window.draw(separator);
+		for (size_t i = 0; i < aMensajes.size(); i++)
+		{
+			std::string chatting = aMensajes[i];
+			chattingText.setPosition(sf::Vector2f(0, 20 * i));
+			chattingText.setString(chatting);
+			window.draw(chattingText);
+		}
+
+		std::string mensaje_ = mensaje + "_";
+		text.setString(mensaje_);
+		window.draw(text);
+
+
+		window.display();
+		window.clear();
+	}
+}
 
 
 //--------------------------------------------------------------------------------------------------------------------------------
-/*
-//CHAT CON BLOCKING I SELECTORS
+
+/*//CHAT CON BLOCKING I SELECTORS
 #include <SFML\Network.hpp>
 #include <iostream>
 #include <list>
@@ -570,5 +846,4 @@ int main()
 		exit(0);
 	}
 
-}
-*/
+}*/
