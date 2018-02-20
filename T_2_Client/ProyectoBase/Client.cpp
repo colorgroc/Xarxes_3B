@@ -42,6 +42,8 @@ void thread_dataReceived() {
 		status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos
 		if (status == sf::Socket::Disconnected) {
 			chat = false;
+			state = 0;
+			//socket.disconnect();
 			break;
 		}
 		else if (status != sf::Socket::Done)
@@ -58,27 +60,32 @@ void thread_dataReceived() {
 }
 
 void ThreadingAndBlockingChat() {
-	
+
 		status = socket.connect("localhost", puerto, sf::milliseconds(15.f)); //bloqueo durante un tiempo
-		if (status != sf::Socket::Done)
+		if (status == sf::Socket::Error)
 		{
-			std::cout << "No se ha podido conectar" << std::endl;
+			std::cout << "No se ha podido conectar. Error." << std::endl;
+
+		}
+		else if (status == sf::Socket::Disconnected) {
+			std::cout << "No se ha podido conectar. Disconnected." << std::endl;
+			state = 0;
+			//socket.disconnect();
 		}
 		else {
 			chat = true;
+			std::string texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
+			std::cout << texto;
 		}
 
 	//se muestra por pantalla con quien se ha hecho la conexion, tanto en el server como en el cliente
-	std::string texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
-	std::cout << texto;
-
+	
 
 	std::thread t1(&thread_dataReceived);
 	////////////////////////////////
 
 	sf::RenderWindow window;
 	sf::Vector2i screenDimensions(800, 600);
-
 
 	window.create(sf::VideoMode(screenDimensions.x, screenDimensions.y), "Chat");
 
@@ -131,20 +138,23 @@ void ThreadingAndBlockingChat() {
 						}
 						status = socket.send(s_mensaje.c_str(), s_mensaje.length());
 
-						shared_cout(mensaje, false);
-
 						if (status != sf::Socket::Done)
 						{
-							if (status == sf::Socket::Error)
+							if (status == sf::Socket::Error) 
 								shared_cout("Ha fallado el envio", false);
-							if (status == sf::Socket::Disconnected)
+							if (status == sf::Socket::Disconnected) {
 								shared_cout("Disconnected", false);
+								state = 0;
+								//socket.disconnect();
+							}
+						} else shared_cout(mensaje, false);
 
-						}
 						if (mensaje == "exit") {
 							chat = false;
-							socket.disconnect();
 							t1.join();
+							state = 0;
+							//socket.disconnect();
+							
 						}
 					}
 					///////////////////
@@ -193,7 +203,11 @@ int main()
 		ThreadingAndBlockingChat();
 		break;
 
-	default:
+	case 0:
+		socket.disconnect();
+		system("pause");
 		break;
 	}
+	
+	return 0;
 }

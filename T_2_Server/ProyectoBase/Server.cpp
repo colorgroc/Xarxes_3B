@@ -11,7 +11,6 @@
 #define MAX_CLIENTS 10
 
 int state = 1;
-
 sf::TcpSocket socket;
 std::vector<sf::TcpSocket*> aSock;
 
@@ -41,6 +40,8 @@ void thread_dataReceived() {
 		status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos
 		if (status == sf::Socket::Disconnected) {
 			chat = false;
+			state = 0;
+			//socket.disconnect();
 			break;
 		}
 		else if (status != sf::Socket::Done)
@@ -95,14 +96,19 @@ void ThreadingAndBlockingChat() {
 		{
 			if (status == sf::Socket::Error)
 				shared_cout("Ha fallado el envio", false);
-			if (status == sf::Socket::Disconnected)
+			
+			if (status == sf::Socket::Disconnected) {
 				shared_cout("Disconnected", false);
+				state = 0;
+				//socket.disconnect();
+			}
 
 		}
 		if (textoAEnviar == "exit") {
 			chat = false;
 			t1.join();
-			socket.disconnect();
+			state = 0;
+			//socket.disconnect();
 		}
 	}
 
@@ -118,10 +124,11 @@ int main()
 	case 1:
 		ThreadingAndBlockingChat();
 		break;
-	default:
+	case 0:
+		//t1.join();
+		socket.disconnect();
+		system("pause");
 		break;
 	}
-
-	system("pause");
 	return 0;
 }

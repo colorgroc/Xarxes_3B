@@ -1,4 +1,3 @@
-﻿  Main.cpp
-d:\projects\c++\xarxes_3b\t_1\proyectobase\main.cpp(157): warning C4244: 'argumento': conversión de 'float' a 'sf::Int32'; posible pérdida de datos
-d:\projects\c++\xarxes_3b\t_1\proyectobase\main.cpp(181): warning C4244: 'argumento': conversión de '::size_t' a 'float'; posible pérdida de datos
-  ProyectoBase.vcxproj -> D:\Projects\C++\Xarxes_3B\T_1\x64\Debug\ProyectoBase.exe
+﻿  Server.cpp
+  ProyectoBase.vcxproj -> C:\Users\aponce\Desktop\Xarxes\Xarxes_3B\T_2_Server\x64\Debug\ProyectoBase.exe
+  ProyectoBase.vcxproj -> C:\Users\aponce\Desktop\Xarxes\Xarxes_3B\T_2_Server\x64\Debug\ProyectoBase.pdb (Partial PDB)
