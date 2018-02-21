@@ -1,181 +1,185 @@
-//TALLER 2 - ANNA PONCE I MARC SEGARRA
+﻿//TALLER 2 - ANNA PONCE I MARC SEGARRA
 
 #include <SFML\Graphics.hpp>
 #include <SFML\Network.hpp>
 #include <string>
 #include <iostream>
 #include <vector>
-#include <thread>
 #include <mutex>
+#include <thread>
 
-#define MAX_CLIENTS 10
+#define MAX_CLIENTS 2
 
-sf::TcpSocket socket;
-std::vector<sf::TcpSocket*> aSock;
+#define NEW_CONNECTION 1
+#define DISCONNECTED 2
+
+enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED } bingo;
+
+bool online;
 
 int puerto = 50000;
 
 sf::Socket::Status status;
 std::mutex myMutex;
 
-bool chat;
 std::string textoAEnviar = "";
+
+sf::TcpListener listener;
+sf::SocketSelector selector;
+std::vector<sf::TcpSocket*> clients;
 
 
 void shared_cout(std::string msg, bool received) {
 	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
 
-	if (msg != "") { //fer aqui q si el msg == tal msg, q envii noseq?
-		if (received) { 
-			std::cout << ("Mensaje recibido: " + msg) << std::endl; 
-			textoAEnviar = msg; 
-		}
+	if (msg != "") {
+		if (received) { std::cout << ("Mensaje recibido: " + msg) << std::endl; }
 		else { std::cout << (msg) << std::endl; }
 	}
 }
 
-void thread_dataReceived() {
-
-	while (true) {
-		char buffer[100];
-		size_t bytesReceived;
-		status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos
-		if (status == sf::Socket::Disconnected) {
-			chat = false;
-			//state = 0;
-			socket.disconnect();
-			break;
-		}
-		else if (status != sf::Socket::Done)
+void NotifyAllClients(int option, sf::TcpSocket *newclient) {
+	
+	//cuando se conecte un nuevo cliente
+	if (option == NEW_CONNECTION) {
+		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
 		{
-			shared_cout("Ha fallado la recepcion de datos ", false);
-		}
-		else {
-			buffer[bytesReceived] = '\0';
-			shared_cout(buffer, true); //se muestra por pantalla lo recibido
-		}
-
-	}
-}
-
-void SendChat() {
-
-	std::getline(std::cin, textoAEnviar);
-	if (textoAEnviar == "exit") {
-		textoAEnviar = "Chat finalizado";
-		chat = false;
-	}
-
-	size_t bSent;
-	//fer for q recorri llista de clients conectats i reenviarelshi el msg que hem rebut excepte a qiu ens el ha enviat --> aixo ultim no cal si no imprimim el msg per pantalla al client ehehhe
-	status = socket.send(textoAEnviar.c_str(), textoAEnviar.length(), bSent);
-
-	if (status != sf::Socket::Done)
-	{
-		if (status == sf::Socket::Error)
-			shared_cout("Ha fallado el envio", false);
-		else if (status == sf::Socket::Disconnected)
-			shared_cout("Disconnected", false);
-		else if (status == sf::Socket::Partial) {
-			while (bSent < textoAEnviar.size()) {
-				std::string msgRest = "";
-				for (size_t i = bSent; i < textoAEnviar.size(); i++) {
-					msgRest = textoAEnviar[i];
-				}
-				socket.send(msgRest.c_str(), msgRest.size(), bSent);
+			sf::TcpSocket& client = **it;
+			if (newclient->getRemotePort() != client.getRemotePort()) {
+				textoAEnviar = "Llega el cliente con puerto: " + std::to_string(newclient->getRemotePort());
+				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 			}
 		}
 	}
-
-	if (textoAEnviar == "exit" || textoAEnviar == "Chat finalizado") {
-		chat = false;
-		socket.disconnect();
+	else if (option == DISCONNECTED) {
+		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+		{
+			sf::TcpSocket& client = **it;
+			if (newclient->getRemotePort() != client.getRemotePort()) {
+				textoAEnviar = "Se a desconectado el cliente con puerto: " + std::to_string(newclient->getRemotePort());
+				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
+			}
+		}
 	}
+	
+	//cuando se desconecta un cliente
 }
 
-void Send(std::string textoAEnviar) {
 
-	size_t bSent;
-	//fer for q recorri llista de clients conectats i reenviarelshi el msg que hem rebut excepte a qiu ens el ha enviat --> aixo ultim no cal si no imprimim el msg per pantalla al client ehehhe
-	status = socket.send(textoAEnviar.c_str(), textoAEnviar.length(), bSent);
+void WaitforDataOnAnySocket() {
 
-	if (status != sf::Socket::Done)
+	// Endless loop that waits for new connections
+	while (online)
 	{
-		if (status == sf::Socket::Error)
-			shared_cout("Ha fallado el envio", false);
-		else if (status == sf::Socket::Disconnected)
-			shared_cout("Disconnected", false);
-		else if (status == sf::Socket::Partial) {
-			while (bSent < textoAEnviar.size()) {
-				std::string msgRest = "";
-				for (size_t i = bSent; i < textoAEnviar.size(); i++) {
-					msgRest = textoAEnviar[i];
+		// Make the selector wait for data on any socket
+		if (selector.wait())
+		{
+			// Test the listener
+			if (selector.isReady(listener))
+			{
+				// The listener is ready: there is a pending connection
+				sf::TcpSocket* client = new sf::TcpSocket;
+				if (listener.accept(*client) == sf::Socket::Done)
+				{
+					// Add the new client to the clients list
+					shared_cout("Llega el cliente con puerto: " + std::to_string(client->getRemotePort()), false);
+					clients.push_back(client);
+					NotifyAllClients(NEW_CONNECTION,client);
+					// Add the new client to the selector so that we will
+					// be notified when he sends something
+					selector.add(*client);
 				}
-				socket.send(msgRest.c_str(), msgRest.size(), bSent);
+				else
+				{
+					// Error, we won't get a new connection, delete the socket
+					shared_cout("Error al recoger conexion nueva", false);
+					delete client;
+				}
+			}
+			else
+			{
+				// The listener socket is not ready, test all other sockets (the clients)
+				for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+				{
+					sf::TcpSocket& client = **it;
+					if (selector.isReady(client))
+					{
+						// The client has sent some data, we can receive it
+						char buffer[100];
+						size_t bytesReceived;
+						status = client.receive(buffer, 100, bytesReceived);
+						if (status == sf::Socket::Done)
+						{
+							buffer[bytesReceived] = '\0';
+							std::cout << buffer << " del puerto " << client.getRemotePort() << std::endl;
+						}
+						else if (status == sf::Socket::Disconnected)
+						{
+							NotifyAllClients(DISCONNECTED, &client);
+							selector.remove(client);
+							shared_cout("Elimino el socket que se ha desconectado", false);
+						}
+						else
+						{
+							shared_cout("Error al recibir de " + std::to_string(client.getRemotePort()), false);
+						}
+					}
+				}
 			}
 		}
 	}
 }
 
+void ControlServidor()
+{
 
-
-void Receive() {
-	char buffer[100];
-	size_t bytesReceived;
-
-	status = socket.receive(buffer, 100, bytesReceived);
-
-	if (status == sf::Socket::Done)
-	{
-		buffer[bytesReceived] = '\0';
-		shared_cout(buffer, true);
-		//Send(textoAEnviar);
-	}
-	else if (status == sf::Socket::Disconnected)
-	{
-		shared_cout("Desconectado", false);
-		chat = false;
-		//fer socket.disconnect?
-	}
-}
-
-void NonBlockingChat() {
-	sf::TcpListener listener;
-	status = listener.listen(puerto);
+	// Create a socket to listen to new connections
+	status = listener.listen(50000);
 	if (status != sf::Socket::Done)
 	{
-		std::cout << "No se puede vincular con el puerto" << std::endl;
+		std::cout << "Error al abrir listener\n";
+		exit(0);
 	}
-
-	if (listener.accept(socket) != sf::Socket::Done) //se queda bloquado el thread hasta que m'envien una connexio --> pq no bloquegi: listener.setblocking(false) --> aixo es non-blocking
-	{
-		std::cout << "Error al aceptar conexion" << std::endl;
-	}
-	else {
-		chat = true;
-		std::string texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
-		std::cout << texto;
-	}
-
-	listener.close();
-	socket.setBlocking(false);
-
-	while (chat) {
-		Receive();	
-	}
+	// Add the listener to the selector
+	selector.add(listener);
 }
 
 
 
 int main()
 {
-	std::cout << "�Server online... \n";
+	online = true;
+	std::cout << "¿Server online... \n";
 	textoAEnviar = "";
-	//posar bool notConected?
-	NonBlockingChat();
 
-	//si notConected fer lu d sota?
-	socket.disconnect();
+	ControlServidor();
+	std::thread t1(&WaitforDataOnAnySocket);
+
+	bingo = WAIT_FOR_ALL_PLAYERS;
+
+	do {
+
+		switch (bingo)
+		{
+		case WAIT_FOR_ALL_PLAYERS:
+			if (clients.size() == MAX_CLIENTS) {
+				bingo = ALL_PLAYERS_CONNECTED;
+			}
+			break;
+
+		case ALL_PLAYERS_CONNECTED:
+			break;
+
+		case GAME_HAS_STARTED:
+			break;
+
+		default:
+			break;
+		}
+
+
+	} while (online);
+
 	system("pause");
 	return 0;
 }
