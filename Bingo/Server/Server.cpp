@@ -17,7 +17,7 @@ enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED }
 
 bool online;
 
-int puerto = 50000;
+int puerto = 5000;
 
 sf::Socket::Status status;
 std::mutex myMutex;
@@ -46,7 +46,7 @@ void NotifyAllClients(int option, sf::TcpSocket *newclient) {
 		{
 			sf::TcpSocket& client = **it;
 			if (newclient->getRemotePort() != client.getRemotePort()) {
-				textoAEnviar = "Llega el cliente con puerto: " + std::to_string(newclient->getRemotePort());
+				textoAEnviar = "Se ha conectado el cliente con puerto " + std::to_string(newclient->getRemotePort());
 				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 			}
 		}
@@ -56,13 +56,28 @@ void NotifyAllClients(int option, sf::TcpSocket *newclient) {
 		{
 			sf::TcpSocket& client = **it;
 			if (newclient->getRemotePort() != client.getRemotePort()) {
-				textoAEnviar = "Se a desconectado el cliente con puerto: " + std::to_string(newclient->getRemotePort());
+				textoAEnviar = "Se a desconectado el cliente con puerto " + std::to_string(newclient->getRemotePort());
 				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 			}
 		}
 	}
 	
 	//cuando se desconecta un cliente
+}
+
+void SendToAllClients(sf::TcpSocket *cliente, std::string msg) {
+	for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		sf::TcpSocket& client = **it;
+		if (cliente->getRemotePort() != client.getRemotePort()) {
+			textoAEnviar = "Mensaje de " + std::to_string(cliente->getRemotePort()) + ": " + msg;
+			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
+		}
+		/*else {
+			textoAEnviar = "Yo: " + msg;
+			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
+		}*/
+	}
 }
 
 
@@ -82,7 +97,7 @@ void WaitforDataOnAnySocket() {
 				if (listener.accept(*client) == sf::Socket::Done)
 				{
 					// Add the new client to the clients list
-					shared_cout("Llega el cliente con puerto: " + std::to_string(client->getRemotePort()), false);
+					shared_cout("Se ha conectado el cliente con puerto " + std::to_string(client->getRemotePort()), false);
 					clients.push_back(client);
 					NotifyAllClients(NEW_CONNECTION,client);
 					// Add the new client to the selector so that we will
@@ -111,13 +126,16 @@ void WaitforDataOnAnySocket() {
 						if (status == sf::Socket::Done)
 						{
 							buffer[bytesReceived] = '\0';
-							std::cout << buffer << " del puerto " << client.getRemotePort() << std::endl;
+							std::cout << "Mensaje del puerto " << client.getRemotePort() << ": " << buffer << std::endl;
+							//aqui reenviar info als altres clients
+							SendToAllClients(&client, buffer);
 						}
 						else if (status == sf::Socket::Disconnected)
 						{
 							NotifyAllClients(DISCONNECTED, &client);
+							
+							shared_cout("Se a desconectado el cliente con puerto " + std::to_string(client.getRemotePort()), false);
 							selector.remove(client);
-							shared_cout("Elimino el socket que se ha desconectado", false);
 						}
 						else
 						{
@@ -134,7 +152,7 @@ void ControlServidor()
 {
 
 	// Create a socket to listen to new connections
-	status = listener.listen(50000);
+	status = listener.listen(puerto);
 	if (status != sf::Socket::Done)
 	{
 		std::cout << "Error al abrir listener\n";
@@ -149,7 +167,7 @@ void ControlServidor()
 int main()
 {
 	online = true;
-	std::cout << "¿Server online... \n";
+	std::cout << "Server online... \n";
 	textoAEnviar = "";
 
 	ControlServidor();

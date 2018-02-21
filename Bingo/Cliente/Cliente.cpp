@@ -9,12 +9,16 @@
 
 #define MAX_MENSAJES 25
 
+#define RECEIVED 1
+#define WRITED 2
+#define CONNECTION 3
+
 int state = 1;
 
 sf::TcpSocket socket;
 std::vector<sf::TcpSocket*> aSock;
 
-int puerto = 50000;
+int puerto = 5000;
 
 sf::Socket::Status status;
 std::mutex myMutex;
@@ -24,21 +28,27 @@ std::vector<std::string> aMensajes;
 sf::String mensaje;
 
 
-void shared_cout(std::string msg, bool received) {
+void shared_cout(std::string msg, int option) {
 	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
 
 	if (msg != "") {
-		if (received) { aMensajes.push_back("Mensaje recibido: " + msg); }
-		else { aMensajes.push_back(msg); }
+		//if (received) { aMensajes.push_back("Mensaje recibido: " + msg); }
+		if (option == RECEIVED || option == CONNECTION) { aMensajes.push_back(msg); }
+		else if(option == WRITED) { aMensajes.push_back("Yo: " + msg); }
 	}
 }
 
 void NonBlockingChat() {
 
 	status = socket.connect("localhost", puerto, sf::milliseconds(15.f)); //bloqueo durante un tiempo
-	if (status != sf::Socket::Done)
+	if (status == sf::Socket::Error)
 	{
-		std::cout << "No se ha podido conectar" << std::endl;
+		std::cout << "No se ha podido conectar con el servidor. Reintentelo de nuevo." << std::endl;
+	}
+	else if (status == sf::Socket::Disconnected)
+	{
+		std::cout << "Servidor desconectado." << std::endl;
+		state = 0;
 	}
 	else {
 		chat = true;
@@ -60,12 +70,12 @@ void NonBlockingChat() {
 	}
 
 	mensaje = "";
-
+	//msgs mostrados
 	sf::Text chattingText(mensaje, font, 14);
 	chattingText.setFillColor(sf::Color(255, 160, 0));
 	chattingText.setStyle(sf::Text::Bold);
 
-
+	//msg q escribes
 	sf::Text text(mensaje, font, 14);
 	text.setFillColor(sf::Color(0, 191, 255));
 	text.setStyle(sf::Text::Italic);
@@ -88,11 +98,12 @@ void NonBlockingChat() {
 			if (status == sf::Socket::Done)
 			{
 				buffer[bytesReceived] = '\0';
-				shared_cout(buffer, true); 
+				shared_cout(buffer, RECEIVED); 
 			}
 			else if (status == sf::Socket::Disconnected)
 			{
-				shared_cout("Desconectado", false); 
+				//std::cout << "Servidor desconectado" << std::endl;
+				shared_cout("Servidor desconectado", CONNECTION); 
 				chat = false;
 			}
 		}
@@ -127,10 +138,12 @@ void NonBlockingChat() {
 						if (status != sf::Socket::Done)
 						{
 							if (status == sf::Socket::Error) {
-								shared_cout("Ha fallado el envio", false);
+								//std::cout << "Ha fallado el envio." << std::endl;
+								shared_cout("Ha fallado el envio.", CONNECTION);
 							}	
 							else if (status == sf::Socket::Disconnected) {
-								shared_cout("Disconnected", false);
+								//std::cout << "Servidor desconectado" << std::endl;
+								shared_cout("Servidor desconectado.", CONNECTION);
 							}
 							else if (status == sf::Socket::Partial) {
 								
@@ -142,7 +155,7 @@ void NonBlockingChat() {
 									socket.send(msgRest.c_str(), msgRest.size(), bSent);
 								}
 							}
-						} else shared_cout(mensaje, false);
+						} else shared_cout(mensaje, WRITED);
 
 						if (mensaje == "exit") {
 							chat = false;
