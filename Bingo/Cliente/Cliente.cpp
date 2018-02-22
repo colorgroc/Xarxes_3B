@@ -125,13 +125,15 @@ void NonBlockingChat() {
 						std::string s_mensaje;
 						size_t bSent;
 
+					
+
 						if (mensaje == "exit") {
-							s_mensaje = "Chat finalizado";
+							s_mensaje = "Disconnected";
 						}
 						else {
 							s_mensaje = mensaje;
 						}
-
+						//s_mensaje = mensaje;
 						status = socket.send(s_mensaje.c_str(), s_mensaje.length(), bSent);
 						
 

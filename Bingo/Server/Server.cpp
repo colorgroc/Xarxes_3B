@@ -44,7 +44,7 @@ void NotifyAllClients(int option, sf::TcpSocket *newclient) {
 		{
 			sf::TcpSocket& client = **it;
 			if (newclient->getRemotePort() != client.getRemotePort()) {
-				textoAEnviar = "Se ha conectado el cliente con puerto " + std::to_string(newclient->getRemotePort());
+				textoAEnviar = "Se ha conectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n";
 				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 			}
 		}
@@ -55,7 +55,7 @@ void NotifyAllClients(int option, sf::TcpSocket *newclient) {
 		{
 			sf::TcpSocket& client = **it;
 			if (newclient->getRemotePort() != client.getRemotePort()) {
-				textoAEnviar = "Se a desconectado el cliente con puerto " + std::to_string(newclient->getRemotePort());
+				textoAEnviar = "Se ha desconectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n";
 				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 			}
 		}
@@ -69,8 +69,10 @@ void SendToAllClients(sf::TcpSocket *fromclient, std::string msg) {
 	{
 		sf::TcpSocket& client = **it;
 		if (fromclient->getRemotePort() != client.getRemotePort()) {
-			textoAEnviar = "Mensaje de " + std::to_string(fromclient->getRemotePort()) + ": " + msg;
-			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
+			if (msg != "Disconnected") {
+				textoAEnviar = "Mensaje de " + std::to_string(fromclient->getRemotePort()) + ": " + msg + "\n";
+				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
+			}
 		}
 		/*else {
 			textoAEnviar = "Yo: " + msg;
