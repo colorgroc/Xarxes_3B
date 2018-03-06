@@ -13,6 +13,7 @@
 #define WRITED 2
 #define CONNECTION 3
 
+enum stateGame {GAME_HASNT_STARTED,  GAME_HAS_STARTED, GAME_HAS_FINISHED } bingo;
 int state = 1;
 
 sf::TcpSocket socket;
@@ -23,16 +24,52 @@ int puerto = 5000;
 sf::Socket::Status status;
 std::mutex myMutex;
 
-bool chat;
 std::vector<std::string> aMensajes;
 sf::String mensaje;
 
+inline bool isInteger(const std::string & s)  //https://stackoverflow.com/questions/2844817/how-do-i-check-if-a-c-string-is-an-int
+{
+	if (s.empty() || ((!isdigit(s[0])) && (s[0] != '-') && (s[0] != '+'))) return false;
+
+	char * p;
+	strtol(s.c_str(), &p, 10);
+
+	return (*p == 0);
+}
 
 void shared_cout(std::string msg, int option) {
 
 	if (msg != "") {
-		//if (received) { aMensajes.push_back("Mensaje recibido: " + msg); }
-		if (option == RECEIVED || option == CONNECTION) { aMensajes.push_back(msg); }
+
+		if (option == RECEIVED) { 
+			//cojer el commad i mostrar un texto segun lo enviado
+			std::string delimiter = "_"; //s'utilitza aquest delimitador per separa commad del msg
+			std::string command = msg.substr(0, msg.find(delimiter)); //command
+			msg.erase(0, msg.find(delimiter) + delimiter.length()); //msg te el misatge sense el commad
+
+			if (command == "READYTOPLAY") {
+				//cambiar estat del bingo
+				//mostrar per pantalla el missatge que ha començat la partida
+			}
+			if (command == "BINGO") {
+				//mostar que el jugador ha guanyat
+				//cambiar estat del bingo a acabat
+			}
+			else if (command == "LINE") {
+				//mostar que el jugador ha fet linia
+			}
+			else if (command == "BOTE") {
+				//mostar que el jugador el bote
+			}
+			else if (command == "NUMBER") {
+				//mostar al jugador el nou numero
+			}
+			else if (command == "MESSAGE") {
+				aMensajes.push_back(msg);
+			}
+		
+		}
+		if (option == CONNECTION) { aMensajes.push_back(msg); }
 		else if(option == WRITED) { aMensajes.push_back("Yo: " + msg); }
 	}
 }
@@ -50,7 +87,6 @@ void NonBlockingChat() {
 		state = 0;
 	}
 	else {
-		chat = true;
 		std::string texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
 		std::cout << texto;
 	}
@@ -88,24 +124,28 @@ void NonBlockingChat() {
 	{
 		sf::Event evento;
 
-		if (chat) {
+		
+		//sempre escoltem, tant si ha començat el joc com si no
+		if (bingo != GAME_HAS_FINISHED) {
 			char buffer[100];
 			size_t bytesReceived;
 
-			status = socket.receive(buffer, 100, bytesReceived); 
+			status = socket.receive(buffer, 100, bytesReceived);
 
 			if (status == sf::Socket::Done)
 			{
 				buffer[bytesReceived] = '\0';
-				shared_cout(buffer, RECEIVED); 
+				shared_cout(buffer, RECEIVED);
 			}
 			else if (status == sf::Socket::Disconnected)
 			{
 				//std::cout << "Servidor desconectado" << std::endl;
-				shared_cout("Servidor desconectado", CONNECTION); 
-				chat = false;
+				shared_cout("Servidor desconectado", CONNECTION);
+				bingo = GAME_HAS_FINISHED;
 			}
 		}
+		
+		
 
 		while (window.pollEvent(evento))
 		{
@@ -119,19 +159,39 @@ void NonBlockingChat() {
 					window.close();
 				else if (evento.key.code == sf::Keyboard::Return)
 				{
-					if (chat) {
+					std::string s_mensaje;
+					size_t bSent;
+
+					if (mensaje == "exit") { //puedes salir siempre que quieras
+						s_mensaje = "Disconnected";
+					}
+
+					if (bingo != GAME_HAS_FINISHED) {
 						////////////////////
-						std::string s_mensaje;
-						size_t bSent;
+						//segons el que escriu el jugador per consola s'envia un command mes el missatge
+						 if (bingo == GAME_HAS_STARTED) {
+							if (mensaje == "line") {
+								s_mensaje = "LINE_";
+								s_mensaje.append(mensaje);
 
-						if (mensaje == "exit") {
-							s_mensaje = "Disconnected";
-						}
-						else {
-							s_mensaje = "MESSAGE_";
-							s_mensaje.append(mensaje);
+							}
+							else if (mensaje == "bingo") {
+								s_mensaje = "BINGO_";
+								s_mensaje.append(mensaje);
 
+							}
+							else if (isInteger(mensaje)) {
+								s_mensaje = "NUMBER_";
+								s_mensaje.append(mensaje);
+
+							}
+							else {
+								s_mensaje = "MESSAGE_";
+								s_mensaje.append(mensaje);
+
+							}
 						}
+						
 					
 						status = socket.send(s_mensaje.c_str(), s_mensaje.length(), bSent);
 						
@@ -159,7 +219,7 @@ void NonBlockingChat() {
 						} else shared_cout(mensaje, WRITED);
 
 						if (mensaje == "exit") {
-							chat = false;
+							bingo = GAME_HAS_FINISHED;
 							socket.disconnect();
 						}
 					}
@@ -203,17 +263,14 @@ void NonBlockingChat() {
 int main()
 {
 	std::cout << "Estableciendo conexion con server... \n";
-
+	bingo = GAME_HASNT_STARTED;
 	switch (state)
 	{
 	case 1:
 		NonBlockingChat();
 		break;
-	case 0:
-		socket.disconnect();
-		system("pause");
-		break;
 	}
 
+	system("pause");
 	return 0;
 }

@@ -81,7 +81,7 @@ void SendToAllOrClientDueReceivedMsg(sf::TcpSocket *fromclient, std::string msg)
 			sf::TcpSocket& client = **it;
 			if (fromclient->getRemotePort() != client.getRemotePort()) {
 				if (msg != "Disconnected") {
-					textoAEnviar = "Mensaje de " + std::to_string(fromclient->getRemotePort()) + ": " + msg + "\n";
+					textoAEnviar = "MESSAGE_Mensaje de " + std::to_string(fromclient->getRemotePort()) + ": " + msg + "\n";
 					status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 				}
 			}
