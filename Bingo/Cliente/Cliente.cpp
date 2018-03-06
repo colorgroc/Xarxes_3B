@@ -29,7 +29,6 @@ sf::String mensaje;
 
 
 void shared_cout(std::string msg, int option) {
-	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
 
 	if (msg != "") {
 		//if (received) { aMensajes.push_back("Mensaje recibido: " + msg); }
@@ -125,15 +124,15 @@ void NonBlockingChat() {
 						std::string s_mensaje;
 						size_t bSent;
 
-					
-
 						if (mensaje == "exit") {
 							s_mensaje = "Disconnected";
 						}
 						else {
-							s_mensaje = mensaje;
+							s_mensaje = "MESSAGE_";
+							s_mensaje.append(mensaje);
+
 						}
-						//s_mensaje = mensaje;
+					
 						status = socket.send(s_mensaje.c_str(), s_mensaje.length(), bSent);
 						
 

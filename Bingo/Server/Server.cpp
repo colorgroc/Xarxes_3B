@@ -13,7 +13,7 @@
 #define NEW_CONNECTION 1
 #define DISCONNECTED 2
 
-enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED } bingo;
+enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED, GAME_HAS_FINISHED } bingo;
 
 bool online;
 
@@ -36,7 +36,7 @@ void shared_cout(std::string msg) {
 
 }
 
-void NotifyAllClients(int option, sf::TcpSocket *newclient) {
+void NotifyAllClients_ConnectedOrDisconnected(int option, sf::TcpSocket *newclient) {
 	
 	//cuando se conecte un nuevo cliente
 	if (option == NEW_CONNECTION) {
@@ -63,22 +63,32 @@ void NotifyAllClients(int option, sf::TcpSocket *newclient) {
 	
 }
 
-void SendToAllClients(sf::TcpSocket *fromclient, std::string msg) {
+void SendToAllOrClient(sf::TcpSocket *fromclient, std::string msg) {
 	
-	for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-	{
-		sf::TcpSocket& client = **it;
-		if (fromclient->getRemotePort() != client.getRemotePort()) {
-			if (msg != "Disconnected") {
-				textoAEnviar = "Mensaje de " + std::to_string(fromclient->getRemotePort()) + ": " + msg + "\n";
-				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
+	std::string delimiter = "_";
+	std::string command = msg.substr(0, msg.find(delimiter));
+	msg.erase(0, msg.find(delimiter) + delimiter.length());
+
+	if (command == "MESSAGE") {
+		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+		{
+			sf::TcpSocket& client = **it;
+			if (fromclient->getRemotePort() != client.getRemotePort()) {
+				if (msg != "Disconnected") {
+					textoAEnviar = "Mensaje de " + std::to_string(fromclient->getRemotePort()) + ": " + msg + "\n";
+					status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
+				}
 			}
 		}
-		/*else {
-			textoAEnviar = "Yo: " + msg;
-			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
-		}*/
 	}
+
+	if (command == "NUMBER") {
+		//textoAEnviar = "Yo: " + msg;
+		//status = fromclient->send(textoAEnviar.c_str(), textoAEnviar.length());
+	}
+	if (command == "LINE") {}
+	if (command == "BINGO") {}
+	
 }
 
 
@@ -100,7 +110,7 @@ void WaitforDataOnAnySocket() {
 					// Add the new client to the clients list
 					shared_cout("Se ha conectado el cliente con puerto " + std::to_string(client->getRemotePort()));
 					clients.push_back(client);
-					NotifyAllClients(NEW_CONNECTION,client);
+					NotifyAllClients_ConnectedOrDisconnected(NEW_CONNECTION,client);
 					// Add the new client to the selector so that we will
 					// be notified when he sends something
 					selector.add(*client);
@@ -128,12 +138,12 @@ void WaitforDataOnAnySocket() {
 						{
 							buffer[bytesReceived] = '\0';
 							shared_cout("Mensaje del puerto " + std::to_string(client.getRemotePort()) + ": " + buffer);
-							//aqui reenviar info als altres clients
-							SendToAllClients(&client, buffer);
+							//segons missatge rebut que envio i quines comprobacions faig?
+							SendToAllOrClient(&client, buffer);
 						}
 						else if (status == sf::Socket::Disconnected)
 						{
-							NotifyAllClients(DISCONNECTED, &client);
+							NotifyAllClients_ConnectedOrDisconnected(DISCONNECTED, &client);
 							
 							shared_cout("Se a desconectado el cliente con puerto " + std::to_string(client.getRemotePort()));
 							selector.remove(client);
