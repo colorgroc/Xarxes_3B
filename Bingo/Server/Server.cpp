@@ -8,6 +8,9 @@
 #include <mutex>
 #include <thread>
 
+#include "Game.cpp"
+#include "Player.cpp"
+
 #define MAX_CLIENTS 2
 
 #define NEW_CONNECTION 1
@@ -27,6 +30,8 @@ std::string textoAEnviar = "";
 sf::TcpListener listener;
 sf::SocketSelector selector;
 std::vector<sf::TcpSocket*> clients;
+
+Game *myGame;
 
 
 void shared_cout(std::string msg) {
@@ -63,12 +68,13 @@ void NotifyAllClients_ConnectedOrDisconnected(int option, sf::TcpSocket *newclie
 	
 }
 
-void SendToAllOrClient(sf::TcpSocket *fromclient, std::string msg) {
+void SendToAllOrClientDueReceivedMsg(sf::TcpSocket *fromclient, std::string msg) {
 	
-	std::string delimiter = "_";
-	std::string command = msg.substr(0, msg.find(delimiter));
-	msg.erase(0, msg.find(delimiter) + delimiter.length());
+	std::string delimiter = "_"; //s'utilitza aquest delimitador per separa commad del msg
+	std::string command = msg.substr(0, msg.find(delimiter)); //command
+	msg.erase(0, msg.find(delimiter) + delimiter.length()); //msg te el misatge sense el commad
 
+	//chat
 	if (command == "MESSAGE") {
 		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
 		{
@@ -83,11 +89,37 @@ void SendToAllOrClient(sf::TcpSocket *fromclient, std::string msg) {
 	}
 
 	if (command == "NUMBER") {
-		//textoAEnviar = "Yo: " + msg;
-		//status = fromclient->send(textoAEnviar.c_str(), textoAEnviar.length());
+		//segons la posicio del client dins el vector s'agafa el player
+		//es comprova si el numero el te a la cartilla
+		//si es verdader s'envia la cartilla al jugador actualitzada
+		////si es fals enviem al jugador que no es veritat i no cal actualitzar la cartilla
+
 	}
-	if (command == "LINE") {}
-	if (command == "BINGO") {}
+	if (command == "LINE") {
+		//segons la posicio del client dins el vector s'agafa el player
+		//es comprova si el jugador ha fet linia
+		//si es verdader s'envia linia a tots els jugadors
+		//si es fals enviem al client que ha enviat linia que no es veritat
+	}
+	if (command == "BINGO") {
+		//segons la posicio del client dins el vector s'agafa el player
+		//es comprova si el jugador ha fet bingo
+		//si es verdader s'envia bingo a tots els jugadors, al jugador que ha guanyat li donem el bote
+		//si es fals enviem al client que ha enviat bingo que no es veritat
+	}
+}
+
+void SendToAllOrClientDueStateGame(std::string command) {
+
+	if (command == "READYTOPLAY_") {
+		//recorrer tota la llista de clients i envia que ha començat la partida
+	}
+	if (command == "BOTE_") {
+		//enviar a tots els clients el bote 
+	}
+	if (command == "NUMBER_") {
+		//enviar a tots els clients el nou numero random
+	}
 	
 }
 
@@ -110,6 +142,9 @@ void WaitforDataOnAnySocket() {
 					// Add the new client to the clients list
 					shared_cout("Se ha conectado el cliente con puerto " + std::to_string(client->getRemotePort()));
 					clients.push_back(client);
+
+					//nova conexio, s'ha de crear un nou player local i posar-lo dintre del vector de jugadors
+
 					NotifyAllClients_ConnectedOrDisconnected(NEW_CONNECTION,client);
 					// Add the new client to the selector so that we will
 					// be notified when he sends something
@@ -138,14 +173,18 @@ void WaitforDataOnAnySocket() {
 						{
 							buffer[bytesReceived] = '\0';
 							shared_cout("Mensaje del puerto " + std::to_string(client.getRemotePort()) + ": " + buffer);
-							//segons missatge rebut que envio i quines comprobacions faig?
-							SendToAllOrClient(&client, buffer);
+							//segons missatge rebut que envio?
+							SendToAllOrClientDueReceivedMsg(&client, buffer);
 						}
 						else if (status == sf::Socket::Disconnected)
 						{
 							NotifyAllClients_ConnectedOrDisconnected(DISCONNECTED, &client);
 							
 							shared_cout("Se a desconectado el cliente con puerto " + std::to_string(client.getRemotePort()));
+
+							//s'ha de borrar el client del vector de clients
+							//s'ha de borrar el jugador del vector de jugadors
+
 							selector.remove(client);
 						}
 						else
@@ -186,6 +225,8 @@ int main()
 
 	bingo = WAIT_FOR_ALL_PLAYERS;
 
+	//creacio de la partida, crear objecte bingo (new)
+
 	do {
 
 		switch (bingo)
@@ -194,14 +235,29 @@ int main()
 			if (clients.size() == MAX_CLIENTS) {
 				bingo = ALL_PLAYERS_CONNECTED;
 			}
+			//ha cada nova connexio notificar als altres jugador ja conectats (ja es fa)
 			break;
 
 		case ALL_PLAYERS_CONNECTED:
+			//enviar a tots els cilentes que la partida ha començat (READYTOPLAY_)
+			//treure els diners de la aposta inicial de cada jugador
+			//enviar a tots els jugadors el bote total (BOTE_)
+			//enviar a tots els jugadors la seva cartilla 
+			// (a partir d'aqui els jugadors ja poden començar a parlar amb el servidor)
+			bingo = GAME_HAS_STARTED;
 			break;
 
 		case GAME_HAS_STARTED:
+			//cada cert temps (5 segons)
+			//enviem els numeros random a tots els jugadors (NUMBER_)
+			//escoltem continuament els missatges de tots els jugadors i actuem en consequencia (ja es fa)
+			//recorrem la llista de jugadors i si algun te la variable bingo a true es canvia l'estat del switch a GAME_HAS_FINISHED
+			bingo = GAME_HAS_FINISHED;
 			break;
 
+		case GAME_HAS_FINISHED:
+			//es notifica a tots els jugadors que la partida a acabat (ja s'ha dit a tots els jugadors qui ha guanyat)
+				break;
 		default:
 			break;
 		}
