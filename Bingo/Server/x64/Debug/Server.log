@@ -1,2 +1,4 @@
 ﻿  Server.cpp
-  Server.vcxproj -> D:\Projects\C++\Xarxes_3B\Bingo\x64\Debug\Server.exe
+e:\apunts anna\enti\xarxes_3b\bingo\server\player.cpp(28): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+  LINK : no se encontró E:\APUNTS ANNA\ENTI\Xarxes_3B\Bingo\x64\Debug\Server.exe o no lo generó el último vínculo incremental; ejecutando vínculo completo
+  Server.vcxproj -> E:\APUNTS ANNA\ENTI\Xarxes_3B\Bingo\x64\Debug\Server.exe
