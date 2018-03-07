@@ -56,6 +56,8 @@ void shared_cout(std::string msg, int option) {
 			if (command == "READYTOPLAY") {
 				//cambiar estat del bingo
 				//mostrar per pantalla el missatge que ha començat la partida
+				bingo = GAME_HAS_STARTED;
+				aMensajes.push_back("The game has started");
 			}
 			if (command == "BINGO") {
 				//mostar que el jugador ha guanyat
@@ -66,6 +68,7 @@ void shared_cout(std::string msg, int option) {
 			}
 			else if (command == "BOTE") {
 				//mostar que el jugador el bote
+				aMensajes.push_back("Pot:" + msg);
 			}
 			else if (command == "NUMBER") {
 				//mostar al jugador el nou numero
@@ -212,6 +215,10 @@ void NonBlockingChat() {
 
 							}
 						}
+						 else if (bingo == GAME_HASNT_STARTED) {
+							 s_mensaje = "MESSAGE_";
+							 s_mensaje.append(mensaje);
+						 }
 						
 					
 						status = socket.send(s_mensaje.c_str(), s_mensaje.length(), bSent);

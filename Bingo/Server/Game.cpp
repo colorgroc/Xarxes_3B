@@ -8,6 +8,8 @@
 
 #include "Player.cpp"
 
+#define INITIAL_BET 100
+
 class Game {
 
 	std::vector<Player> players;
@@ -31,7 +33,7 @@ public:
 		//eliminar de la llista segons el numero
 		//(deixar pel final, quan el joc funcioni)
 		int pos = _player.getNumberPlayer();
-		players.erase(players.begin + pos); //tambe s'ha de actualitzar la llista de clients
+		players.erase(players.begin() + pos); //tambe s'ha de actualitzar la llista de clients
 	}
 
 	int RandomWithoutRepetiton() {
@@ -59,12 +61,16 @@ public:
 		return inside;
 	}
 
-	int CalculatePot(int _initalBet) {
+	void CalculatePot() {
 		//per cada jugador treure la aposta inicial del seu compte
 		//actualitzar bote
 		for (std::vector<Player>::iterator it = players.begin(); it != players.end(); ++it) {
-			bote += _initalBet;
-			it->setMoney(_initalBet);
+			bote += INITIAL_BET;
+			it->setMoney(INITIAL_BET);
 		}
+	}
+
+	int getPot() {
+		return bote;
 	}
 };

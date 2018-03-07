@@ -50,6 +50,7 @@ void NotifyAllClients_ConnectedOrDisconnected(int option, sf::TcpSocket *newclie
 			sf::TcpSocket& client = **it;
 			if (newclient->getRemotePort() != client.getRemotePort()) {
 				textoAEnviar = "Se ha conectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n";
+
 				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 			}
 		}
@@ -72,7 +73,7 @@ void SendToAllOrClientDueReceivedMsg(sf::TcpSocket *fromclient, std::string msg)
 	
 	std::string delimiter = "_"; //s'utilitza aquest delimitador per separa commad del msg
 	std::string command = msg.substr(0, msg.find(delimiter)); //command
-	msg.erase(0, msg.find(delimiter) + delimiter.length()); //msg te el misatge sense el commad
+	msg.erase(0, msg.find(delimiter) + delimiter.length()); //msg te el misatge sense el command
 
 	//chat
 	if (command == "MESSAGE") {
@@ -113,11 +114,30 @@ void SendToAllOrClientDueStateGame(std::string command) {
 
 	if (command == "READYTOPLAY_") {
 		//recorrer tota la llista de clients i envia que ha començat la partida
+		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+		{
+			sf::TcpSocket& client = **it;
+			
+			textoAEnviar = "READYTOPLAY_";
+			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
+			
+		}
 	}
 	if (command == "BOTE_") {
 		//enviar a tots els clients el bote 
+		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+		{
+			sf::TcpSocket& client = **it;
+
+			textoAEnviar = "BOTE_" + std::to_string(myGame->getPot());
+			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
+
+		}
 	}
 	if (command == "NUMBER_") {
+		//enviar a tots els clients el nou numero random
+	}
+	if (command == "BOOK_") {
 		//enviar a tots els clients el nou numero random
 	}
 	
@@ -144,6 +164,8 @@ void WaitforDataOnAnySocket() {
 					clients.push_back(client);
 
 					//nova conexio, s'ha de crear un nou player local i posar-lo dintre del vector de jugadors
+					Player tempPlayer(clients.size()-1); //restem -1 a causa de erase del vector (mirar server) //https://stackoverflow.com/questions/875103/how-do-i-erase-an-element-from-stdvector-by-index
+					myGame->addNewPlayerToList(tempPlayer);
 
 					NotifyAllClients_ConnectedOrDisconnected(NEW_CONNECTION,client);
 					// Add the new client to the selector so that we will
@@ -182,8 +204,10 @@ void WaitforDataOnAnySocket() {
 							
 							shared_cout("Se a desconectado el cliente con puerto " + std::to_string(client.getRemotePort()));
 
+							//(HACER MAS ADELANTE)
 							//s'ha de borrar el client del vector de clients
 							//s'ha de borrar el jugador del vector de jugadors
+				
 
 							selector.remove(client);
 						}
@@ -226,6 +250,7 @@ int main()
 	bingo = WAIT_FOR_ALL_PLAYERS;
 
 	//creacio de la partida, crear objecte bingo (new)
+	myGame = new Game();
 
 	do {
 
@@ -244,6 +269,10 @@ int main()
 			//enviar a tots els jugadors el bote total (BOTE_)
 			//enviar a tots els jugadors la seva cartilla 
 			// (a partir d'aqui els jugadors ja poden començar a parlar amb el servidor)
+			SendToAllOrClientDueStateGame("READYTOPLAY_");
+			myGame->CalculatePot();
+			SendToAllOrClientDueStateGame("BOTE_");
+			//SendToAllOrClientDueStateGame("BOOK_");
 			bingo = GAME_HAS_STARTED;
 			break;
 
@@ -252,7 +281,7 @@ int main()
 			//enviem els numeros random a tots els jugadors (NUMBER_)
 			//escoltem continuament els missatges de tots els jugadors i actuem en consequencia (ja es fa)
 			//recorrem la llista de jugadors i si algun te la variable bingo a true es canvia l'estat del switch a GAME_HAS_FINISHED
-			bingo = GAME_HAS_FINISHED;
+			//bingo = GAME_HAS_FINISHED;
 			break;
 
 		case GAME_HAS_FINISHED:
