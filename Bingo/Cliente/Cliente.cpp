@@ -13,6 +13,12 @@
 #define WRITED 2
 #define CONNECTION 3
 
+#define ROWS_BOOK 4
+#define COLUMNS_BOOK 2
+
+int book[ROWS_BOOK][COLUMNS_BOOK];
+sf::String mensajeBook;
+
 enum stateGame {GAME_HASNT_STARTED,  GAME_HAS_STARTED, GAME_HAS_FINISHED } bingo;
 int state = 1;
 
@@ -95,8 +101,13 @@ void NonBlockingChat() {
 
 	sf::RenderWindow window;
 	sf::Vector2i screenDimensions(800, 600);
-
 	window.create(sf::VideoMode(screenDimensions.x, screenDimensions.y), "Chat");
+
+	//creacio de segona pantalla que mostra sempre la cartilla del jugador
+	sf::RenderWindow windowBook;
+	sf::Vector2i screenDimensionsBook(300, 300);
+	windowBook.create(sf::VideoMode(screenDimensionsBook.x, screenDimensionsBook.y), "MyBook");
+	mensajeBook = "";
 
 	sf::Font font;
 	if (!font.loadFromFile("calibri.ttf"))
@@ -105,12 +116,12 @@ void NonBlockingChat() {
 	}
 
 	mensaje = "";
-	//msgs mostrados
+	//msgs mostrados chat
 	sf::Text chattingText(mensaje, font, 14);
 	chattingText.setFillColor(sf::Color(255, 160, 0));
 	chattingText.setStyle(sf::Text::Bold);
 
-	//msg q escribes
+	//msg que escribes chat
 	sf::Text text(mensaje, font, 14);
 	text.setFillColor(sf::Color(0, 191, 255));
 	text.setStyle(sf::Text::Italic);
@@ -119,6 +130,16 @@ void NonBlockingChat() {
 	sf::RectangleShape separator(sf::Vector2f(800, 5));
 	separator.setFillColor(sf::Color(255, 0, 0, 255));
 	separator.setPosition(0, 550);
+	
+	///////
+	sf::Text bookText(mensajeBook, font, 14);
+	bookText.setFillColor(sf::Color(255, 255, 255));
+	bookText.setStyle(sf::Text::Bold);
+	
+	bookText.setString(mensajeBook);
+	windowBook.draw(bookText);
+	windowBook.display();
+	///////
 
 	while (window.isOpen())
 	{
