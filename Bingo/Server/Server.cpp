@@ -49,7 +49,7 @@ void NotifyAllClients_ConnectedOrDisconnected(int option, sf::TcpSocket *newclie
 		{
 			sf::TcpSocket& client = **it;
 			if (newclient->getRemotePort() != client.getRemotePort()) {
-				textoAEnviar = "Se ha conectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n";
+				textoAEnviar = "MESSAGE_Se ha conectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n";
 
 				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 			}
@@ -61,7 +61,7 @@ void NotifyAllClients_ConnectedOrDisconnected(int option, sf::TcpSocket *newclie
 		{
 			sf::TcpSocket& client = **it;
 			if (newclient->getRemotePort() != client.getRemotePort()) {
-				textoAEnviar = "Se ha desconectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n";
+				textoAEnviar = "MESSAGE_Se ha desconectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n";
 				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 			}
 		}
