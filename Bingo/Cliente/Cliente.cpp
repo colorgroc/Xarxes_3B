@@ -48,34 +48,67 @@ void shared_cout(std::string msg, int option) {
 	if (msg != "") {
 
 		if (option == RECEIVED) { 
-			//cojer el commad i mostrar un texto segun lo enviado
-			std::string delimiter = "_"; //s'utilitza aquest delimitador per separa commad del msg
-			std::string command = msg.substr(0, msg.find(delimiter)); //command
-			msg.erase(0, msg.find(delimiter) + delimiter.length()); //msg te el misatge sense el commad
+				//cojer el commad i mostrar un texto segun lo enviado
+				std::string delimiter = "_"; //s'utilitza aquest delimitador per separa commad del msg
+				size_t pos = 0;
+				std::string token;
+				std::vector<std::string> allcommands;
+				std::vector<std::string> alldata;
+				
+				int count = 0;
+				bool flipflop = false;
+				
+				std::vector<int>::iterator it;
 
-			if (command == "READYTOPLAY") {
-				//cambiar estat del bingo
-				//mostrar per pantalla el missatge que ha començat la partida
-				bingo = GAME_HAS_STARTED;
-				aMensajes.push_back("The game has started");
-			}
-			if (command == "BINGO") {
-				//mostar que el jugador ha guanyat
-				//cambiar estat del bingo a acabat
-			}
-			else if (command == "LINE") {
-				//mostar que el jugador ha fet linia
-			}
-			else if (command == "BOTE") {
-				//mostar que el jugador el bote
-				aMensajes.push_back("Pot:" + msg);
-			}
-			else if (command == "NUMBER") {
-				//mostar al jugador el nou numero
-			}
-			else if (command == "MESSAGE") {
-				aMensajes.push_back(msg);
-			}
+				//per manejar multiples missatges enviats, vaig separan amb els limitadors i vaig omplint els dos vectors amb les dades agafades 
+				while ((pos = msg.find(delimiter)) != std::string::npos) {
+					token = msg.substr(0, pos);
+					if(!flipflop){
+						allcommands.push_back(token); count++; flipflop = true;
+					}
+					else { alldata.push_back(token); flipflop = false; }
+					msg.erase(0, pos + delimiter.length());
+					
+				}
+				
+
+				for (int i = 0; i < count; i++) {
+
+					std::string command = allcommands[i];
+					std::string msg = alldata[i];
+
+
+					if (command == "READYTOPLAY") {
+						//cambiar estat del bingo
+						//mostrar per pantalla el missatge que ha començat la partida
+						bingo = GAME_HAS_STARTED;
+						aMensajes.push_back("The game has started. " + msg);
+					}
+					if (command == "BINGO") {
+						//mostar que el jugador ha guanyat
+						//cambiar estat del bingo a acabat
+					}
+					else if (command == "LINE") {
+						//mostar que el jugador ha fet linia
+					}
+					else if (command == "BOTE") {
+						//mostar que el jugador el bote
+						aMensajes.push_back("Pot:" + msg);
+						
+					}
+					else if (command == "NUMBER") {
+						//mostar al jugador el nou numero
+					}
+					else if (command == "BOOK") {
+						//mostar al jugador el nou numero
+						mensajeBook.clear();
+						mensajeBook = msg;
+					}
+					else if (command == "MESSAGE") {
+						aMensajes.push_back(msg);
+					}
+				}
+				
 		
 		}
 		if (option == CONNECTION) { aMensajes.push_back(msg); }
@@ -138,23 +171,18 @@ void NonBlockingChat() {
 	sf::Text bookText(mensajeBook, font, 14);
 	bookText.setFillColor(sf::Color(255, 255, 255));
 	bookText.setStyle(sf::Text::Bold);
-	
-	bookText.setString(mensajeBook);
-	windowBook.draw(bookText);
-	windowBook.display();
 	///////
 
 	while (window.isOpen())
 	{
 		sf::Event evento;
-
 		
 		//sempre escoltem, tant si ha començat el joc com si no
 		if (bingo != GAME_HAS_FINISHED) {
-			char buffer[100];
+			char buffer[200];
 			size_t bytesReceived;
 
-			status = socket.receive(buffer, 100, bytesReceived);
+			status = socket.receive(buffer, 200, bytesReceived);
 
 			if (status == sf::Socket::Done)
 			{
@@ -281,10 +309,17 @@ void NonBlockingChat() {
 		std::string mensaje_ = mensaje + "_";
 		text.setString(mensaje_);
 		window.draw(text);
-
-
+		
 		window.display();
 		window.clear();
+
+		//// cartilla
+		bookText.setString(mensajeBook);
+		windowBook.draw(bookText);
+		windowBook.display();
+		windowBook.clear();
+
+		
 	}
 }
 

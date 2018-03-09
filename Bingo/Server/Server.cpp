@@ -11,7 +11,7 @@
 #include "Game.cpp"
 #include "Player.cpp"
 
-#define MAX_CLIENTS 2
+#define MAX_CLIENTS 1
 
 #define NEW_CONNECTION 1
 #define DISCONNECTED 2
@@ -49,7 +49,7 @@ void NotifyAllClients_ConnectedOrDisconnected(int option, sf::TcpSocket *newclie
 		{
 			sf::TcpSocket& client = **it;
 			if (newclient->getRemotePort() != client.getRemotePort()) {
-				textoAEnviar = "MESSAGE_Se ha conectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n";
+				textoAEnviar = "MESSAGE_Se ha conectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n_";
 
 				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 			}
@@ -61,7 +61,7 @@ void NotifyAllClients_ConnectedOrDisconnected(int option, sf::TcpSocket *newclie
 		{
 			sf::TcpSocket& client = **it;
 			if (newclient->getRemotePort() != client.getRemotePort()) {
-				textoAEnviar = "MESSAGE_Se ha desconectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n";
+				textoAEnviar = "MESSAGE_Se ha desconectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n_";
 				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 			}
 		}
@@ -82,7 +82,7 @@ void SendToAllOrClientDueReceivedMsg(sf::TcpSocket *fromclient, std::string msg)
 			sf::TcpSocket& client = **it;
 			if (fromclient->getRemotePort() != client.getRemotePort()) {
 				if (msg != "Disconnected") {
-					textoAEnviar = "MESSAGE_Mensaje de " + std::to_string(fromclient->getRemotePort()) + ": " + msg + "\n";
+					textoAEnviar = "MESSAGE_Mensaje de " + std::to_string(fromclient->getRemotePort()) + ": " + msg + "\n_";
 					status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 				}
 			}
@@ -118,7 +118,7 @@ void SendToAllOrClientDueStateGame(std::string command) {
 		{
 			sf::TcpSocket& client = **it;
 			
-			textoAEnviar = "READYTOPLAY_";
+			textoAEnviar = "READYTOPLAY_GO!_";
 			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 			
 		}
@@ -129,7 +129,7 @@ void SendToAllOrClientDueStateGame(std::string command) {
 		{
 			sf::TcpSocket& client = **it;
 
-			textoAEnviar = "BOTE_" + std::to_string(myGame->getPot());
+			textoAEnviar = "BOTE_" + std::to_string(myGame->getPot())+ "\n_";
 			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 
 		}
@@ -138,7 +138,20 @@ void SendToAllOrClientDueStateGame(std::string command) {
 		//enviar a tots els clients el nou numero random
 	}
 	if (command == "BOOK_") {
-		//enviar a tots els clients el nou numero random
+		//enviar a tots els clients la seva cartilla
+		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+		{
+			sf::TcpSocket& client = **it;
+			
+			for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
+			{
+				if (it->getPlayerInfo()->getRemotePort() == client.getRemotePort()) {
+					textoAEnviar = "BOOK_" + it->bookReadyToSend() + "_";
+					shared_cout(it->bookReadyToSend());
+					client.send(textoAEnviar.c_str(), textoAEnviar.length());
+				}
+			}
+		}
 	}
 	
 }
@@ -164,7 +177,7 @@ void WaitforDataOnAnySocket() {
 					clients.push_back(client);
 
 					//nova conexio, s'ha de crear un nou player local i posar-lo dintre del vector de jugadors
-					Player tempPlayer(clients.size()-1); //restem -1 a causa de erase del vector (mirar server) //https://stackoverflow.com/questions/875103/how-do-i-erase-an-element-from-stdvector-by-index
+					Player tempPlayer(client); //restem -1 a causa de erase del vector (mirar server) //https://stackoverflow.com/questions/875103/how-do-i-erase-an-element-from-stdvector-by-index
 					myGame->addNewPlayerToList(tempPlayer);
 
 					NotifyAllClients_ConnectedOrDisconnected(NEW_CONNECTION,client);
@@ -272,7 +285,7 @@ int main()
 			SendToAllOrClientDueStateGame("READYTOPLAY_");
 			myGame->CalculatePot();
 			SendToAllOrClientDueStateGame("BOTE_");
-			//SendToAllOrClientDueStateGame("BOOK_");
+			SendToAllOrClientDueStateGame("BOOK_");
 			bingo = GAME_HAS_STARTED;
 			break;
 

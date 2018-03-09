@@ -5,6 +5,7 @@
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 #include <vector>
+#include <SFML\Network.hpp>
 
 #define INITIAL_MONEY 200
 #define ROWS_BOOK 2
@@ -13,7 +14,7 @@
 
 class Player {
 private:
-	int numberPlayer;
+	sf::TcpSocket* clientInfo;
 	int book[ROWS_BOOK][COLUMNS_BOOK];
 	bool bingo;
 	bool line;
@@ -22,24 +23,32 @@ private:
 	int randomNumber;
 public:
 	
-	Player(int _numberPlayer) {
-		numberPlayer = _numberPlayer;
+	Player(sf::TcpSocket*  _clientInfo) {
 		
+		clientInfo = _clientInfo;
 		//construir la cartilla amb numeros sense repeticio
-		srand(time(NULL));
 		std::vector<int> alreadyInsideBook;
-
+		
+		/*srand(time(NULL));
 		for (int i = 0; i <= ROWS_BOOK; i++) {
 			for (int j = 0; j <= COLUMNS_BOOK; j++) {
 				
 				while (CheckWithoutRepetition(alreadyInsideBook, rand() % BINGO_90 + 1)) {
 					//find another random number, already inside
 				}
-				
+			
 				alreadyInsideBook.push_back(randomNumber);
-				book[i][j] = randomNumber;
+				book[i][j] = h;
+			}
+		}*/
+
+		for (int i = 0; i <= ROWS_BOOK; i++) {
+			for (int j = 0; j <= COLUMNS_BOOK; j++) {
+				book[i][j] = 1;
 			}
 		}
+
+		
 		bingo = false;
 		line = false;
 		money = INITIAL_MONEY;
@@ -101,9 +110,9 @@ public:
 		money += _moneyToSubOrAdd;
 	}
 
-	int getNumberPlayer() {
+	sf::TcpSocket* getPlayerInfo() {
 		//retornar el numero del jugador
-		return numberPlayer;
+		return clientInfo;
 	}
 
 	std::string bookReadyToSend() {

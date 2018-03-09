@@ -12,12 +12,13 @@
 
 class Game {
 
-	std::vector<Player> players;
 	std::vector<int> alreadyPickUp;
 	int bote;
 	int currentNumberToPlay;
 
 public:
+	std::vector<Player> players;
+
 	Game() {
 		bote = 0;
 		currentNumberToPlay = 0;
@@ -32,8 +33,8 @@ public:
 		//agafar el numero del jugador
 		//eliminar de la llista segons el numero
 		//(deixar pel final, quan el joc funcioni)
-		int pos = _player.getNumberPlayer();
-		players.erase(players.begin() + pos); //tambe s'ha de actualitzar la llista de clients
+		//int pos = _player.getNumberPlayer();
+		//players.erase(players.begin() + pos); //tambe s'ha de actualitzar la llista de clients
 	}
 
 	int RandomWithoutRepetiton() {
