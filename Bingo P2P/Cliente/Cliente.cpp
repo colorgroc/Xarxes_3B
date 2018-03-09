@@ -19,7 +19,7 @@ struct DIRECTIONS {
 	unsigned short PORT;
 };
 int numPlayers;
-std::vector<sf::TcpSocket> aPeers;
+std::vector<sf::TcpSocket*> aPeers;
 sf::Socket::Status status;
 sf::Packet packet;
 sf::String mensaje;
@@ -27,6 +27,7 @@ sf::TcpSocket sock;
 std::vector<DIRECTIONS> aDir;
 std::vector<std::string> aMensajes;
 std::string textoAEnviar = "";
+size_t bSent;
 
 void shared_cout(std::string msg, int option) {
 	//std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
@@ -39,10 +40,10 @@ void shared_cout(std::string msg, int option) {
 }
 
 sf::Socket::Status SendToAllPeers(std::string msg, size_t bSent) {
-	for (std::vector<sf::TcpSocket>::iterator it = aPeers.begin(); it != aPeers.end(); ++it)
+	for (std::vector<sf::TcpSocket*>::iterator it = aPeers.begin(); it != aPeers.end(); ++it)
 	{
 		sf::Socket::Status status;
-		sf::TcpSocket& aPeer = *it;
+		sf::TcpSocket& aPeer = **it;
 			if (msg != "Disconnected") {
 				textoAEnviar = "Mensaje de " + std::to_string(sock.getLocalPort()) + ": " + msg + "\n";
 				status = aPeer.send(textoAEnviar.c_str(), textoAEnviar.length(), bSent);
@@ -59,23 +60,26 @@ int main()
 
 	if (sock.connect("localhost", PUERTO) != sf::Socket::Done) {
 		std::cout << "Error de connexion";
-	} else std::cout << "Connected...";
-	if (sock.receive(packet) != sf::Socket::Done) {
-		std::cout << "No se recibió el mensaje o Desconnexion.";
+	} else std::cout << "Connected..." << std::endl;
+	//if (sock.receive(packet) != sf::Socket::Done) {
+		//std::cout << "No se recibió el mensaje o Desconnexion.";
+	//}
+	if(sock.receive(packet) == sf::Socket::Done)
+		sock.disconnect();
+	//else {
+	
+	packet >> numPlayers;
+	std::cout << numPlayers << std::endl;
+	for (int i = 0; i < numPlayers; i++) {
+		DIRECTIONS dir;
+		packet >> dir.IP >> dir.PORT;
+		aDir.push_back(dir);
 	}
-	else {
-		int numPlayers;
-		packet >> numPlayers;
-		for (int i = 0; i < numPlayers; i++) { //aqui nose com tractar-ho
-			DIRECTIONS dir;
-			packet >> dir.IP >> dir.PORT;
-			aDir.push_back(dir);
-		}
-	}
+	//}
 	for (int i = 0; i < aDir.size(); i++) {
 		sf::TcpSocket* sockAux = new sf::TcpSocket;
 		if (sockAux->connect(aDir[i].IP, aDir[i].PORT) == sf::Socket::Done) {
-			aPeers.push_back(*sockAux);
+			aPeers.push_back(sockAux);
 		}
 	}
 
@@ -85,14 +89,14 @@ int main()
 		for (int i = aPeers.size(); i < NUM_PLAYERS; i++) { //nose si lu de i = aPeers.size esta be...al apunts he copiat i = size XD
 			sf::TcpSocket* sockAux = new sf::TcpSocket;
 			if (listener.accept(*sockAux) == sf::Socket::Done) {
-				aPeers.push_back(*sockAux);
+				aPeers.push_back(sockAux);
 			}
 		}
 		listener.close();
 	}
 
 	//chat
-	/*-------------------------------------------------------------*/
+
 
 	sock.setBlocking(false);
 
@@ -131,7 +135,7 @@ int main()
 		for (int i = 0; i < aPeers.size(); i++) {
 			char buffer[100];
 			size_t bytesReceived;
-			status = aPeers[i].receive(buffer, 100, bytesReceived);
+			status = aPeers[i]->receive(buffer, 100, bytesReceived);
 			if (status == sf::Socket::Done) {
 				buffer[bytesReceived] = '\0';
 				shared_cout(buffer, RECEIVED);
@@ -139,6 +143,7 @@ int main()
 			else if (status == sf::Socket::Disconnected)
 			{
 				shared_cout("Servidor desconectado", CONNECTION);
+				//eliminar ese socket--> aPeers.erase(i);
 				window.close();
 			}
 		}
@@ -156,7 +161,7 @@ int main()
 				else if (evento.key.code == sf::Keyboard::Return)
 				{
 					std::string s_mensaje;
-					size_t bSent;
+					
 
 					if (mensaje == "exit") { //puedes salir siempre que quieras
 						s_mensaje = "Disconnected";
