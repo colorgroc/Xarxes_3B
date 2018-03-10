@@ -68,12 +68,16 @@ public:
 
 		return lineNumber;
 	}
-	bool CheckNumber(int _numberToCheck) {
+	bool CheckNumber(int _numberToCheck, int _currentNumberPlaying) {
 		//comprobar si a la cartilla hi ha el mateix numero
 		//si hi és, actualitzem la cartilla posant el numero en negatiu
 		for (int i = 0; i <  ROWS_BOOK * COLUMNS_BOOK; i++) {
 		
-				if (book[i] == _numberToCheck) { book[i] = -_numberToCheck; return true; }
+				if (book[i] == _numberToCheck && _numberToCheck == _currentNumberPlaying) 
+				{ 
+					book[i] = -_numberToCheck; 
+					return true; 
+				}
 		}
 		return false;
 	}

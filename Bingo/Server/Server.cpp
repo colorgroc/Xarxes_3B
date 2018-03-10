@@ -13,7 +13,7 @@
 #include "Game.cpp"
 #include "Player.cpp"
 
-#define MAX_CLIENTS 1
+#define MAX_CLIENTS 2
 
 #define NEW_CONNECTION 1
 #define DISCONNECTED 2
@@ -91,10 +91,22 @@ void SendToAllOrClientDueReceivedMsg(sf::TcpSocket *fromclient, std::string msg)
 	}
 
 	if (command == "NUMBER") {
-		//segons la posicio del client dins el vector s'agafa el player
+		//s'agafa el player que ha enviat el numero
 		//es comprova si el numero el te a la cartilla
 		//si es verdader s'envia la cartilla al jugador actualitzada
 		////si es fals enviem al jugador que no es veritat i no cal actualitzar la cartilla
+		for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
+		{
+			if (it->getPlayerInfo()->getRemotePort() == fromclient->getRemotePort()) {
+				if (it->CheckNumber(std::stoi(msg), myGame->getCurrentNumberPlaying())) {
+					textoAEnviar = "BOOK_" + it->bookReadyToSend() + "_";
+				}
+				else {
+					textoAEnviar = "MESSAGE_The number is incorrect_";
+				}
+				fromclient->send(textoAEnviar.c_str(), textoAEnviar.length());
+			}
+		}
 
 	}
 	if (command == "LINE") {
@@ -137,11 +149,12 @@ void SendToAllOrClientDueStateGame(std::string command) {
 	}
 	if (command == "NUMBER_") {
 		//enviar a tots els clients el nou numero random
+		int temp = myGame->RandomWithoutRepetiton();
 		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
 		{
 			sf::TcpSocket& client = **it;
 
-			textoAEnviar = "NUMBER_" + std::to_string(myGame->RandomWithoutRepetiton()) + "\n_";
+			textoAEnviar = "NUMBER_" + std::to_string(temp) + "\n_";
 			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
 
 		}
@@ -258,7 +271,7 @@ void WaitforDataOnAnySocket() {
 void EveryTimeThrowNumber() {
 
 	while (bingo != GAME_HAS_FINISHED) {
-		std::this_thread::sleep_for(std::chrono::seconds(5));
+		std::this_thread::sleep_for(std::chrono::seconds(10));
 		if (bingo == GAME_HAS_STARTED) {
 			SendToAllOrClientDueStateGame("NUMBER_");
 		}

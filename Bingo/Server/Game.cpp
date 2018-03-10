@@ -74,4 +74,8 @@ public:
 	int getPot() {
 		return bote;
 	}
+
+	int getCurrentNumberPlaying() {
+		return currentNumberToPlay;
+	}
 };
