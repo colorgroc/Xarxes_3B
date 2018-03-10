@@ -81,7 +81,6 @@ void shared_cout(std::string msg, int option) {
 					std::string command = allcommands[i];
 					std::string msg = alldata[i];
 
-
 					if (command == "READYTOPLAY") {
 						//cambiar estat del bingo
 						//mostrar per pantalla el missatge que ha començat la partida
@@ -91,6 +90,8 @@ void shared_cout(std::string msg, int option) {
 					if (command == "BINGO") {
 						//mostar que el jugador ha guanyat
 						//cambiar estat del bingo a acabat
+						aMensajes.push_back(msg);
+						bingo = GAME_HAS_FINISHED;
 					}
 					else if (command == "LINE") {
 						//mostar que el jugador ha fet linia
@@ -116,6 +117,10 @@ void shared_cout(std::string msg, int option) {
 					}
 					else if (command == "MESSAGE") {
 						aMensajes.push_back(msg);
+						
+						if (msg == "You dont have bingo yet") {
+							bingo = GAME_HAS_FINISHED;
+						}
 					}
 				}
 				
@@ -146,7 +151,7 @@ void NonBlockingChat() {
 	socket.setBlocking(false);
 
 	sf::RenderWindow window;
-	sf::Vector2i screenDimensions(800, 600);
+	sf::Vector2i screenDimensions(400, 600);
 	window.create(sf::VideoMode(screenDimensions.x, screenDimensions.y), "Chat");
 
 	//creacio de segona pantalla que mostra sempre la cartilla del jugador

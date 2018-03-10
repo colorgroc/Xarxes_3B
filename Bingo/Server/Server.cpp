@@ -110,7 +110,6 @@ void SendToAllOrClientDueReceivedMsg(sf::TcpSocket *fromclient, std::string msg)
 
 	}
 	if (command == "LINE") {
-		//segons la posicio del client dins el vector s'agafa el player
 		//es comprova si el jugador ha fet linia
 		//si es verdader s'envia linia a tots els jugadors
 		//si es fals enviem al client que ha enviat linia que no es veritat
@@ -144,10 +143,38 @@ void SendToAllOrClientDueReceivedMsg(sf::TcpSocket *fromclient, std::string msg)
 
 	}
 	if (command == "BINGO") {
-		//segons la posicio del client dins el vector s'agafa el player
-		//es comprova si el jugador ha fet bingo
+		//es comprova si s'ha fet bingo
 		//si es verdader s'envia bingo a tots els jugadors, al jugador que ha guanyat li donem el bote
 		//si es fals enviem al client que ha enviat bingo que no es veritat
+		
+		bool tempIsBingo = false;
+
+		for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
+		{
+			if (it->getPlayerInfo()->getRemotePort() == fromclient->getRemotePort()) {
+				it->CheckBingo();
+				if (it->getBingo()) {
+					tempIsBingo = true;
+					textoAEnviar = "BINGO_Congratulations! You are the Winner!_";
+					fromclient->send(textoAEnviar.c_str(), textoAEnviar.length());
+					bingo = GAME_HAS_FINISHED;
+				}
+				else {
+					textoAEnviar = "MESSAGE_You dont have bingo yet_";
+					fromclient->send(textoAEnviar.c_str(), textoAEnviar.length());
+				}
+			}
+		}
+
+		if (tempIsBingo) {
+			for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
+			{
+				if (it->getPlayerInfo()->getRemotePort() != fromclient->getRemotePort()) {
+					textoAEnviar = "MESSAGE_The player " + std::to_string(fromclient->getRemotePort()) + " is the WINNER!_";
+					it->getPlayerInfo()->send(textoAEnviar.c_str(), textoAEnviar.length());
+				}
+			}
+		}
 	}
 }
 
@@ -306,7 +333,7 @@ void WaitforDataOnAnySocket() {
 void EveryTimeThrowNumber() {
 
 	while (bingo != GAME_HAS_FINISHED) {
-		std::this_thread::sleep_for(std::chrono::seconds(10));
+		std::this_thread::sleep_for(std::chrono::seconds(7));
 		if (bingo == GAME_HAS_STARTED) {
 			SendToAllOrClientDueStateGame("NUMBER_");
 		}
@@ -373,22 +400,13 @@ int main()
 			//cada cert temps
 			//enviem els numeros random a tots els jugadors (NUMBER_) (amb un thread)
 			//escoltem continuament els missatges de tots els jugadors i actuem en consequencia (ja es fa)
-			//recorrem la llista de jugadors i si algun te la variable bingo a true es canvia l'estat del switch a GAME_HAS_FINISHED
-			//bingo = GAME_HAS_FINISHED;
-
-			for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
-			{
-				if (it->getBingo()) {
-					bingo = GAME_HAS_FINISHED;
-				}
-			}
 
 			break;
 
 		case GAME_HAS_FINISHED:
 			//es notifica a tots els jugadors que la partida a acabat (ja s'ha dit a tots els jugadors qui ha guanyat)
 			SendToAllOrClientDueStateGame("GAMEFINISHED_");
-			online = false;
+			//online = false;
 				break;
 		default:
 			break;
