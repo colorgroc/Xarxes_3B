@@ -1,5 +1,4 @@
 //TALLER 2 - ANNA PONCE I MARC SEGARRA
-
 #include <SFML\Graphics.hpp>
 #include <SFML\Network.hpp>
 #include <string>

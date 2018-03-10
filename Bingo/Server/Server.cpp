@@ -11,7 +11,7 @@
 #include "Game.cpp"
 #include "Player.cpp"
 
-#define MAX_CLIENTS 1
+#define MAX_CLIENTS 2
 
 #define NEW_CONNECTION 1
 #define DISCONNECTED 2
@@ -147,7 +147,6 @@ void SendToAllOrClientDueStateGame(std::string command) {
 			{
 				if (it->getPlayerInfo()->getRemotePort() == client.getRemotePort()) {
 					textoAEnviar = "BOOK_" + it->bookReadyToSend() + "_";
-					shared_cout(it->bookReadyToSend());
 					client.send(textoAEnviar.c_str(), textoAEnviar.length());
 				}
 			}
