@@ -21,7 +21,7 @@ sf::String mensajeBook;
 enum stateGame {GAME_HASNT_STARTED,  GAME_HAS_STARTED, GAME_HAS_FINISHED } bingo;
 
 sf::TcpSocket socket;
-std::vector<sf::TcpSocket*> aSock;
+//std::vector<sf::TcpSocket*> aSock;
 
 int puerto = 5000;
 
@@ -52,7 +52,7 @@ void shared_cout(std::string msg, int option) {
 
 		if (option == RECEIVED) { 
 				//cojer el commad i mostrar un texto segun lo enviado
-				std::string delimiter = "_"; //s'utilitza aquest delimitador per separa commad del msg
+				std::string delimiter = "_"; //s'utilitza aquest delimitador per separar commad del msg
 				size_t pos = 0;
 				std::string token;
 				std::vector<std::string> allcommands;

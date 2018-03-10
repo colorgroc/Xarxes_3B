@@ -317,6 +317,11 @@ void WaitforDataOnAnySocket() {
 							//s'ha de borrar el jugador del vector de jugadors
 							
 							selector.remove(client);
+							for (int i = 0; i < myGame->players.size(); i++) {
+								if (myGame->players[i].getPlayerInfo() == &client) {
+									myGame->deletePlayerList(myGame->players[i]);
+								}
+							}
 						}
 						else
 						{
@@ -425,5 +430,6 @@ int main()
 	t1.join();
 	t2.join();
 	system("pause");
+	//system("exit");
 	return 0;
 }

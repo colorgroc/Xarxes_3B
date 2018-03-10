@@ -32,7 +32,11 @@ public:
 	void deletePlayerList(Player  _player) {
 		//agafar el numero del jugador
 		//eliminar de la llista segons el numero
-		//(deixar pel final, quan el joc funcioni)
+		for (int i = 0; i < players.size(); i++) {
+			if (_player.getPlayerInfo() == players[i].getPlayerInfo()) {
+				players.erase(players.begin() + i); 
+			}
+		}	
 	}
 
 	int RandomWithoutRepetiton() {
