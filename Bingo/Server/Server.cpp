@@ -7,11 +7,13 @@
 #include <vector>
 #include <mutex>
 #include <thread>
+#include <time.h>
+#include <chrono>
 
 #include "Game.cpp"
 #include "Player.cpp"
 
-#define MAX_CLIENTS 2
+#define MAX_CLIENTS 1
 
 #define NEW_CONNECTION 1
 #define DISCONNECTED 2
@@ -32,7 +34,6 @@ sf::SocketSelector selector;
 std::vector<sf::TcpSocket*> clients;
 
 Game *myGame;
-
 
 void shared_cout(std::string msg) {
 	
@@ -136,6 +137,14 @@ void SendToAllOrClientDueStateGame(std::string command) {
 	}
 	if (command == "NUMBER_") {
 		//enviar a tots els clients el nou numero random
+		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+		{
+			sf::TcpSocket& client = **it;
+
+			textoAEnviar = "NUMBER_" + std::to_string(myGame->RandomWithoutRepetiton()) + "\n_";
+			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
+
+		}
 	}
 	if (command == "BOOK_") {
 		//enviar a tots els clients la seva cartilla
@@ -150,6 +159,18 @@ void SendToAllOrClientDueStateGame(std::string command) {
 					client.send(textoAEnviar.c_str(), textoAEnviar.length());
 				}
 			}
+		}
+	}
+
+	if (command == "GAMEFINISHED_") {
+		//enviar a tots els clients el nou numero random
+		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+		{
+			sf::TcpSocket& client = **it;
+
+			textoAEnviar = "GAMEFINISHED_The game has finished!_";
+			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
+
 		}
 	}
 	
@@ -234,6 +255,17 @@ void WaitforDataOnAnySocket() {
 	}
 }
 
+void EveryTimeThrowNumber() {
+
+	while (bingo != GAME_HAS_FINISHED) {
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+		if (bingo == GAME_HAS_STARTED) {
+			SendToAllOrClientDueStateGame("NUMBER_");
+		}
+	}
+	
+}
+
 void ControlServidor()
 {
 
@@ -258,6 +290,7 @@ int main()
 
 	ControlServidor();
 	std::thread t1(&WaitforDataOnAnySocket);
+	std::thread t2(&EveryTimeThrowNumber);
 
 	bingo = WAIT_FOR_ALL_PLAYERS;
 
@@ -289,15 +322,25 @@ int main()
 			break;
 
 		case GAME_HAS_STARTED:
-			//cada cert temps (5 segons)
-			//enviem els numeros random a tots els jugadors (NUMBER_)
+			//cada cert temps
+			//enviem els numeros random a tots els jugadors (NUMBER_) (amb un thread)
 			//escoltem continuament els missatges de tots els jugadors i actuem en consequencia (ja es fa)
 			//recorrem la llista de jugadors i si algun te la variable bingo a true es canvia l'estat del switch a GAME_HAS_FINISHED
 			//bingo = GAME_HAS_FINISHED;
+
+			for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
+			{
+				if (it->getBingo()) {
+					bingo = GAME_HAS_FINISHED;
+				}
+			}
+
 			break;
 
 		case GAME_HAS_FINISHED:
 			//es notifica a tots els jugadors que la partida a acabat (ja s'ha dit a tots els jugadors qui ha guanyat)
+			SendToAllOrClientDueStateGame("GAMEFINISHED_");
+			//online = false;
 				break;
 		default:
 			break;

@@ -36,14 +36,13 @@ public:
 		money = INITIAL_MONEY;
 	}
 
-	bool CheckBingo() {
+	void CheckBingo() {
 		//recorre tota la matriu comprovant que tots els numeros son negatius
 		bool isBingo = true;
 		for (int i = 0; i < ROWS_BOOK * COLUMNS_BOOK; i++) {
 				if (book[i] > 0) { isBingo = false; }
 		}
-
-		return isBingo;
+		if (isBingo) { bingo = true; }
 	}
 
 	bool CheckLine() {
@@ -77,6 +76,10 @@ public:
 				if (book[i] == _numberToCheck) { book[i] = -_numberToCheck; return true; }
 		}
 		return false;
+	}
+
+	bool getBingo() {
+		return bingo;
 	}
 
 	int getMoney() {

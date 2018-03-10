@@ -92,16 +92,21 @@ void shared_cout(std::string msg, int option) {
 					}
 					else if (command == "BOTE") {
 						//mostar que el jugador el bote
-						aMensajes.push_back("Pot:" + msg);
+						aMensajes.push_back("Pot: " + msg);
 						
 					}
 					else if (command == "NUMBER") {
 						//mostar al jugador el nou numero
+						aMensajes.push_back("New number to find: " + msg);
 					}
 					else if (command == "BOOK") {
-						//mostar al jugador el nou numero
 						mensajeBook.clear();
 						mensajeBook = msg;
+					}
+					else if (command == "GAMEFINISHED") {
+
+						bingo = GAME_HAS_FINISHED;
+						aMensajes.push_back(msg);
 					}
 					else if (command == "MESSAGE") {
 						aMensajes.push_back(msg);
