@@ -24,47 +24,37 @@ std::vector<DIRECTIONS> aPeers;
 sf::TcpListener listener;
 sf::Packet packet;
 sf::Socket::Status status;
-
 int main()
 {
 	listener.listen(PUERTO);
-	if (aPeers.size() >= NUM_PLAYERS) listener.close(); //nose si cal
-	else {
+	//if (aPeers.size() >= NUM_PLAYERS) listener.close(); //nose si cal
+	//else {
 		for (int i = 0; i < NUM_PLAYERS; i++) {
 			DIRECTIONS dir;
 			sf::TcpSocket* sock = new sf::TcpSocket;
 			status = listener.accept(*sock);
+			//sf::Packet packet;
 			if (status == sf::Socket::Done)
 			{
 				packet << aPeers.size();
 				for (int i = 0; i < aPeers.size(); i++) {
 					packet << aPeers[i].IP << aPeers[i].PORT;
-					dir.IP = sock->getRemoteAddress().toString();
-					dir.PORT = sock->getRemotePort();
 				}
-				sock->send(packet);
-				aPeers.push_back(dir);
-			}
-			sock->disconnect();
-
-			//me liat i nose si esta be TT
-
-			/*if (status == sf::Socket::Done)
-			{
-				packet << aPeers.size();
 				dir.IP = sock->getRemoteAddress().toString();
 				dir.PORT = sock->getRemotePort();
 				aPeers.push_back(dir);
-				for (int i = 0; i < aPeers.size(); i++) {
-					packet << aPeers[i].IP << aPeers[i].PORT;
-				}
+				
 				sock->send(packet);
-
+				packet.clear();
 			}
-			sock->disconnect();*/
+			
+			sock->disconnect();	
 		}
-	}
+		listener.close();
 
-	system("pause");
+	//}
+	//system("pause");
+	system("exit");
 	return 0;
 }
+
