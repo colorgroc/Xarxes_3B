@@ -114,6 +114,34 @@ void SendToAllOrClientDueReceivedMsg(sf::TcpSocket *fromclient, std::string msg)
 		//es comprova si el jugador ha fet linia
 		//si es verdader s'envia linia a tots els jugadors
 		//si es fals enviem al client que ha enviat linia que no es veritat
+
+		int tempHowManyLines = 0;
+
+		for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
+		{
+			if (it->getPlayerInfo()->getRemotePort() == fromclient->getRemotePort()) {
+				int temp = it->CheckLine();
+				if (temp != 0) {
+					textoAEnviar = "LINE_Number of Lines " + std::to_string(temp) + "_";
+					tempHowManyLines = temp;
+				}
+				else {
+					textoAEnviar = "MESSAGE_You dont have any lines yet_";
+				}
+				fromclient->send(textoAEnviar.c_str(), textoAEnviar.length());
+			}
+		}
+
+		if (tempHowManyLines !=0) {
+			for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
+			{
+				if (it->getPlayerInfo()->getRemotePort() != fromclient->getRemotePort()) {
+					textoAEnviar = "MESSAGE_The player " + std::to_string(fromclient->getRemotePort()) + " has " + std::to_string(tempHowManyLines) + " lines_";
+					it->getPlayerInfo()->send(textoAEnviar.c_str(), textoAEnviar.length());
+				}
+			}
+		}
+
 	}
 	if (command == "BINGO") {
 		//segons la posicio del client dins el vector s'agafa el player
@@ -150,14 +178,21 @@ void SendToAllOrClientDueStateGame(std::string command) {
 	if (command == "NUMBER_") {
 		//enviar a tots els clients el nou numero random
 		int temp = myGame->RandomWithoutRepetiton();
-		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-		{
-			sf::TcpSocket& client = **it;
 
-			textoAEnviar = "NUMBER_" + std::to_string(temp) + "\n_";
-			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
-
+		if (temp == -1) { //vol dir que tots els numeros de dintre el bingo ja han estat tirats
+			bingo = GAME_HAS_FINISHED;
 		}
+		else {
+			for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+			{
+				sf::TcpSocket& client = **it;
+
+				textoAEnviar = "NUMBER_" + std::to_string(temp) + "\n_";
+				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
+
+			}
+		}
+	
 	}
 	if (command == "BOOK_") {
 		//enviar a tots els clients la seva cartilla
@@ -353,7 +388,7 @@ int main()
 		case GAME_HAS_FINISHED:
 			//es notifica a tots els jugadors que la partida a acabat (ja s'ha dit a tots els jugadors qui ha guanyat)
 			SendToAllOrClientDueStateGame("GAMEFINISHED_");
-			//online = false;
+			online = false;
 				break;
 		default:
 			break;

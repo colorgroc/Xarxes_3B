@@ -46,6 +46,11 @@ void shared_cout(std::string msg, int option) {
 
 	if (msg != "") {
 
+		//netejem pantalla si hi han massa missatges
+		if (aMensajes.size() >= MAX_MENSAJES) {
+			aMensajes.clear();
+		}
+
 		if (option == RECEIVED) { 
 				//cojer el commad i mostrar un texto segun lo enviado
 				std::string delimiter = "_"; //s'utilitza aquest delimitador per separa commad del msg
@@ -89,6 +94,7 @@ void shared_cout(std::string msg, int option) {
 					}
 					else if (command == "LINE") {
 						//mostar que el jugador ha fet linia
+						aMensajes.push_back("Congratulations! " + msg);
 					}
 					else if (command == "BOTE") {
 						//mostar que el jugador el bote

@@ -33,13 +33,15 @@ public:
 		//agafar el numero del jugador
 		//eliminar de la llista segons el numero
 		//(deixar pel final, quan el joc funcioni)
-		//int pos = _player.getNumberPlayer();
-		//players.erase(players.begin() + pos); //tambe s'ha de actualitzar la llista de clients
 	}
 
 	int RandomWithoutRepetiton() {
 		//creació del numero que es jugara ara i retornar-lo
 		srand(time(NULL));
+
+		if (alreadyPickUp.size() == 90) {
+			return -1;
+		}
 
 		while (CheckWithoutRepetition(alreadyPickUp, rand() % BINGO_90 + 1)) {
 			//find another random number, already inside

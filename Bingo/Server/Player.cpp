@@ -17,8 +17,6 @@ private:
 	sf::TcpSocket* clientInfo;
 	int book[ROWS_BOOK * COLUMNS_BOOK];
 	bool bingo;
-	bool line;
-	bool lineNumber[ROWS_BOOK];
 	int money;
 public:
 	
@@ -32,7 +30,6 @@ public:
 			}
 		
 		bingo = false;
-		line = false;
 		money = INITIAL_MONEY;
 	}
 
@@ -45,28 +42,30 @@ public:
 		if (isBingo) { bingo = true; }
 	}
 
-	bool CheckLine() {
+	int CheckLine() {
 		//recorre una fila i mirar si tots els numero son negatius
 		bool isLine = true;
+		
+		int howManyLines = 0;
 
 		for (int i = 0; i < COLUMNS_BOOK; i++) {	
 			if (book[i] > 0) { isLine = false; }
 		}
-		if (isLine) { lineNumber[0] = true; }
+		if (isLine) { howManyLines+=1; }
 
 		isLine = true;
 		for (int i = 5; i < COLUMNS_BOOK + 5; i++) {
 			if (book[i] > 0) { isLine = false; }
 		}
-		if (isLine) { lineNumber[1] = true; }
+		if (isLine) { howManyLines+=1; }
 
 		isLine = true;
 		for (int i = 10; i < COLUMNS_BOOK +10; i++) {
 			if (book[i] > 0) { isLine = false; }
 		}
-		if (isLine) { lineNumber[2] = true; }
+		if (isLine) { howManyLines+=1; }
 
-		return lineNumber;
+		return howManyLines;
 	}
 	bool CheckNumber(int _numberToCheck, int _currentNumberPlaying) {
 		//comprobar si a la cartilla hi ha el mateix numero
