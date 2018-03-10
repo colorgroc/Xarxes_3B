@@ -29,7 +29,7 @@ public:
 		players.push_back(_player);
 	}
 
-	void deletePlayerList(Player _player) {
+	void deletePlayerList(Player  _player) {
 		//agafar el numero del jugador
 		//eliminar de la llista segons el numero
 		//(deixar pel final, quan el joc funcioni)

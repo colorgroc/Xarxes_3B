@@ -155,7 +155,8 @@ void SendToAllOrClientDueReceivedMsg(sf::TcpSocket *fromclient, std::string msg)
 				it->CheckBingo();
 				if (it->getBingo()) {
 					tempIsBingo = true;
-					textoAEnviar = "BINGO_Congratulations! You are the Winner!_";
+					it->setMoney(it->getMoney() + myGame->getPot());
+					textoAEnviar = "BINGO_Congratulations! You are the Winner! Your money is "+ std::to_string(it->getMoney()) +"_";
 					fromclient->send(textoAEnviar.c_str(), textoAEnviar.length());
 					bingo = GAME_HAS_FINISHED;
 				}
@@ -312,11 +313,9 @@ void WaitforDataOnAnySocket() {
 							
 							shared_cout("Se a desconectado el cliente con puerto " + std::to_string(client.getRemotePort()));
 
-							//(HACER MAS ADELANTE)
 							//s'ha de borrar el client del vector de clients
 							//s'ha de borrar el jugador del vector de jugadors
-				
-
+							
 							selector.remove(client);
 						}
 						else
@@ -400,13 +399,21 @@ int main()
 			//cada cert temps
 			//enviem els numeros random a tots els jugadors (NUMBER_) (amb un thread)
 			//escoltem continuament els missatges de tots els jugadors i actuem en consequencia (ja es fa)
+			if (myGame->players.size() == 0) {
+				bingo = GAME_HAS_FINISHED;
+			}
 
 			break;
 
 		case GAME_HAS_FINISHED:
 			//es notifica a tots els jugadors que la partida a acabat (ja s'ha dit a tots els jugadors qui ha guanyat)
-			SendToAllOrClientDueStateGame("GAMEFINISHED_");
-			//online = false;
+			if (myGame->players.size() != 0) {
+				SendToAllOrClientDueStateGame("GAMEFINISHED_"); //si hi han jugadors els hi dic
+			}
+			else {
+				shared_cout("Game Finshed"); //si no hi ha ningu ho escric pel server
+			}
+			
 				break;
 		default:
 			break;

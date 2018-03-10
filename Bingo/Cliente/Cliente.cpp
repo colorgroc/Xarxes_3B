@@ -19,7 +19,6 @@ int book[ROWS_BOOK][COLUMNS_BOOK];
 sf::String mensajeBook;
 
 enum stateGame {GAME_HASNT_STARTED,  GAME_HAS_STARTED, GAME_HAS_FINISHED } bingo;
-int state = 1;
 
 sf::TcpSocket socket;
 std::vector<sf::TcpSocket*> aSock;
@@ -112,15 +111,12 @@ void shared_cout(std::string msg, int option) {
 					}
 					else if (command == "GAMEFINISHED") {
 
-						bingo = GAME_HAS_FINISHED;
 						aMensajes.push_back(msg);
+						bingo = GAME_HAS_FINISHED;
 					}
 					else if (command == "MESSAGE") {
 						aMensajes.push_back(msg);
 						
-						if (msg == "You dont have bingo yet") {
-							bingo = GAME_HAS_FINISHED;
-						}
 					}
 				}
 				
@@ -141,7 +137,6 @@ void NonBlockingChat() {
 	else if (status == sf::Socket::Disconnected)
 	{
 		std::cout << "Servidor desconectado." << std::endl;
-		state = 0;
 	}
 	else {
 		std::string texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
@@ -220,10 +215,16 @@ void NonBlockingChat() {
 			{
 			case sf::Event::Closed:
 				window.close();
+				windowBook.close();
+				bingo = GAME_HAS_FINISHED;
 				break;
 			case sf::Event::KeyPressed:
-				if (evento.key.code == sf::Keyboard::Escape)
+				if (evento.key.code == sf::Keyboard::Escape) {
 					window.close();
+					windowBook.close();
+					bingo = GAME_HAS_FINISHED;
+				}
+					
 				else if (evento.key.code == sf::Keyboard::Return)
 				{
 					std::string s_mensaje;
@@ -291,7 +292,8 @@ void NonBlockingChat() {
 
 						if (mensaje == "exit") {
 							bingo = GAME_HAS_FINISHED;
-							socket.disconnect();
+							window.close();
+							windowBook.close();
 						}
 					}
 					///////////////////
@@ -342,13 +344,11 @@ int main()
 {
 	std::cout << "Estableciendo conexion con server... \n";
 	bingo = GAME_HASNT_STARTED;
-	switch (state)
-	{
-	case 1:
-		NonBlockingChat();
-		break;
-	}
 
-	system("pause");
+	do {
+		NonBlockingChat();
+	} while (bingo != GAME_HAS_FINISHED);
+
+	socket.disconnect();
 	return 0;
 }
