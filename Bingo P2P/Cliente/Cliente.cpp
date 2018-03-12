@@ -11,17 +11,17 @@
 #define RECEIVED 1
 #define WRITED 2
 #define CONNECTION 3
-#define NUM_PLAYERS 2
+#define NUM_PLAYERS 3
 #define PUERTO 50000
 
 struct DIRECTIONS {
 	std::string IP;
 	unsigned short PORT;
 };
-size_t numPlayers;
+
+int numPlayers;
 std::vector<sf::TcpSocket*> aPeers;
 sf::Socket::Status status;
-sf::Packet packet;
 sf::String mensaje;
 sf::TcpSocket sock;
 std::vector<DIRECTIONS> aDir;
@@ -56,58 +56,73 @@ sf::Socket::Status SendToAllPeers(std::string msg, size_t bSent) {
 
 int main()
 {
-	//establecer conexion
-	/*-------------------------------------------------------------*/
 	
-	if (sock.connect("localhost", PUERTO) != sf::Socket::Done) {
+	//el peer es conecta amb el bootstrap
+	status = sock.connect("localhost", PUERTO);
+
+	if (status != sf::Socket::Done) {
 		std::cout << "Error de connexion";
-	} else std::cout << "Connected..." << std::endl;
-	//if (sock.receive(packet) != sf::Socket::Done) {
-		//std::cout << "No se recibió el mensaje o Desconnexion.";
-	//}
-	if(sock.receive(packet) == sf::Socket::Done)
-		sock.disconnect();
-	//else {
-	//int size = packet.getDataSize();
-	packet >> numPlayers;
-	//std::cout << packet.getData();
-	std::cout << numPlayers << std::endl;
-	for (int i = 0; i < numPlayers; i++) {
-		DIRECTIONS dir;
-		packet >> dir.IP >> dir.PORT;
-		aDir.push_back(dir);
 	}
-	//packet.clear();
+	else {
+		std::cout << "Connected" << std::endl;
 
-	//}
-	for (int i = 0; i < aDir.size(); i++) {
-		sf::TcpSocket* sockAux = new sf::TcpSocket;
-		std::cout << aDir[i].IP << "; " << aDir[i].PORT << std::endl;
-		status = sockAux->connect(aDir[i].IP, aDir[i].PORT);
+		sf::Packet packet;
+		status = sock.receive(packet); //rebo la info de tots els altres peers
 		if (status == sf::Socket::Done) {
-			aPeers.push_back(sockAux);
-			std::cout << "Connecting with " << sockAux->getRemoteAddress().toString() << std::endl;
-		}else if(status == sf::Socket::Disconnected) std::cout << "Couldn't connect to " << aDir[i].IP << " --> Disconnected." << std::endl;
-		else if (status == sf::Socket::Error) std::cout << "Couldn't connect to " << aDir[i].IP << " --> Error." << std::endl;
-	}
+			
+			packet >> numPlayers;
 
-	if (aPeers.size() < NUM_PLAYERS) { //if (aPeers.size() < NUM_PLAYERS)
-		sf::TcpListener listener;
-		listener.listen(sock.getLocalPort());
-		for (int i = aPeers.size(); i < NUM_PLAYERS; i++) { //nose si lu de i = aPeers.size esta be...al apunts he copiat i = size XD
-			sf::TcpSocket* sockAux = new sf::TcpSocket;
-			if (listener.accept(*sockAux) == sf::Socket::Done) {
-			std::cout << "Accepted connection with: " << sockAux->getRemoteAddress().toString() << std::endl;
-				aPeers.push_back(sockAux);
+			//trec tota la info de tots els peers i la poso dintre de un vector
+			for (int i = 1; i <= numPlayers; i++) {
+				DIRECTIONS dir;
+				packet >> dir.IP >> dir.PORT;
+				aDir.push_back(dir);
 			}
-			if (aPeers.size() == NUM_PLAYERS) break;
-		}
-		listener.close();
-	}
-	//listener.close();
-	//chat
 
-	sock.setBlocking(false);
+			//aquest peer es conecta amb tots els peers que ja hi han a la partida
+			if (aDir.size() != 0) {
+				for (int i = 1; i <= aDir.size(); i++)
+				{
+					sf::TcpSocket* sockAux = new sf::TcpSocket;
+
+					status = sockAux->connect(aDir[i-1].IP, aDir[i-1].PORT);
+
+					if (status == sf::Socket::Done) {
+						aPeers.push_back(sockAux);
+						std::cout << "Connected with " << std::to_string(sockAux->getRemotePort()) << std::endl;
+					}
+					else if (status == sf::Socket::Disconnected) std::cout << "Couldn't connect to " << aDir[i-1].IP << " --> Disconnected." << std::endl;
+					else if (status == sf::Socket::Error) std::cout << "Couldn't connect to " << aDir[i-1].IP << " --> Error." << std::endl;
+				}
+			}
+			else {
+				std::cout << "There arent no peers yet" << std::endl;
+			}
+		}
+	}
+	
+	//vaig escolatat els nous peers que envia el bootstrap i el peer shi contecta
+	unsigned short temp = sock.getLocalPort(); //guardo el port local
+	sock.disconnect(); //desconecto el socket amb el bootstrap
+	sf::TcpListener listener;
+	listener.listen(temp); //escolto
+
+	while (aPeers.size() != NUM_PLAYERS-1) {
+
+		sf::TcpSocket* sockAux = new sf::TcpSocket;
+		status = listener.accept(*sockAux);
+
+		if (status == sf::Socket::Done) {
+			std::cout << "New Connection accepted connection with: " << std::to_string(sockAux->getRemotePort()) << std::endl;
+			aPeers.push_back(sockAux);
+		}
+	}
+	listener.close(); //una vegada tinc tots els peers ja puc tancar el listener
+	//readyToPlay = true;
+
+
+	if (readyToPlay) {
+		sock.setBlocking(false);
 
 		sf::RenderWindow window;
 		sf::Vector2i screenDimensions(800, 600);
@@ -242,8 +257,8 @@ int main()
 
 		window.display();
 		window.clear();
-
-
+	}
+	
 	system("pause");
 	return 0;
 }

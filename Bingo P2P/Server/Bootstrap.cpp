@@ -1,4 +1,4 @@
-﻿//TALLER 2 - ANNA PONCE I MARC SEGARRA
+﻿//BINGO PEER TO PEER - ANNA PONCE I MARC SEGARRA
 
 #include <SFML\Graphics.hpp>
 #include <SFML\Network.hpp>
@@ -11,8 +11,7 @@
 #include "Game.cpp"
 #include "Player.cpp"
 
-#define NUM_PLAYERS 2
-
+#define NUM_PLAYERS 3
 #define PUERTO 50000
 
 
@@ -20,41 +19,50 @@ struct DIRECTIONS {
 	std::string IP;
 	unsigned short PORT;
 };
+
 std::vector<DIRECTIONS> aPeers;
+
 sf::TcpListener listener;
-sf::Packet packet;
 sf::Socket::Status status;
+
 int main()
 {
-	listener.listen(PUERTO);
-	//if (aPeers.size() >= NUM_PLAYERS) listener.close(); //nose si cal
-	//else {
-		for (int i = 0; i < NUM_PLAYERS; i++) {
-			DIRECTIONS dir;
-			sf::TcpSocket* sock = new sf::TcpSocket;
-			status = listener.accept(*sock);
-			//sf::Packet packet;
-			if (status == sf::Socket::Done)
-			{
-				packet << aPeers.size();
-				for (int i = 0; i < aPeers.size(); i++) {
-					packet << aPeers[i].IP << aPeers[i].PORT;
-				}
-				dir.IP = sock->getRemoteAddress().toString();
-				dir.PORT = sock->getRemotePort();
-				aPeers.push_back(dir);
-				
-				sock->send(packet);
-				packet.clear();
-			}
-			
-			sock->disconnect();	
-		}
-		listener.close();
+	std::cout << "Online..." << std::endl;
 
-	//}
-	//system("pause");
-	system("exit");
+	listener.listen(PUERTO);
+	sf::TcpSocket sock;
+
+	do {
+		
+		DIRECTIONS dir;
+	
+		status = listener.accept(sock); //accepto conexio entrant
+
+		if (status == sf::Socket::Done)
+		{
+			//abans de posarlo a la llista li envio la info dels altres peers si ni ha
+			sf::Packet packet;
+			packet << (int)aPeers.size();
+
+			for (int i = 1; i <= aPeers.size(); i++) 
+			{
+				packet << aPeers[i-1].IP << aPeers[i-1].PORT;
+			}
+		
+			sock.send(packet); //envio a el nou jugador totes les dades dels altres peers
+	
+			//poso el nou jugador al vector de peers
+			dir.IP = sock.getRemoteAddress().toString();
+			dir.PORT = sock.getRemotePort();
+			aPeers.push_back(dir);
+
+			std::cout << "Numero de peers " + std::to_string(aPeers.size()) << std::endl;
+		}
+
+	} while (aPeers.size() != NUM_PLAYERS);
+
+	listener.close();
+	system("pause");
 	return 0;
 }
 
