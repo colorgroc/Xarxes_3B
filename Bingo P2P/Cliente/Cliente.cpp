@@ -11,8 +11,15 @@
 #define RECEIVED 1
 #define WRITED 2
 #define CONNECTION 3
-#define NUM_PLAYERS 3
+#define NUM_PLAYERS 2
 #define PUERTO 50000
+
+#define INITIAL_MONEY 200
+#define ROWS_BOOK 3
+#define COLUMNS_BOOK 5
+#define BINGO_90 89
+
+
 
 enum stateGame { GAME_HASNT_STARTED, GAME_HAS_STARTED, GAME_HAS_FINISHED } bingo;
 
@@ -30,10 +37,8 @@ std::vector<DIRECTIONS> aDir;
 std::vector<std::string> aMensajes;
 std::string textoAEnviar = "";
 size_t bSent;
+sf::String mensajeBook;
 bool readyToPlay;
-//bool hasDisconnected;
-//int whoHadDisconnected;
-//std::mutex myMutex;
 
 
 inline bool isInteger(const std::string & s)  //https://stackoverflow.com/questions/2844817/how-do-i-check-if-a-c-string-is-an-int
@@ -110,14 +115,14 @@ void shared_cout(std::string msg, int option) {
 					//mostar al jugador el nou numero
 					aMensajes.push_back("New number to find: " + msg);
 				}
-				else if (command == "BOOK") {
+				/*else if (command == "BOOK") {
 
-				}
-				else if (command == "GAMEFINISHED") {
+				}*/
+				/*else if (command == "GAMEFINISHED") {
 
 					aMensajes.push_back(msg);
 					bingo = GAME_HAS_FINISHED;
-				}
+				}*/
 				else if (command == "MESSAGE") {
 					aMensajes.push_back(msg);
 
@@ -155,6 +160,12 @@ void NonBlockingChat() {
 	sf::Vector2i screenDimensions(400, 600);
 	window.create(sf::VideoMode(screenDimensions.x, screenDimensions.y), "Chat");
 
+	//creacio de segona pantalla que mostra sempre la cartilla del jugador
+	sf::RenderWindow windowBook;
+	sf::Vector2i screenDimensionsBook(300, 300);
+	windowBook.create(sf::VideoMode(screenDimensionsBook.x, screenDimensionsBook.y), "MyBook");
+	mensajeBook = "";
+
 	sf::Font font;
 	if (!font.loadFromFile("calibri.ttf"))
 	{
@@ -173,9 +184,16 @@ void NonBlockingChat() {
 	text.setStyle(sf::Text::Italic);
 	text.setPosition(0, 560);
 
+	//linia separadora
 	sf::RectangleShape separator(sf::Vector2f(800, 5));
 	separator.setFillColor(sf::Color(255, 0, 0, 255));
 	separator.setPosition(0, 550);
+
+	/////// cartilla
+	sf::Text bookText(mensajeBook, font, 14);
+	bookText.setFillColor(sf::Color(255, 255, 255));
+	bookText.setStyle(sf::Text::Bold);
+	///////
 
 	while (window.isOpen())
 	{
@@ -200,19 +218,9 @@ void NonBlockingChat() {
 					//elimino el peer q s'ha desconnectat de la llista de peers
 					shared_cout("El puerto " + std::to_string(aPeers[i - 1]->getRemotePort()) + " se ha desconectado.", CONNECTION);
 					aPeers.erase(aPeers.begin() + (i - 1));
-					bingo = GAME_HAS_FINISHED;
+					bingo = GAME_HAS_FINISHED; //-->segur d'aixo?
 				}
 			}
-			//if (hasDisconnected) {
-			//	hasDisconnected = false;
-			//	//elimino el peer q s'ha desconnectat de la llista de peers
-			//	for (int i = 1; i <= aPeers.size(); i++) {
-			//		if(aPeers[i-1]->getRemotePort() == whoHadDisconnected)
-			//			shared_cout("El puerto " + std::to_string(aPeers[i - 1]->getRemotePort()) + " se ha desconectado.", CONNECTION);
-			//			aPeers.erase(aPeers.begin() + (i-1));
-			//	}
-			//	bingo = GAME_HAS_FINISHED;
-			//}
 		}
 
 
@@ -237,7 +245,7 @@ void NonBlockingChat() {
 					size_t bSent;
 
 					if (mensaje == "exit") { //puedes salir siempre que quieras
-						s_mensaje = "Disconnected";
+						mensaje = "Disconnected";
 					}
 
 					if (bingo != GAME_HAS_FINISHED) {
@@ -259,14 +267,14 @@ void NonBlockingChat() {
 								s_mensaje.append(mensaje);
 								s_mensaje.append("_");
 							}
-							else {
+							else if(mensaje != "Disconnected"){
 								s_mensaje = "MESSAGE_";
 								s_mensaje.append(mensaje);
 								s_mensaje.append("_");
 
 							}
 						}
-						else if (bingo == GAME_HASNT_STARTED) {
+						else if (bingo == GAME_HASNT_STARTED && mensaje != "Disconnected") {
 							s_mensaje = "MESSAGE_";
 							s_mensaje.append(mensaje);
 							s_mensaje.append("_");
@@ -301,9 +309,10 @@ void NonBlockingChat() {
 						}
 						if (status == sf::Socket::Done) shared_cout(mensaje, WRITED);
 
-						if (mensaje == "exit") {
+						if (mensaje == "Disconnected") {
 							bingo = GAME_HAS_FINISHED;
 							window.close();
+							windowBook.close();
 						}
 					}
 					///////////////////
@@ -339,6 +348,12 @@ void NonBlockingChat() {
 
 		window.display();
 		window.clear();
+
+		//// cartilla
+		bookText.setString(mensajeBook);
+		windowBook.draw(bookText);
+		windowBook.display();
+		windowBook.clear();
 	}
 }
 

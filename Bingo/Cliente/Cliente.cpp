@@ -12,16 +12,11 @@
 #define WRITED 2
 #define CONNECTION 3
 
-#define ROWS_BOOK 4
-#define COLUMNS_BOOK 2
-
-int book[ROWS_BOOK][COLUMNS_BOOK];
 sf::String mensajeBook;
 
 enum stateGame {GAME_HASNT_STARTED,  GAME_HAS_STARTED, GAME_HAS_FINISHED } bingo;
 
 sf::TcpSocket socket;
-//std::vector<sf::TcpSocket*> aSock;
 
 int puerto = 5000;
 
@@ -173,11 +168,12 @@ void NonBlockingChat() {
 	text.setStyle(sf::Text::Italic);
 	text.setPosition(0, 560);
 
+	//linia separadora
 	sf::RectangleShape separator(sf::Vector2f(800, 5));
 	separator.setFillColor(sf::Color(255, 0, 0, 255));
 	separator.setPosition(0, 550);
 	
-	///////
+	/////// cartilla
 	sf::Text bookText(mensajeBook, font, 14);
 	bookText.setFillColor(sf::Color(255, 255, 255));
 	bookText.setStyle(sf::Text::Bold);
