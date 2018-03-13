@@ -62,7 +62,7 @@ int main()
 	} while (aPeers.size() != NUM_PLAYERS);
 
 	listener.close();
-	system("pause");
+	system("exit");
 	return 0;
 }
 

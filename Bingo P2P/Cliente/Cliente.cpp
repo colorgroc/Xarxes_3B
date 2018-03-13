@@ -31,7 +31,9 @@ std::vector<std::string> aMensajes;
 std::string textoAEnviar = "";
 size_t bSent;
 bool readyToPlay;
-std::mutex myMutex;
+//bool hasDisconnected;
+//int whoHadDisconnected;
+//std::mutex myMutex;
 
 
 inline bool isInteger(const std::string & s)  //https://stackoverflow.com/questions/2844817/how-do-i-check-if-a-c-string-is-an-int
@@ -189,16 +191,28 @@ void NonBlockingChat() {
 
 				if (status == sf::Socket::Done)
 				{
+					//whoHasTalked = aPeers[i]->getRemotePort();
 					buffer[bytesReceived] = '\0';
 					shared_cout(buffer, RECEIVED);
 				}
 				else if (status == sf::Socket::Disconnected)
 				{
-					//std::cout << "Servidor desconectado" << std::endl;
-					shared_cout("Servidor desconectado", CONNECTION);
+					//elimino el peer q s'ha desconnectat de la llista de peers
+					shared_cout("El puerto " + std::to_string(aPeers[i - 1]->getRemotePort()) + " se ha desconectado.", CONNECTION);
+					aPeers.erase(aPeers.begin() + (i - 1));
 					bingo = GAME_HAS_FINISHED;
 				}
 			}
+			//if (hasDisconnected) {
+			//	hasDisconnected = false;
+			//	//elimino el peer q s'ha desconnectat de la llista de peers
+			//	for (int i = 1; i <= aPeers.size(); i++) {
+			//		if(aPeers[i-1]->getRemotePort() == whoHadDisconnected)
+			//			shared_cout("El puerto " + std::to_string(aPeers[i - 1]->getRemotePort()) + " se ha desconectado.", CONNECTION);
+			//			aPeers.erase(aPeers.begin() + (i-1));
+			//	}
+			//	bingo = GAME_HAS_FINISHED;
+			//}
 		}
 
 
@@ -233,22 +247,22 @@ void NonBlockingChat() {
 							if (mensaje == "line") {
 								s_mensaje = "LINE_";
 								s_mensaje.append(mensaje);
-
+								s_mensaje.append("_");
 							}
 							else if (mensaje == "bingo") {
 								s_mensaje = "BINGO_";
 								s_mensaje.append(mensaje);
-
+								s_mensaje.append("_");
 							}
 							else if (isInteger(mensaje)) {
 								s_mensaje = "NUMBER_";
 								s_mensaje.append(mensaje);
-
+								s_mensaje.append("_");
 							}
 							else {
 								s_mensaje = "MESSAGE_";
 								s_mensaje.append(mensaje);
-								
+								s_mensaje.append("_");
 
 							}
 						}
@@ -258,9 +272,9 @@ void NonBlockingChat() {
 							s_mensaje.append("_");
 						}
 
-						for (int i = 1; i <= aPeers.size(); i++) {
+						for (int i = 1; i <= aPeers.size(); i++) { //envio a los demás peers
 
-							status = aPeers[i - 1]->send(s_mensaje.c_str(), s_mensaje.length(), bSent);
+							status = aPeers[i - 1]->send(s_mensaje.c_str(), s_mensaje.length(), bSent); 
 
 
 							if (status != sf::Socket::Done)
@@ -340,11 +354,11 @@ int main()
 	}
 	else {
 		std::cout << "Connected" << std::endl;
-
+		std::cout << "I'm Port " << std::to_string(sock.getLocalPort()) << std::endl;
 		sf::Packet packet;
 		status = sock.receive(packet); //rebo la info de tots els altres peers
 		if (status == sf::Socket::Done) {
-
+			//rebo la quantitat de peers que hi ha connectats
 			packet >> numPlayers;
 
 			//trec tota la info de tots els peers i la poso dintre de un vector
@@ -364,18 +378,18 @@ int main()
 
 					if (status == sf::Socket::Done) {
 						aPeers.push_back(sockAux);
-						std::cout << "Connected with " << std::to_string(sockAux->getRemotePort()) << std::endl;
+						std::cout << "Connected with Port " << std::to_string(sockAux->getRemotePort()) << "." << std::endl;
 					}
 					else if (status == sf::Socket::Disconnected) std::cout << "Couldn't connect to " << aDir[i - 1].IP << " --> Disconnected." << std::endl;
 					else if (status == sf::Socket::Error) std::cout << "Couldn't connect to " << aDir[i - 1].IP << " --> Error." << std::endl;
 				}
 			}
 			else {
-				std::cout << "There arent no peers yet" << std::endl;
+				std::cout << "There are no peers yet." << std::endl;
 			}
 		}
 	}
-
+	
 	//vaig escolatat els nous peers que envia el bootstrap i el peer shi contecta
 	unsigned short temp = sock.getLocalPort(); //guardo el port local
 	sock.disconnect(); //desconecto el socket amb el bootstrap
@@ -388,7 +402,7 @@ int main()
 		status = listener.accept(*sockAux);
 
 		if (status == sf::Socket::Done) {
-			std::cout << "New Connection accepted connection with: " << std::to_string(sockAux->getRemotePort()) << std::endl;
+			std::cout << "New Connection accepted with Port: " << std::to_string(sockAux->getRemotePort()) << std::endl;
 			aPeers.push_back(sockAux);
 		}
 	}
