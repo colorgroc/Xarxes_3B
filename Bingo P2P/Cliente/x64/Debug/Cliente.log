@@ -1,1 +1,9 @@
-﻿E:\Program Files (x86)\VisualStudio17\Common7\IDE\VC\VCTargets\Platforms\x64\PlatformToolsets\v141\Toolset.targets(36,5): error MSB8036: No se encontró la versión del SDK de Windows 8.1. Instale la versión requerida del SDK de Windows o cambie la versión del SDK en las páginas de propiedades de proyecto o haciendo clic con el botón derecho en la solución y seleccionando "Redestinar solución".
+﻿  Player.cpp
+  Game.cpp
+c:\users\aponce\desktop\xarxes\xarxes_3b\bingo p2p\cliente\game.cpp(44): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  Cliente.cpp
+c:\users\aponce\desktop\xarxes\xarxes_3b\bingo p2p\cliente\game.cpp(44): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+c:\users\aponce\desktop\xarxes\xarxes_3b\bingo p2p\cliente\cliente.cpp(357): warning C4244: 'argument': conversion from '::size_t' to 'float', possible loss of data
+  Generating Code...
+  Cliente.vcxproj -> C:\Users\aponce\Desktop\Xarxes\Xarxes_3B\Bingo P2P\x64\Debug\Cliente.exe
+  Cliente.vcxproj -> C:\Users\aponce\Desktop\Xarxes\Xarxes_3B\Bingo P2P\x64\Debug\Cliente.pdb (Partial PDB)
