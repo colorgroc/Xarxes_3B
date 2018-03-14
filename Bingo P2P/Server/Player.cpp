@@ -79,7 +79,7 @@ public:
 		//retornar el numero del jugador
 	}
 
-	std::string bookReadyToSend() {
+	std::string bookReadyToString() {
 		//BOOK_
 		//convertir la cartilla en un string per ja poder-la enviar
 	}

@@ -19,7 +19,7 @@
 #define WRITED 2
 #define DUEGAME 4
 #define CONNECTION 3
-#define NUM_PLAYERS 2
+#define NUM_PLAYERS 3
 #define PUERTO 50000
 
 enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED, GAME_HAS_FINISHED } bingo;
@@ -47,6 +47,7 @@ Player *player;
 Game *myGame;
 unsigned short myPortPlayer;
 bool startThreads = false;
+bool myWin = false;
 
 inline bool isInteger(const std::string & s)  //https://stackoverflow.com/questions/2844817/how-do-i-check-if-a-c-string-is-an-int
 {
@@ -118,6 +119,15 @@ void shared_cout(std::string msg, int option) {
 				else if (command == "MESSAGE") {
 					aMensajes.push_back(msg);
 
+				}
+				else if (command == "ALLMESSAGESSEND") {
+					if (myWin) {
+						for (int i = 1; i <= aPeers.size(); i++) {
+							aPeers[i - 1]->disconnect();
+						}
+						aPeers.clear();
+					}
+				
 				}
 			}
 
@@ -244,6 +254,7 @@ void NonBlockingChat() {
 				{
 					//elimino el peer q s'ha desconnectat de la llista de peers
 					shared_cout("El puerto " + std::to_string(aPeers[i - 1]->getRemotePort()) + " se ha desconectado.", CONNECTION);
+					aPeers[i - 1]->disconnect();
 					aPeers.erase(aPeers.begin() + (i - 1));
 				}
 			}
@@ -299,6 +310,7 @@ void NonBlockingChat() {
 									shared_cout("You have won " + std::to_string(myGame->getPot()) + "!", DUEGAME); //ho notifico al jugador
 									player->setMoney(myGame->getPot());
 									toSend = true;
+									myWin = true;
 									bingo = GAME_HAS_FINISHED;
 								}
 								else {
@@ -516,16 +528,17 @@ int main()
 
 
 	if (bingo == GAME_HAS_FINISHED) {
-		if (!aPeers.empty()) {
-
-			SendToOthersPeersDueGame("GAMEFINISHED_"); //si hi han jugadors els hi dic
+	
+		if (aPeers.empty()) {
+			SendToOthersPeersDueGame("GAMEFINISHED_The game has finished!"); //si hi han jugadors els hi dic
+			shared_cout("Game Finshed", DUEGAME); //ho notifico al jugador
 		}
-		shared_cout("Game Finshed", DUEGAME); //ho notifico al jugador
-
-		aPeers.clear();
+		else {
+			SendToOthersPeersDueGame("ALLMESSAGESSEND_"); //si hi han jugadors els hi dic
+		}	
+		
 	}
 
-	//fer disconnects
 	t1.join();
 	t2.join();
 	system("exit");

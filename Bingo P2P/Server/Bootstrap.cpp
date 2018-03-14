@@ -11,7 +11,7 @@
 #include "Game.cpp"
 #include "Player.cpp"
 
-#define NUM_PLAYERS 2
+#define NUM_PLAYERS 3
 #define PUERTO 50000
 
 
