@@ -110,7 +110,7 @@ public:
 				stringBook.append("\n");
 			}
 			else {
-				stringBook.append(" ");
+				stringBook.append("\t");
 			}
 		
 		}

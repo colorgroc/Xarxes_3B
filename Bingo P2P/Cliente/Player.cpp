@@ -12,10 +12,13 @@
 #define COLUMNS_BOOK 5
 #define BINGO_90 89
 
+
+
 class Player {
 private:
 	unsigned short clientInfo;
 	int book[ROWS_BOOK * COLUMNS_BOOK];
+	
 	bool bingo;
 	int money;
 public:
@@ -23,10 +26,12 @@ public:
 	Player(unsigned short  _clientInfo) {
 
 		clientInfo = _clientInfo;
-
+		srand(time(NULL));
+		int temp = rand() % 5 + 1;
 		//construir la cartilla amb numeros sense repeticio
 		for (int i = 0; i < ROWS_BOOK * COLUMNS_BOOK; i++) {
 			book[i] = rand() % BINGO_90 + 1;
+
 		}
 
 		bingo = false;
@@ -107,10 +112,10 @@ public:
 
 			stringBook.append(std::to_string(book[i]));
 			if (i == 4 || i == 9) {
-				stringBook.append("\n");
+				stringBook.append("\n\n");
 			}
 			else {
-				stringBook.append(" ");
+				stringBook.append("\t");
 			}
 
 		}

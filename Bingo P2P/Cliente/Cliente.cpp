@@ -48,6 +48,7 @@ Game *myGame;
 unsigned short myPortPlayer;
 bool startThreads = false;
 bool myWin = false;
+bool online = true;
 
 inline bool isInteger(const std::string & s)  //https://stackoverflow.com/questions/2844817/how-do-i-check-if-a-c-string-is-an-int
 {
@@ -227,9 +228,10 @@ void NonBlockingChat() {
 	separator.setPosition(0, 550);
 
 	/////// cartilla
-	sf::Text bookText(mensajeBook, font, 14);
+	sf::Text bookText(mensajeBook, font, 20);
 	bookText.setFillColor(sf::Color(255, 255, 255));
 	bookText.setStyle(sf::Text::Bold);
+	bookText.setPosition(windowBook.getSize().x/6, windowBook.getSize().y / 5);
 	///////
 
 	while (window.isOpen())
@@ -360,7 +362,8 @@ void NonBlockingChat() {
 										//std::cout << "Servidor desconectado" << std::endl;
 										shared_cout("Peer desconectado.", CONNECTION);
 									}
-									else if (status == sf::Socket::Partial) {
+									else if (status == sf::Socket::Partial) { // std::string s_mensaje; size_t bSent; declaradas con anteriodidad
+										
 
 										while (bSent < s_mensaje.length()) {
 											std::string msgRest = "";
@@ -500,47 +503,51 @@ int main()
 	std::thread t1(&EveryTimeThrowNumber);
 	std::thread t2(&NonBlockingChat);
 
-	if (bingo == WAIT_FOR_ALL_PLAYERS) {
-
-		if (ConnectWithAllPeers()) {
-			bingo = ALL_PLAYERS_CONNECTED;
-		}
-	}
-	if (bingo == ALL_PLAYERS_CONNECTED) {
-		shared_cout("The Game has started!", DUEGAME); //ho notifico al jugador
-		myGame = new Game();
-		player = new Player(myPortPlayer);
-		myGame->CalculatePot(*player, NUM_PLAYERS);
-		shared_cout("The money inside the pot: " + std::to_string(myGame->getPot()), DUEGAME); //ho notifico al jugador
-		mensajeBook = player->bookReadyToString();
-		startThreads = true;
-		bingo = GAME_HAS_STARTED;
-	}
-
-	if (bingo == GAME_HAS_STARTED) {
-		do {
-			if (aPeers.empty()) {
-				bingo = GAME_HAS_FINISHED;
+	online = true;
+	do {
+		switch (bingo) {
+		case WAIT_FOR_ALL_PLAYERS:
+			player = new Player(myPortPlayer);
+			if (ConnectWithAllPeers()) {
+				bingo = ALL_PLAYERS_CONNECTED;
 			}
+			break;
+		case ALL_PLAYERS_CONNECTED:
+			shared_cout("The Game has started!", DUEGAME); //ho notifico al jugador
+			myGame = new Game();
+			
+			myGame->CalculatePot(*player, NUM_PLAYERS);
+			shared_cout("The money inside the pot: " + std::to_string(myGame->getPot()), DUEGAME); //ho notifico al jugador
+			mensajeBook = player->bookReadyToString();
+			startThreads = true;
+			bingo = GAME_HAS_STARTED;
+			break;
+		case GAME_HAS_STARTED:
+			do {
+				if (aPeers.empty()) {
+					bingo = GAME_HAS_FINISHED;
+				}
 
-		} while (bingo != GAME_HAS_FINISHED);
-	}
-
-
-	if (bingo == GAME_HAS_FINISHED) {
-	
-		if (aPeers.empty()) {
-			SendToOthersPeersDueGame("GAMEFINISHED_The game has finished!"); //si hi han jugadors els hi dic
-			shared_cout("Game Finshed", DUEGAME); //ho notifico al jugador
+			} while (bingo != GAME_HAS_FINISHED);
+			break;
+		case GAME_HAS_FINISHED:
+			if (aPeers.empty()) {
+				SendToOthersPeersDueGame("GAMEFINISHED_The game has finished!"); //si hi han jugadors els hi dic
+				shared_cout("Game Finshed", DUEGAME); //ho notifico al jugador
+				online = false;
+			}
+			else {
+				SendToOthersPeersDueGame("ALLMESSAGESSEND_"); //si hi han jugadors els hi dic
+				online = false;
+			}
+			break;
 		}
-		else {
-			SendToOthersPeersDueGame("ALLMESSAGESSEND_"); //si hi han jugadors els hi dic
-		}	
-		
-	}
+	} while (online);
+	
 
 	t1.join();
 	t2.join();
+	
 	system("exit");
 	return 0;
 }

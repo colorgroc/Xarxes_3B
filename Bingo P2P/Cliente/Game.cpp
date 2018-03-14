@@ -24,21 +24,6 @@ public:
 		currentNumberToPlay = 0;
 	}
 
-	/*void addNewPlayerToList(Player _player) {
-		//posar a dintre el vector players el nou jugador
-		players.push_back(_player);
-	}
-
-	void deletePlayerList(Player  _player) {
-		//agafar el numero del jugador
-		//eliminar de la llista segons el numero
-		for (int i = 0; i < players.size(); i++) {
-			if (_player.getPlayerInfo() == players[i].getPlayerInfo()) {
-				players.erase(players.begin() + i);
-			}
-		}
-	}*/
-
 	int RandomWithoutRepetiton() {
 		//creació del numero que es jugara ara i retornar-lo
 		srand(time(NULL));

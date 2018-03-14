@@ -174,9 +174,10 @@ void NonBlockingChat() {
 	separator.setPosition(0, 550);
 	
 	/////// cartilla
-	sf::Text bookText(mensajeBook, font, 14);
+	sf::Text bookText(mensajeBook, font, 20);
 	bookText.setFillColor(sf::Color(255, 255, 255));
 	bookText.setStyle(sf::Text::Bold);
+	bookText.setPosition(windowBook.getSize().x / 6, windowBook.getSize().y / 5);
 	///////
 
 	while (window.isOpen())
@@ -346,5 +347,6 @@ int main()
 	} while (bingo != GAME_HAS_FINISHED);
 
 	socket.disconnect();
+
 	return 0;
 }
