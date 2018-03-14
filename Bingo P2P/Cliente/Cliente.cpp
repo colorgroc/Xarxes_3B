@@ -445,24 +445,24 @@ bool AllPeersConnected() {
 
 int main()
 {
-	
+
 	bingo = GAME_HASNT_STARTED;
-	switch (bingo) {
-	case GAME_HASNT_STARTED:
+	
+	if (bingo == GAME_HASNT_STARTED) {
 		if (AllPeersConnected()) {
 			bingo = GAME_HAS_STARTED;
 		}
-		break;
-	case GAME_HAS_STARTED:
+	}
+	if (bingo == GAME_HAS_STARTED) {
 		myGame = new Game();
 		player = new Player(&sock);
-		std::thread t1(&EveryTimeThrowNumber);
-
+		//EveryTimeThrowNumber();
+		//std::thread t1(&EveryTimeThrowNumber); //--> peta al tancar
 		do {
 			NonBlockingChat();
 		} while (bingo != GAME_HAS_FINISHED);
-		break;
-	case GAME_HAS_FINISHED:
+	}
+	if (bingo == GAME_HAS_FINISHED) {
 		if (!aPeers.empty()) {
 
 			SendToOthersPeers("GAMEFINISHED_"); //si hi han jugadors els hi dic
@@ -470,9 +470,7 @@ int main()
 		else {
 			shared_cout("Game Finshed", DUEGAME); //si no hi ha ningu ho escric pel server
 		}
-
-		break;
-		
+		aPeers.clear();
 	}
 
 	//fer disconnects
