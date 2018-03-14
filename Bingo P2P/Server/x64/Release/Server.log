@@ -1,0 +1,6 @@
+﻿  Bootstrap.cpp
+e:\apunts anna\enti\xarxes_3b\bingo p2p\server\player.cpp(28): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+  Generando código
+  All 170 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Generación de código finalizada
+  Server.vcxproj -> E:\APUNTS ANNA\ENTI\Xarxes_3B\Bingo\x64\Release\Bootstrap.exe

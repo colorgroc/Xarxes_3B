@@ -1,4 +1,7 @@
-﻿  Server.cpp
-e:\apunts anna\enti\xarxes_3b\bingo\server\player.cpp(28): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
-  LINK : no se encontró E:\APUNTS ANNA\ENTI\Xarxes_3B\Bingo\x64\Debug\Server.exe o no lo generó el último vínculo incremental; ejecutando vínculo completo
+﻿  Game.cpp
+e:\apunts anna\enti\xarxes_3b\bingo\server\game.cpp(44): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+  Player.cpp
+  Server.cpp
+e:\apunts anna\enti\xarxes_3b\bingo\server\game.cpp(44): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+  Generando código...
   Server.vcxproj -> E:\APUNTS ANNA\ENTI\Xarxes_3B\Bingo\x64\Debug\Server.exe

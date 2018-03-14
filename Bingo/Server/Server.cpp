@@ -13,7 +13,7 @@
 #include "Game.cpp"
 #include "Player.cpp"
 
-#define MAX_CLIENTS 2
+#define MAX_CLIENTS 4
 
 #define NEW_CONNECTION 1
 #define DISCONNECTED 2
