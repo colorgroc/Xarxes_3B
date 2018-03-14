@@ -73,7 +73,7 @@ public:
 		//actualitzar bote
 		for (int i = 0; i < numPlayers; i++) {
 			bote += INITIAL_BET;
-			p.setMoney(INITIAL_BET);
+			p.setMoney(-INITIAL_BET);
 		}
 	}
 

@@ -6,8 +6,13 @@
 #include <iostream>
 #include <vector>
 #include <mutex>
+#include <thread>
+#include <time.h>
+#include <chrono>
+
 #include "Player.cpp"
 #include "Game.cpp"
+
 
 #define MAX_MENSAJES 25
 #define RECEIVED 1
@@ -17,10 +22,7 @@
 #define NUM_PLAYERS 2
 #define PUERTO 50000
 
-
-
-
-enum stateGame { GAME_HASNT_STARTED, GAME_HAS_STARTED, GAME_HAS_FINISHED } bingo;
+enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED, GAME_HAS_FINISHED } bingo;
 
 struct DIRECTIONS {
 	std::string IP;
@@ -29,17 +31,22 @@ struct DIRECTIONS {
 
 int numPlayers;
 std::vector<sf::TcpSocket*> aPeers;
-sf::Socket::Status status;
-sf::String mensaje;
 sf::TcpSocket sock;
 std::vector<DIRECTIONS> aDir;
+sf::Socket::Status status;
+sf::String mensaje;
+std::mutex myMutex;
+
 std::vector<std::string> aMensajes;
 std::string textoAEnviar = "";
 size_t bSent;
 sf::String mensajeBook;
+
 bool readyToPlay;
 Player *player;
 Game *myGame;
+unsigned short myPortPlayer;
+bool startThreads = false;
 
 inline bool isInteger(const std::string & s)  //https://stackoverflow.com/questions/2844817/how-do-i-check-if-a-c-string-is-an-int
 {
@@ -52,6 +59,8 @@ inline bool isInteger(const std::string & s)  //https://stackoverflow.com/questi
 }
 
 void shared_cout(std::string msg, int option) {
+
+	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
 
 	if (msg != "") {
 
@@ -90,12 +99,6 @@ void shared_cout(std::string msg, int option) {
 				std::string command = allcommands[i];
 				std::string msg = alldata[i];
 
-				if (command == "READYTOPLAY") {
-					//cambiar estat del bingo
-					//mostrar per pantalla el missatge que ha començat la partida
-					bingo = GAME_HAS_STARTED;
-					aMensajes.push_back("The game has started. " + msg);
-				}
 				if (command == "BINGO") {
 					//mostar que el jugador ha guanyat
 					//cambiar estat del bingo a acabat
@@ -104,9 +107,9 @@ void shared_cout(std::string msg, int option) {
 				}
 				else if (command == "LINE") {
 					//mostar que el jugador ha fet linia
-					aMensajes.push_back("Congratulations! " + msg);
+					aMensajes.push_back(msg);
 				}
-				
+
 				else if (command == "GAMEFINISHED") {
 
 					aMensajes.push_back(msg);
@@ -122,19 +125,23 @@ void shared_cout(std::string msg, int option) {
 		}
 		if (option == CONNECTION) { aMensajes.push_back(msg); }
 		else if (option == WRITED) { aMensajes.push_back("Yo: " + msg); }
-		else if(option == DUEGAME){ aMensajes.push_back("Bingo: " + msg); }
+		else if (option == DUEGAME) { aMensajes.push_back("Bingo: " + msg); }
 	}
 }
 
-void SendToOthersPeers(std::string msg) {
+void SendToOthersPeersDueGame(std::string msg) {
 	size_t bSent;
+	msg.append("_");
 	for (int i = 1; i <= aPeers.size(); i++) { //envio a los demás peers
-		msg.append("_");
 		status = aPeers[i - 1]->send(msg.c_str(), msg.length(), bSent);
 	}
 }
 
 void EveryTimeThrowNumber() {
+
+	while (!startThreads) {
+		//wait
+	}
 
 	while (bingo != GAME_HAS_FINISHED) {
 		std::this_thread::sleep_for(std::chrono::seconds(7));
@@ -149,9 +156,15 @@ void EveryTimeThrowNumber() {
 
 	}
 
+
+
 }
 
+
 void NonBlockingChat() {
+	while (!startThreads) {
+		//wait
+	}
 
 	for (int i = 1; i <= aPeers.size(); i++) {
 		aPeers[i - 1]->connect(aPeers[i - 1]->getRemoteAddress(), aPeers[i - 1]->getLocalPort());
@@ -179,7 +192,6 @@ void NonBlockingChat() {
 	sf::RenderWindow windowBook;
 	sf::Vector2i screenDimensionsBook(300, 300);
 	windowBook.create(sf::VideoMode(screenDimensionsBook.x, screenDimensionsBook.y), "MyBook");
-	mensajeBook = "";
 
 	sf::Font font;
 	if (!font.loadFromFile("calibri.ttf"))
@@ -233,8 +245,6 @@ void NonBlockingChat() {
 					//elimino el peer q s'ha desconnectat de la llista de peers
 					shared_cout("El puerto " + std::to_string(aPeers[i - 1]->getRemotePort()) + " se ha desconectado.", CONNECTION);
 					aPeers.erase(aPeers.begin() + (i - 1));
-					if(aPeers.empty())
-						bingo = GAME_HAS_FINISHED; 
 				}
 			}
 		}
@@ -258,6 +268,7 @@ void NonBlockingChat() {
 
 				else if (evento.key.code == sf::Keyboard::Return)
 				{
+					bool toSend = false;
 					std::string s_mensaje;
 					size_t bSent;
 
@@ -270,61 +281,89 @@ void NonBlockingChat() {
 						//segons el que escriu el jugador per consola s'envia un command mes el missatge
 						if (bingo == GAME_HAS_STARTED) {
 							if (mensaje == "line") {
-								s_mensaje = "LINE_";
-								s_mensaje.append(mensaje);
-								s_mensaje.append("_");
+								int temp = player->CheckLine();
+								if (temp != 0) {
+									s_mensaje = ("LINE_The player " + std::to_string(player->getPlayerInfo()) + " has " + std::to_string(temp) + " lines_");
+									shared_cout("Number of Lines " + std::to_string(temp), DUEGAME); //ho notifico al jugador
+									toSend = true;
+								}
+								else {
+									shared_cout("You dont have any lines yet", DUEGAME); //ho notifico al jugador
+								}
 							}
 							else if (mensaje == "bingo") {
-								s_mensaje = "BINGO_";
-								s_mensaje.append(mensaje);
-								s_mensaje.append("_");
+								player->CheckBingo();
+								if (player->getBingo()) {
+									s_mensaje = ("BINGO_Congratulations! The player " + std::to_string(player->getPlayerInfo()) + " is the Winner!_");
+									shared_cout("Congratulations! I am the Winner!", DUEGAME); //ho notifico al jugador
+									shared_cout("You have won " + std::to_string(myGame->getPot()) + "!", DUEGAME); //ho notifico al jugador
+									player->setMoney(myGame->getPot());
+									toSend = true;
+									bingo = GAME_HAS_FINISHED;
+								}
+								else {
+									shared_cout("You dont have bingo yet!", DUEGAME); //ho notifico al jugador
+								}
 							}
 							else if (isInteger(mensaje)) {
-								s_mensaje = "NUMBER_";
-								s_mensaje.append(mensaje);
-								s_mensaje.append("_");
+								std::string temp = mensaje;
+								if (player->CheckNumber(std::stoi(temp), myGame->getCurrentNumberPlaying()))
+								{
+									shared_cout("The number is correct!", DUEGAME); //ho notifico al jugador
+									mensajeBook.clear();
+									mensajeBook = player->bookReadyToString();
+								}
+								else {
+									shared_cout("The number is incorrect!", DUEGAME); //ho notifico al jugador
+								}
 							}
-							else if(mensaje != "Disconnected"){
-								s_mensaje = "MESSAGE_";
+							else if (mensaje != "Disconnected") {
+								s_mensaje = "MESSAGE_The player " + std::to_string(player->getPlayerInfo()) + " says: ";
 								s_mensaje.append(mensaje);
 								s_mensaje.append("_");
+								toSend = true;
 
 							}
 						}
-						else if (bingo == GAME_HASNT_STARTED && mensaje != "Disconnected") {
-							s_mensaje = "MESSAGE_";
+						else if (bingo == ALL_PLAYERS_CONNECTED && mensaje != "Disconnected") {
+							s_mensaje = "MESSAGE_The player " + std::to_string(player->getPlayerInfo()) + " says: ";
 							s_mensaje.append(mensaje);
 							s_mensaje.append("_");
+							toSend = true;
 						}
 
-						for (int i = 1; i <= aPeers.size(); i++) { //envio a los demás peers
+						if (toSend) {
+							for (int i = 1; i <= aPeers.size(); i++) { //envio a los demás peers
 
-							status = aPeers[i - 1]->send(s_mensaje.c_str(), s_mensaje.length(), bSent); 
+								status = aPeers[i - 1]->send(s_mensaje.c_str(), s_mensaje.length(), bSent);
 
 
-							if (status != sf::Socket::Done)
-							{
-								if (status == sf::Socket::Error) {
-									//std::cout << "Ha fallado el envio." << std::endl;
-									shared_cout("Ha fallado el envio.", CONNECTION);
-								}
-								else if (status == sf::Socket::Disconnected) {
-									//std::cout << "Servidor desconectado" << std::endl;
-									shared_cout("Peer desconectado.", CONNECTION);
-								}
-								else if (status == sf::Socket::Partial) {
+								if (status != sf::Socket::Done)
+								{
+									if (status == sf::Socket::Error) {
+										//std::cout << "Ha fallado el envio." << std::endl;
+										shared_cout("Ha fallado el envio.", CONNECTION);
+									}
+									else if (status == sf::Socket::Disconnected) {
+										//std::cout << "Servidor desconectado" << std::endl;
+										shared_cout("Peer desconectado.", CONNECTION);
+									}
+									else if (status == sf::Socket::Partial) {
 
-									while (bSent < s_mensaje.length()) {
-										std::string msgRest = "";
-										for (size_t i = bSent; i < s_mensaje.length(); i++) {
-											msgRest = s_mensaje[i];
+										while (bSent < s_mensaje.length()) {
+											std::string msgRest = "";
+											for (size_t i = bSent; i < s_mensaje.length(); i++) {
+												msgRest = s_mensaje[i];
+											}
+											aPeers[i - 1]->send(s_mensaje.c_str(), s_mensaje.length(), bSent);
 										}
-										aPeers[i - 1]->send(s_mensaje.c_str(), s_mensaje.length(), bSent);
 									}
 								}
 							}
+							if (status == sf::Socket::Done)
+								shared_cout(mensaje, WRITED);
 						}
-						if (status == sf::Socket::Done) shared_cout(mensaje, WRITED);
+
 
 						if (mensaje == "Disconnected") {
 							bingo = GAME_HAS_FINISHED;
@@ -374,7 +413,7 @@ void NonBlockingChat() {
 	}
 }
 
-bool AllPeersConnected() {
+bool ConnectWithAllPeers() {
 	//el peer es conecta amb el bootstrap
 	status = sock.connect("localhost", PUERTO);
 
@@ -421,10 +460,10 @@ bool AllPeersConnected() {
 	}
 
 	//vaig escolatat els nous peers que envia el bootstrap i el peer shi contecta
-	unsigned short temp = sock.getLocalPort(); //guardo el port local
+	myPortPlayer = sock.getLocalPort(); //guardo el port local
 	sock.disconnect(); //desconecto el socket amb el bootstrap
 	sf::TcpListener listener;
-	listener.listen(temp); //escolto
+	listener.listen(myPortPlayer); //escolto
 
 	while (aPeers.size() != NUM_PLAYERS - 1) {
 
@@ -445,35 +484,49 @@ bool AllPeersConnected() {
 
 int main()
 {
+	bingo = WAIT_FOR_ALL_PLAYERS;
+	std::thread t1(&EveryTimeThrowNumber);
+	std::thread t2(&NonBlockingChat);
 
-	bingo = GAME_HASNT_STARTED;
-	
-	if (bingo == GAME_HASNT_STARTED) {
-		if (AllPeersConnected()) {
-			bingo = GAME_HAS_STARTED;
+	if (bingo == WAIT_FOR_ALL_PLAYERS) {
+
+		if (ConnectWithAllPeers()) {
+			bingo = ALL_PLAYERS_CONNECTED;
 		}
 	}
-	if (bingo == GAME_HAS_STARTED) {
+	if (bingo == ALL_PLAYERS_CONNECTED) {
+		shared_cout("The Game has started!", DUEGAME); //ho notifico al jugador
 		myGame = new Game();
-		player = new Player(&sock);
-		//EveryTimeThrowNumber();
-		//std::thread t1(&EveryTimeThrowNumber); //--> peta al tancar
+		player = new Player(myPortPlayer);
+		myGame->CalculatePot(*player, NUM_PLAYERS);
+		mensajeBook = player->bookReadyToString();
+		startThreads = true;
+		bingo = GAME_HAS_STARTED;
+	}
+
+	if (bingo == GAME_HAS_STARTED) {
 		do {
-			NonBlockingChat();
+			if (aPeers.empty()) {
+				bingo = GAME_HAS_FINISHED;
+			}
+
 		} while (bingo != GAME_HAS_FINISHED);
 	}
+
+
 	if (bingo == GAME_HAS_FINISHED) {
 		if (!aPeers.empty()) {
 
-			SendToOthersPeers("GAMEFINISHED_"); //si hi han jugadors els hi dic
+			SendToOthersPeersDueGame("GAMEFINISHED_"); //si hi han jugadors els hi dic
 		}
-		else {
-			shared_cout("Game Finshed", DUEGAME); //si no hi ha ningu ho escric pel server
-		}
+		shared_cout("Game Finshed", DUEGAME); //ho notifico al jugador
+
 		aPeers.clear();
 	}
 
 	//fer disconnects
+	t1.join();
+	t2.join();
 	system("exit");
 	return 0;
 }

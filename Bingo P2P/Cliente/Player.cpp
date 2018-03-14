@@ -14,13 +14,13 @@
 
 class Player {
 private:
-	sf::TcpSocket* clientInfo;
+	unsigned short clientInfo;
 	int book[ROWS_BOOK * COLUMNS_BOOK];
 	bool bingo;
 	int money;
 public:
 
-	Player(sf::TcpSocket*  _clientInfo) {
+	Player(unsigned short  _clientInfo) {
 
 		clientInfo = _clientInfo;
 
@@ -94,12 +94,12 @@ public:
 		money += _moneyToSubOrAdd;
 	}
 
-	sf::TcpSocket* getPlayerInfo() {
+	unsigned short getPlayerInfo() {
 		//retornar el numero del jugador
 		return clientInfo;
 	}
 
-	std::string bookReadyToSend() {
+	std::string bookReadyToString() {
 		//BOOK_
 		//convertir la cartilla en un string per ja poder-la enviar
 		std::string stringBook;
