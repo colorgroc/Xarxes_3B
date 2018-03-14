@@ -499,6 +499,7 @@ int main()
 		myGame = new Game();
 		player = new Player(myPortPlayer);
 		myGame->CalculatePot(*player, NUM_PLAYERS);
+		shared_cout("The money inside the pot: " + std::to_string(myGame->getPot()), DUEGAME); //ho notifico al jugador
 		mensajeBook = player->bookReadyToString();
 		startThreads = true;
 		bingo = GAME_HAS_STARTED;
