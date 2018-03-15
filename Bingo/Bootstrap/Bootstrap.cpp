@@ -8,8 +8,6 @@
 #include <mutex>
 #include <thread>
 
-#include "Game.cpp"
-#include "Player.cpp"
 
 #define NUM_PLAYERS 4
 #define PUERTO 50000

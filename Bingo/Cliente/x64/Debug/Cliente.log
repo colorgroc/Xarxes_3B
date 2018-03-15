@@ -1,5 +1,1 @@
-﻿  Cliente.cpp
-e:\apunts anna\enti\xarxes_3b\bingo\cliente\cliente.cpp(127): warning C4244: 'argumento': conversión de 'float' a 'sf::Int32'; posible pérdida de datos
-e:\apunts anna\enti\xarxes_3b\bingo\cliente\cliente.cpp(180): warning C4244: 'argumento': conversión de 'unsigned int' a 'float'; posible pérdida de datos
-e:\apunts anna\enti\xarxes_3b\bingo\cliente\cliente.cpp(318): warning C4244: 'argumento': conversión de '::size_t' a 'float'; posible pérdida de datos
-  Cliente.vcxproj -> E:\APUNTS ANNA\ENTI\Xarxes_3B\Bingo\x64\Debug\Cliente.exe
+﻿

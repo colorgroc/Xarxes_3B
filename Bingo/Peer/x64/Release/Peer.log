@@ -1,0 +1,14 @@
+﻿  Game.cpp
+e:\apunts anna\enti\xarxes_3b\bingo\peer\player.cpp(29): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+e:\apunts anna\enti\xarxes_3b\bingo\peer\game.cpp(29): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+  Peer.cpp
+e:\apunts anna\enti\xarxes_3b\bingo\peer\player.cpp(29): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+e:\apunts anna\enti\xarxes_3b\bingo\peer\game.cpp(29): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+e:\apunts anna\enti\xarxes_3b\bingo\peer\peer.cpp(234): warning C4244: 'argumento': conversión de 'unsigned int' a 'float'; posible pérdida de datos
+e:\apunts anna\enti\xarxes_3b\bingo\peer\peer.cpp(411): warning C4244: 'argumento': conversión de '::size_t' a 'float'; posible pérdida de datos
+  Player.cpp
+e:\apunts anna\enti\xarxes_3b\bingo\peer\player.cpp(29): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+  Generando código
+  All 565 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Generación de código finalizada
+  Peer.vcxproj -> E:\APUNTS ANNA\ENTI\Xarxes_3B\Bingo\x64\Release\Peer.exe
