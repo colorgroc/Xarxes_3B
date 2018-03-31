@@ -1,0 +1,5 @@
+﻿  Cliente.cpp
+c:\users\anna\documents\github\xarxes_3b\bingo\cliente\cliente.cpp(127): warning C4244: 'argumento': conversión de 'float' a 'sf::Int32'; posible pérdida de datos
+c:\users\anna\documents\github\xarxes_3b\bingo\cliente\cliente.cpp(180): warning C4244: 'argumento': conversión de 'unsigned int' a 'float'; posible pérdida de datos
+c:\users\anna\documents\github\xarxes_3b\bingo\cliente\cliente.cpp(318): warning C4244: 'argumento': conversión de '::size_t' a 'float'; posible pérdida de datos
+sfml-graphics-d.lib(sfml-graphics-d-2.dll) : fatal error LNK1112: tipo de equipo del módulo 'x64' en conflicto con tipo de equipo de destino 'x86'
