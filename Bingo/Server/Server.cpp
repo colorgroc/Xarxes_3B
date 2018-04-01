@@ -29,7 +29,7 @@ struct Position {
 
 sf::Socket::Status status;
 std::mutex myMutex;
-
+int clientID = 1;
 std::string textoAEnviar = "";
 
 //sf::TcpListener listener;
@@ -89,21 +89,28 @@ void ReceiveData() {
 	unsigned short senderPort;
 	status = socket.receive(packet, senderIP, senderPort);
 	if (status == sf::Socket::Done) {
-		std::cout << "Connection with client from PORT " << senderPort << std::endl;
+		std::cout << "Connection with client " << clientID << " from PORT " << senderPort << std::endl;
 		Position pos;
-		pos.x = 100;
-		pos.y = 50;
-		packet << "WELCOME!" << pos.x << pos.y;
+		pos.x = std::rand() % 500 + 1;
+		pos.y = std::rand() % 500 + 1;
+		packet << "WELCOME! " << clientID << pos.x << pos.y;
 		status = socket.send(packet, senderIP, senderPort);
 		if (status != sf::Socket::Done) std::cout << "Error sending the message." << std::endl;
-		
-	}
+		clients.push_back(&socket);
+		clientID++;
+	} //else if(status == sf::Socket::Disconnected){
+		//eliminar client corresponent...fer bucle 
+		//clients.erase(clients.begin, )
+	//}
 }
 
 int main()
 {
 	ControlServidor();
-	ReceiveData();
+	do {
+		ReceiveData();
+	} while (clients.size() < 4);
+
 	system("pause");
 	return 0;
 }

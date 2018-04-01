@@ -21,7 +21,7 @@ int state = 1;
 sf::UdpSocket socket;
 std::vector<sf::UdpSocket*> aSock;
 
-
+int clientID;
 sf::Socket::Status status;
 std::mutex myMutex;
 
@@ -50,8 +50,8 @@ void Receive() {
 	std::string msg;
 	status = socket.receive(packet, serverIP, serverPORT);
 	if (status == sf::Socket::Done) {
-		packet >> msg >> position.x >> position.y;
-		std::cout << msg << " Initial Position: " << position.x << ", " << position.y << std::endl;
+		packet >> msg >> clientID >> position.x >> position.y;
+		std::cout << msg << "Client ID: " << clientID << " Initial Position: " << position.x << ", " << position.y << std::endl;
 	}
 }
 
