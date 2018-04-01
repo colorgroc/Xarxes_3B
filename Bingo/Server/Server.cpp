@@ -22,7 +22,10 @@ enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED }
 
 bool online;
 
-int puerto = 50000;
+struct Position {
+	int x;
+	int y;
+};
 
 sf::Socket::Status status;
 std::mutex myMutex;
@@ -34,13 +37,6 @@ std::vector<sf::UdpSocket*> clients;
 sf::UdpSocket socket;
 //sf::SocketSelector selector;
 
-
-void shared_cout(std::string msg) {
-
-	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
-	if (msg != "") { std::cout << (msg) << std::endl; }
-
-}
 
 void NotifyAllClients(int option, sf::UdpSocket *newclient) {
 
@@ -69,38 +65,7 @@ void SendToAllClients(sf::UdpSocket *fromclient, std::string msg) {
 	}
 }
 
-void thread_dataReceived() {
-	
-	while (true) {
-		char buffer[100];
-		size_t bytesReceived;
-		//status = socket.receive(buffer, 100, bytesReceived); //bloquea el thread principal hasta que no llegan los datos
-		if (status == sf::Socket::Disconnected) {
-			//chat = false;
-			break;
-		}
-		else if (status != sf::Socket::Done)
-		{
-			shared_cout("Ha fallado la recepcion de datos ", false);
-		}
-		else {
-			buffer[bytesReceived] = '\0';
-			shared_cout(buffer, true); //se muestra por pantalla lo recibido
-		}
 
-	}
-
-}
-
-void WaitforDataOnAnySocket() {
-
-	// Endless loop that waits for new connections
-	/*while (online)
-	{
-		
-		
-	}*/
-}
 
 void ControlServidor()
 {
@@ -112,19 +77,33 @@ void ControlServidor()
 		socket.unbind();
 		exit(0);
 	}
+	std::cout << "Server is listening to port " << PORT << ", waiting for clients " << std::endl;
 
 	
 
 }
 
-
+void ReceiveData() {
+	sf::Packet packet;
+	sf::IpAddress senderIP;
+	unsigned short senderPort;
+	status = socket.receive(packet, senderIP, senderPort);
+	if (status == sf::Socket::Done) {
+		std::cout << "Connection with client from PORT " << senderPort << std::endl;
+		Position pos;
+		pos.x = 100;
+		pos.y = 50;
+		packet << "WELCOME!" << pos.x << pos.y;
+		status = socket.send(packet, senderIP, senderPort);
+		if (status != sf::Socket::Done) std::cout << "Error sending the message." << std::endl;
+		
+	}
+}
 
 int main()
 {
-
-
-
-
+	ControlServidor();
+	ReceiveData();
 	system("pause");
 	return 0;
 }
