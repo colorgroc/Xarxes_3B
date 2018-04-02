@@ -1,4 +1,4 @@
-﻿//TALLER 2 - ANNA PONCE I MARC SEGARRA
+﻿//TALLER 6 - ANNA PONCE I MARC SEGARRA
 
 #include <SFML\Graphics.hpp>
 #include <SFML\Network.hpp>
@@ -9,7 +9,6 @@
 #include <thread>
 
 #define MAX_CLIENTS 4
-#define MAX_MENSAJES 25
 #define NEW_CONNECTION 1
 #define DISCONNECTED 2
 #define PORT 50000
@@ -69,7 +68,6 @@ void SendToAllClients(sf::UdpSocket *fromclient, std::string msg) {
 
 void ControlServidor()
 {
-	
 	// bind the socket to a port
 	status = socket.bind(PORT);
 	if(status != sf::Socket::Done)
@@ -87,18 +85,21 @@ void ReceiveData() {
 	sf::Packet packet;
 	sf::IpAddress senderIP;
 	unsigned short senderPort;
+
 	status = socket.receive(packet, senderIP, senderPort);
 	if (status == sf::Socket::Done) {
 		std::cout << "Connection with client " << clientID << " from PORT " << senderPort << std::endl;
 		Position pos;
-		pos.x = std::rand() % 500 + 1;
-		pos.y = std::rand() % 500 + 1;
+		pos.x = std::rand() % 25 + 1;
+		pos.y = std::rand() % 25 + 1;
 		packet << "WELCOME! " << clientID << pos.x << pos.y;
+
 		status = socket.send(packet, senderIP, senderPort);
 		if (status != sf::Socket::Done) std::cout << "Error sending the message." << std::endl;
 		clients.push_back(&socket);
 		clientID++;
-	} //else if(status == sf::Socket::Disconnected){
+	} 
+	//else if(status == sf::Socket::Disconnected){
 		//eliminar client corresponent...fer bucle 
 		//clients.erase(clients.begin, )
 	//}
@@ -109,7 +110,7 @@ int main()
 	ControlServidor();
 	do {
 		ReceiveData();
-	} while (clients.size() < 4);
+	} while (clients.size() < MAX_CLIENTS);
 
 	system("pause");
 	return 0;
