@@ -9,7 +9,7 @@
 #include <mutex>
 #include <thread>
 
-#define MAX_CLIENTS 4
+#define MAX_CLIENTS 3
 
 #define CONNECTION 1
 #define DISCONNECTION 2
@@ -37,44 +37,40 @@ struct Position {
 	int y;
 };
 struct Client {
-	//int ID;
 	Position pos;
-	sf::IpAddress IP;
+	sf::IpAddress ip;
 	unsigned short port;
-	//sf::UdpSocket* socket;
-
 };
+
 sf::Socket::Status status;
 std::mutex myMutex;
 int clientID = 1;
 std::string textoAEnviar = "";
 
-//std::vector<Client*> clients;
-std::map<int , Client*> clients;
+std::map<int , Client> clients;
 sf::UdpSocket socket;
 
 
-void NotifyAllClients(int option, int id) {
+void NotifyOtherClients(int option, int id) {
 	
-	for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
 	{
 		if (it->first != id) {
 			sf::Packet p;
 			if (option == CONNECTION) {
-				p << CONNECTION << id << clients.find(id)->second->pos.x << clients.find(id)->second->pos.y;		
+				p << "CONNECTION" << id << clients.find(id)->second.pos.x << clients.find(id)->second.pos.y;		
 			}
 			else if (option == DISCONNECTION) {
-				p << DISCONNECTION << id << clients.find(id)->second->pos.x << clients.find(id)->second->pos.y;
+				p << "DISCONNECTION" << id << clients.find(id)->second.pos.x << clients.find(id)->second.pos.y;
 			}
-			socket.send(p, it->second->IP, it->second->port); //controlar errors
+			socket.send(p, it->second.ip, it->second.port); //controlar errors
 		}
-		
 	}
 }
 
 void Receive(int _action, int id, sf::IpAddress senderIP, unsigned short senderPort, sf::Packet p) {
 	if (_action == DISCONNECTION) {
-		NotifyAllClients(DISCONNECTION, id);
+		NotifyOtherClients(DISCONNECTION, id);
 		clients.erase(id);
 	}
 	else if (_action == MOVE_UP) {
@@ -92,10 +88,18 @@ void Receive(int _action, int id, sf::IpAddress senderIP, unsigned short senderP
 }
 
 
-void SendToAllClients(sf::UdpSocket *fromclient, std::string msg) {
+void SendToAllClients(std::string command) {
 
-	for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	for (std::map<int, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
 	{
+		for (std::map<int, Client>::iterator otherClients = clients.begin(); otherClients != clients.end(); ++otherClients)
+		{
+			sf::Packet p;
+			if (command == "POSITION") {
+				p << command << otherClients->first << otherClients->second.pos.x << otherClients->second.pos.y;
+				socket.send(p, clientToSend->second.ip, clientToSend->second.port); //controlar errors
+			}
+		}
 		
 	}
 }
@@ -113,35 +117,44 @@ void ControlServidor()
 	}
 	std::cout << "Server is listening to port " << PORT << ", waiting for clients " << std::endl;
 
+	do {
+		sf::Packet packet;
+		sf::IpAddress senderIP;
+		unsigned short senderPort;
+		std::string command;
+		status = socket.receive(packet, senderIP, senderPort);
 	
+		if (status == sf::Socket::Done) {
+			packet >> command;
+			if (command == "CONNECTION") {
+				std::cout << "Connection with client " << clientID << " from PORT " << senderPort << std::endl;
+				Position pos;
+				srand(time(NULL));
+				pos.x = std::rand() % 25;
+				pos.y = std::rand() % 25;
+				packet.clear();
+				packet << "WELCOME! " << clientID << pos.x << pos.y;
 
+				status = socket.send(packet, senderIP, senderPort);
+				if (status == sf::Socket::Done) {
+					clients.insert(std::make_pair(clientID, Client{ pos, senderIP, senderPort }));
+					NotifyOtherClients(CONNECTION, clientID);
+					SendToAllClients("POSITION");
+					clientID++;
+				}
+				else {
+					std::cout << "Error sending the message." << std::endl;
+				}
+			}
+		}
+	} while (clients.size() != MAX_CLIENTS);
+
+	socket.setBlocking(false);
 }
 
-void ReceiveDataInit() {
-	sf::Packet packet;
-	sf::IpAddress senderIP;
-	unsigned short senderPort;
-
-	status = socket.receive(packet, senderIP, senderPort);
-	if (status == sf::Socket::Done) {
-		std::cout << "Connection with client " << clientID << " from PORT " << senderPort << std::endl;
-		Position pos;
-		pos.x = std::rand() % 25 + 1;
-		pos.y = std::rand() % 25 + 1;
-		packet << "WELCOME! " << clientID << pos.x << pos.y;
-
-		status = socket.send(packet, senderIP, senderPort);
-		if (status != sf::Socket::Done) std::cout << "Error sending the message." << std::endl;
-		//clients.push_back(new Client{ clientID, pos, senderIP, senderPort});//&socket});
-		clients.insert(std::make_pair(clientID, new Client{pos, senderIP, senderPort }));
-		NotifyAllClients(CONNECTION, clientID);
-		clientID++;
-	} 
-	
-}
 
 void ReceiveData() {
-	//HACER MUTEX/THREAD O NONBLOCKING
+	//nonblocking
 	sf::Packet packet;
 	sf::IpAddress senderIP;
 	unsigned short senderPort;
@@ -149,12 +162,10 @@ void ReceiveData() {
 	int action;
 	status = socket.receive(packet, senderIP, senderPort);
 	
-	if (status == sf::Socket::Done) {
-		
+	if (status == sf::Socket::Done) {	
 		//Position pos;
 		packet >> action >> id; //>> pos.x, pos.y;
 		Receive(action, id, senderIP, senderPort, packet);
-
 	}
 	else if (status == sf::Socket::Disconnected) {
 		for (int i = 0; i < clients.size(); i++) {
@@ -165,15 +176,13 @@ void ReceiveData() {
 
 int main()
 {
-	socket.setBlocking(false);
 	ControlServidor();
+	
 	do {
-		ReceiveDataInit();
-	} while (clients.size() < MAX_CLIENTS);
-	do {
-		ReceiveData();
+		//ReceiveData();
 		if (clients.size() <= 0) online = false;
 	} while (online);
+
 	clients.clear();
 	socket.unbind();
 	system("pause");
