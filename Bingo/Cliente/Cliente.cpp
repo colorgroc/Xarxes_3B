@@ -15,7 +15,7 @@
 #define MOVE_DOWN 4
 #define MOVE_RIGHT 5
 #define MOVE_LEFT 6
-
+#define PING 1000 //1000 its 1 second
 #define PORT 50000
 
 #define SIZE_CELL 20
@@ -56,26 +56,30 @@ sf::Vector2f BoardToWindows(sf::Vector2f _positionCell)
 	return sf::Vector2f(_positionCell.x * SIZE_CELL, _positionCell.y * SIZE_CELL); //convert to pixels
 }
 
-void Send(int action) {
+void Send(std::string cmd) {
 	//Enviamos a una IP:Puerto concreto, porque el socket no está vinculado
 	//a ningún otro socket en exclusiva
 	sf::Packet packet;
-	if (action == DISCONNECTION) {
-		packet << DISCONNECTION << myPlayer->id;
+	if (cmd == "DISCONNECTION") {
+		packet << "DISCONNECTION" << myPlayer->id;
+		//borrar de la llista d'oponnents
 	}
-	else if (action == MOVE_UP) {
+	else if (cmd == "MOVE_UP") {
 
 	}
-	else if (action == MOVE_DOWN) {
+	else if (cmd == "MOVE_DOWN") {
 
 	}
-	else if (action == MOVE_RIGHT) {
+	else if (cmd == "MOVE_RIGHT") {
 
 	}
-	else if (action == MOVE_LEFT) {
+	else if (cmd == "MOVE_LEFT") {
 
 	}
-	status = socket.send(packet, "localhost", PORT);
+	sf::Clock c;
+	c.restart();
+	while (c.getElapsedTime().asMilliseconds() >= PING);
+		status = socket.send(packet, "localhost", PORT);
 	if (status == sf::Socket::Error) std::cout << "Error" << std::endl;
 	else if (status == sf::Socket::Disconnected) {
 		std::cout << "Server disconnected" << std::endl;
@@ -87,28 +91,26 @@ void Send(int action) {
 void ReceiveData() {
 	//nonblocking
 	sf::Packet packet;
-	std::string command;
+	std::string cmd;
 	int opponentId;
 	status = socket.receive(packet, serverIP, serverPORT);
 
 	if (status == sf::Socket::Done) {
-		packet >> command >> opponentId;
+		packet >> cmd >> opponentId;
 
-		if (command == "CONNECTION") {
+		if (cmd == "CONNECTION") {
 			Position pos;
 			packet >> pos.x >> pos.y;
 			std::cout << "A new opponent connected. ID: " << opponentId << " Position: " << pos.x << ", " << pos.y << std::endl;
 			opponents.insert(std::make_pair(opponentId, pos));
 		}
-		else if (command == "DISCONNECTION") {
+		else if (cmd == "DISCONNECTION") {
 			std::cout << "An opponent disconnected. ID: " << opponentId << std::endl;
 			opponents.erase(opponentId);
 		}
-		else if (command == "POSITION") { //update all positions
+		else if (cmd == "POSITION") { //update all positions
 			Position pos;
 			packet >> pos.x >> pos.y;	
-
-			std::cout << "idposition  " << opponentId << std::endl;
 
 			if (opponentId == myPlayer->id) {
 				myPlayer->position = pos; //soc jo
@@ -140,7 +142,7 @@ void GameManager() {
 			switch (event.type)
 			{
 			case sf::Event::Closed:
-				Send(DISCONNECTION);
+				//Send("DISCONNECTION");
 				socket.unbind();
 				window.close();
 				break;
@@ -212,7 +214,9 @@ void ConnectionWithServer() {
 	std::cout << "Estableciendo conexion con server... \n";
 
 	sf::Packet packet;
-	packet << "CONNECTION";
+	int packetId = 1;
+	packet << packetId << "NEW_CONNECTION";
+
 	status = socket.send(packet, "localhost", PORT);
 	if (status == sf::Socket::Error) std::cout << "Error" << std::endl;
 	else if (status == sf::Socket::Disconnected) {
@@ -221,17 +225,25 @@ void ConnectionWithServer() {
 	}
 
 	packet.clear();
-	std::string msg;
+	std::string cmd;
 	status = socket.receive(packet, serverIP, serverPORT);
 	if (status == sf::Socket::Done) {
-		packet >> msg >> myPlayer->id >> myPlayer->position.x >> myPlayer->position.y;
-		std::cout << msg << "Client ID: " << myPlayer->id << " Initial Position: " << myPlayer->position.x << ", " << myPlayer->position.y << std::endl;
+		packet >> cmd >> myPlayer->id >> myPlayer->position.x >> myPlayer->position.y;
+		if(cmd == "WELCOME")
+			std::cout << "HELLO!" << "Client ID: " << myPlayer->id << " Initial Position: " << myPlayer->position.x << ", " << myPlayer->position.y << std::endl;
 	}
 
 	socket.setBlocking(false);
 }
 
-
+void Ping() {
+	sf::Packet packet;
+	packet << "PING" << myPlayer->id;
+	sf::Clock c;
+	c.restart();
+	while(c.getElapsedTime().asMilliseconds() < PING)
+		status = socket.send(packet, "localhost", PORT);
+}
 int main()
 {
 	socket.bind(sf::Socket::AnyPort);
@@ -241,8 +253,9 @@ int main()
 	ConnectionWithServer();
 
 	GameManager();
-
-	//socket.disconnect();
+	sf::Thread(&Ping)
+	//socket.unbind();
+	opponents.clear();
 	system("pause");
 
 	return 0;

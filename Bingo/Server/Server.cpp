@@ -11,24 +11,11 @@
 
 #define MAX_CLIENTS 3
 
-#define CONNECTION 1
-#define DISCONNECTION 2
-#define MOVE_UP 3
-#define MOVE_DOWN 4
-#define MOVE_RIGHT 5
-#define MOVE_LEFT 6
 #define PORT 50000
 
-using PacketID = sf::Int8;
+using Comando = sf::Int8;
 
-enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED } game;
-//struct Action {
-//	int _DISCONNECTION = 1;
-//	int _MOVE_UP = 2;
-//	int _MOVE_DOWN = 3;
-//	int _MOVE_RIGHT = 4;
-//	int _MOVE_LEFT = 5;
-//}action;
+enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED } comandos;
 
 bool online = true;
 
@@ -37,67 +24,97 @@ struct Position {
 	int y;
 };
 struct Client {
+	int8_t clientID;
 	Position pos;
 	sf::IpAddress ip;
 	unsigned short port;
+	std::map<int, sf::Packet> resending;
 };
+
 
 sf::Socket::Status status;
 std::mutex myMutex;
 int clientID = 1;
 std::string textoAEnviar = "";
-
+int8_t packetID = 1;
 std::map<int , Client> clients;
 sf::UdpSocket socket;
+sf::Clock c;
+/*c.restart();
+while (c.getElapsedTime().asMilliseconds() >= PING);*/
+
+void Resend() {
+
+	//reenviar
+
+	//ferho en un thread q es reenvii cada PING segons en el main no?
+	for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it){
+		for (std::map<int, sf::Packet>::iterator it2 = it->second.resending.begin(); it2 != it->second.resending.end(); ++it) {
+			status = socket.send(it2->second, it->second.ip, it->second.port);
+			if (status != sf::Socket::Done)
+				std::cout << "Error sending the message." << std::endl;
+		}
+	}
 
 
-void NotifyOtherClients(int option, int id) {
+	//enviar resposta .--> NOOO CAL GUARDAR-HO. QUAN REP, BORRARLO DEL MAP. NO SHAN DE GUARDAR ELS ACK
+}
+
+
+void NotifyOtherClients(std::string cmd, int id) {
 	
 	for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
 	{
 		if (it->first != id) {
 			sf::Packet p;
-			if (option == CONNECTION) {
-				p << "CONNECTION" << id << clients.find(id)->second.pos.x << clients.find(id)->second.pos.y;		
+			if (cmd == "CONNECTION") {
+				p << packetID << "CONNECTION" << id << clients.find(id)->second.pos.x << clients.find(id)->second.pos.y;		
 			}
-			else if (option == DISCONNECTION) {
-				p << "DISCONNECTION" << id << clients.find(id)->second.pos.x << clients.find(id)->second.pos.y;
+			else if (cmd == "DISCONNECTION") {
+				p << packetID << "DISCONNECTION" << id << clients.find(id)->second.pos.x << clients.find(id)->second.pos.y;
 			}
-			socket.send(p, it->second.ip, it->second.port); //controlar errors
+			clients.find(id)->second.resending.insert(std::make_pair(packetID, p));
+			packetID++;
+
+			/*clients[id]->resending.insert(std::make_pair(packetID, Resend{ p, it->second.ip, it->second.port }));
+			packetID++;*/
+			//socket.send(p, it->second.ip, it->second.port); //controlar errors
 		}
 	}
 }
 
-void Receive(int _action, int id, sf::IpAddress senderIP, unsigned short senderPort, sf::Packet p) {
-	if (_action == DISCONNECTION) {
-		NotifyOtherClients(DISCONNECTION, id);
+void Receive(std::string cmd, int id, sf::IpAddress senderIP, unsigned short senderPort, sf::Packet p) {
+	if (cmd == "DISCONNECTION") {
+		NotifyOtherClients("DISCONNECTION", id);
 		clients.erase(id);
 	}
-	else if (_action == MOVE_UP) {
+	else if (cmd == "MOVE_UP") {
 
 	}
-	else if (_action == MOVE_DOWN) {
+	else if (cmd == "MOVE_DOWN") {
 
 	}
-	else if (_action == MOVE_RIGHT) {
+	else if (cmd == "MOVE_RIGHT") {
 
 	}
-	else if (_action == MOVE_LEFT) {
+	else if (cmd == "MOVE_LEFT") {
 
 	}
 }
 
 
-void SendToAllClients(std::string command) {
+void SendToAllClients(std::string cmd) {
 
 	for (std::map<int, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
 	{
 		for (std::map<int, Client>::iterator otherClients = clients.begin(); otherClients != clients.end(); ++otherClients)
 		{
 			sf::Packet p;
-			if (command == "POSITION") {
-				p << command << otherClients->first << otherClients->second.pos.x << otherClients->second.pos.y;
-				socket.send(p, clientToSend->second.ip, clientToSend->second.port); //controlar errors
+			if (cmd == "POSITION") {
+				p << packetID << cmd << otherClients->first << otherClients->second.pos.x << otherClients->second.pos.y;
+				otherClients->second.resending.insert(std::make_pair(packetID, p));
+				packetID++;
+				//socket.send(p, clientToSend->second.ip, clientToSend->second.port); //controlar errors
 			}
 		}
 		
@@ -126,25 +143,29 @@ void ControlServidor()
 	
 		if (status == sf::Socket::Done) {
 			packet >> command;
-			if (command == "CONNECTION") {
+			if (command == "NEW_CONNECTION") {
 				std::cout << "Connection with client " << clientID << " from PORT " << senderPort << std::endl;
 				Position pos;
 				srand(time(NULL));
 				pos.x = std::rand() % 25;
 				pos.y = std::rand() % 25;
 				packet.clear();
-				packet << "WELCOME! " << clientID << pos.x << pos.y;
+				packet << "WELCOME" << clientID << pos.x << pos.y;
+				clients.insert(std::make_pair(clientID, Client{ clientID, pos, senderIP, senderPort }));
 
-				status = socket.send(packet, senderIP, senderPort);
-				if (status == sf::Socket::Done) {
-					clients.insert(std::make_pair(clientID, Client{ pos, senderIP, senderPort }));
-					NotifyOtherClients(CONNECTION, clientID);
+				clients.find(clientID)->second.resending.insert(std::make_pair(packetID, packet));
+				packetID++;
+
+				//status = socket.send(packet, senderIP, senderPort);
+				//if (status == sf::Socket::Done) {
+					
+					NotifyOtherClients("CONNECTION", clientID);
 					SendToAllClients("POSITION");
 					clientID++;
-				}
-				else {
+				//}
+				/*else {
 					std::cout << "Error sending the message." << std::endl;
-				}
+				}*/
 			}
 		}
 	} while (clients.size() != MAX_CLIENTS);
@@ -159,13 +180,13 @@ void ReceiveData() {
 	sf::IpAddress senderIP;
 	unsigned short senderPort;
 	int id;
-	int action;
+	std::string cmd;
 	status = socket.receive(packet, senderIP, senderPort);
 	
 	if (status == sf::Socket::Done) {	
 		//Position pos;
-		packet >> action >> id; //>> pos.x, pos.y;
-		Receive(action, id, senderIP, senderPort, packet);
+		packet >> cmd >> id; //>> pos.x, pos.y;
+		Receive(cmd, id, senderIP, senderPort, packet);
 	}
 	else if (status == sf::Socket::Disconnected) {
 		for (int i = 0; i < clients.size(); i++) {
@@ -177,7 +198,7 @@ void ReceiveData() {
 int main()
 {
 	ControlServidor();
-	
+	sf::Thread(&ReciveAck);
 	do {
 		//ReceiveData();
 		if (clients.size() <= 0) online = false;
