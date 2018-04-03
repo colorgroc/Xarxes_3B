@@ -5,60 +5,96 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <map>
 #include <mutex>
 #include <thread>
 
 #define MAX_CLIENTS 4
-#define NEW_CONNECTION 1
-#define DISCONNECTED 2
+
+#define CONNECTION 1
+#define DISCONNECTION 2
+#define MOVE_UP 3
+#define MOVE_DOWN 4
+#define MOVE_RIGHT 5
+#define MOVE_LEFT 6
 #define PORT 50000
 
 using PacketID = sf::Int8;
-//using ClientID = int;
-//using PortNumber = unsigned short;
 
-enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED } bingo;
+enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED } game;
+//struct Action {
+//	int _DISCONNECTION = 1;
+//	int _MOVE_UP = 2;
+//	int _MOVE_DOWN = 3;
+//	int _MOVE_RIGHT = 4;
+//	int _MOVE_LEFT = 5;
+//}action;
 
-bool online;
+bool online = true;
 
 struct Position {
 	int x;
 	int y;
 };
+struct Client {
+	//int ID;
+	Position pos;
+	sf::IpAddress IP;
+	unsigned short port;
+	//sf::UdpSocket* socket;
 
+};
 sf::Socket::Status status;
 std::mutex myMutex;
 int clientID = 1;
 std::string textoAEnviar = "";
 
-//sf::TcpListener listener;
-std::vector<sf::UdpSocket*> clients;
+//std::vector<Client*> clients;
+std::map<int , Client*> clients;
 sf::UdpSocket socket;
-//sf::SocketSelector selector;
 
 
-void NotifyAllClients(int option, sf::UdpSocket *newclient) {
-
-	//cuando se conecte un nuevo cliente
-	if (option == NEW_CONNECTION) {
-		for (std::vector<sf::UdpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-		{
-			
+void NotifyAllClients(int option, int id) {
+	
+	for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	{
+		if (it->first != id) {
+			sf::Packet p;
+			if (option == CONNECTION) {
+				p << CONNECTION << id << clients.find(id)->second->pos.x << clients.find(id)->second->pos.y;		
+			}
+			else if (option == DISCONNECTION) {
+				p << DISCONNECTION << id << clients.find(id)->second->pos.x << clients.find(id)->second->pos.y;
+			}
+			socket.send(p, it->second->IP, it->second->port); //controlar errors
 		}
+		
 	}
-	//cuando se desconecta un cliente
-	else if (option == DISCONNECTED) {
-		for (std::vector<sf::UdpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-		{
-			
-		}
-	}
-
 }
+
+void Receive(int _action, int id, sf::IpAddress senderIP, unsigned short senderPort, sf::Packet p) {
+	if (_action == DISCONNECTION) {
+		NotifyAllClients(DISCONNECTION, id);
+		clients.erase(id);
+	}
+	else if (_action == MOVE_UP) {
+
+	}
+	else if (_action == MOVE_DOWN) {
+
+	}
+	else if (_action == MOVE_RIGHT) {
+
+	}
+	else if (_action == MOVE_LEFT) {
+
+	}
+}
+
 
 void SendToAllClients(sf::UdpSocket *fromclient, std::string msg) {
 
-	for (std::vector<sf::UdpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
 	{
 		
 	}
@@ -81,7 +117,7 @@ void ControlServidor()
 
 }
 
-void ReceiveData() {
+void ReceiveDataInit() {
 	sf::Packet packet;
 	sf::IpAddress senderIP;
 	unsigned short senderPort;
@@ -96,22 +132,50 @@ void ReceiveData() {
 
 		status = socket.send(packet, senderIP, senderPort);
 		if (status != sf::Socket::Done) std::cout << "Error sending the message." << std::endl;
-		clients.push_back(&socket);
+		//clients.push_back(new Client{ clientID, pos, senderIP, senderPort});//&socket});
+		clients.insert(std::make_pair(clientID, new Client{pos, senderIP, senderPort }));
+		NotifyAllClients(CONNECTION, clientID);
 		clientID++;
 	} 
-	//else if(status == sf::Socket::Disconnected){
-		//eliminar client corresponent...fer bucle 
-		//clients.erase(clients.begin, )
-	//}
+	
+}
+
+void ReceiveData() {
+	//HACER MUTEX/THREAD O NONBLOCKING
+	sf::Packet packet;
+	sf::IpAddress senderIP;
+	unsigned short senderPort;
+	int id;
+	int action;
+	status = socket.receive(packet, senderIP, senderPort);
+	
+	if (status == sf::Socket::Done) {
+		
+		//Position pos;
+		packet >> action >> id; //>> pos.x, pos.y;
+		Receive(action, id, senderIP, senderPort, packet);
+
+	}
+	else if (status == sf::Socket::Disconnected) {
+		for (int i = 0; i < clients.size(); i++) {
+
+		}
+	}
 }
 
 int main()
 {
+	socket.setBlocking(false);
 	ControlServidor();
 	do {
-		ReceiveData();
+		ReceiveDataInit();
 	} while (clients.size() < MAX_CLIENTS);
-
+	do {
+		ReceiveData();
+		if (clients.size() <= 0) online = false;
+	} while (online);
+	clients.clear();
+	socket.unbind();
 	system("pause");
 	return 0;
 }
