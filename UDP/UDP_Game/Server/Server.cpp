@@ -1,435 +1,252 @@
-﻿//TALLER 2 - ANNA PONCE I MARC SEGARRA
+//TALLER 6 - ANNA PONCE I MARC SEGARRA
 
 #include <SFML\Graphics.hpp>
 #include <SFML\Network.hpp>
 #include <string>
 #include <iostream>
 #include <vector>
+#include <map>
 #include <mutex>
 #include <thread>
-#include <time.h>
-#include <chrono>
 
-#include "Game.cpp"
-#include "Player.cpp"
+#define MAX_CLIENTS 3
+#define PING 500
+#define CONTROL_PING 8000
+#define PORT 50000
 
-#define MAX_CLIENTS 4
+using Comando = sf::Int8;
 
-#define NEW_CONNECTION 1
-#define DISCONNECTED 2
+enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED } comandos;
 
-enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED, GAME_HAS_FINISHED } bingo;
+bool online = true;
 
-bool online;
+struct Position {
+	int x;
+	int y;
+};
+struct Client {
+	int clientID; //nose si cal guardar la seva id si ja la guardem en la key dl map --> guardar nickname
+	Position pos;
+	sf::IpAddress ip;
+	unsigned short port;
+	std::map<int, sf::Packet> resending;
+	sf::Clock timePastPING;
+};
 
-int puerto = 5000;
-
+std::map<int, sf::Packet> connectionResending;
 sf::Socket::Status status;
 std::mutex myMutex;
-
+int clientID = 1;
 std::string textoAEnviar = "";
+int packetID = 1;
+std::map<int, Client> clients;
+sf::UdpSocket socket;
+sf::Clock c;
+/*c.restart();
+while (c.getElapsedTime().asMilliseconds() >= PING);*/
 
-sf::TcpListener listener;
-sf::SocketSelector selector;
-std::vector<sf::TcpSocket*> clients;
-
-Game *myGame;
-
-void shared_cout(std::string msg) {
-	
-	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
-	if (msg != "") { std::cout << (msg) << std::endl; }
-
+void ConnectionResend() {
+	for (std::map<int, sf::Packet>::iterator msg = connectionResending.begin(); msg != connectionResending.end(); ++msg) {
+		status = socket.send(msg->second, clients[msg->first].ip, clients[msg->first].port);
+		if (status == sf::Socket::Error)
+			std::cout << "Error sending the message." << std::endl;
+		else if (status == sf::Socket::Disconnected) {
+			std::cout << "Error sending the message. Client disconnected." << std::endl;
+			clients.erase(msg->first); //msg->first es la id del client
+		}
+	}
 }
 
-void NotifyAllClients_ConnectedOrDisconnected(int option, sf::TcpSocket *newclient) {
-	
-	//cuando se conecte un nuevo cliente
-	if (option == NEW_CONNECTION) {
-		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-		{
-			sf::TcpSocket& client = **it;
-			if (newclient->getRemotePort() != client.getRemotePort()) {
-				textoAEnviar = "MESSAGE_Se ha conectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n_";
 
-				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
-			}
-		}
-	}
-	//cuando se desconecta un cliente
-	else if (option == DISCONNECTED) {
-		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-		{
-			sf::TcpSocket& client = **it;
-			if (newclient->getRemotePort() != client.getRemotePort()) {
-				textoAEnviar = "MESSAGE_Se ha desconectado el cliente con puerto " + std::to_string(newclient->getRemotePort()) + "\n_";
-				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
-			}
-		}
-	}
-	
-}
-
-void SendToAllOrClientDueReceivedMsg(sf::TcpSocket *fromclient, std::string msg) {
-	
-	std::string delimiter = "_"; //s'utilitza aquest delimitador per separa commad del msg
-	std::string command = msg.substr(0, msg.find(delimiter)); //command
-	msg.erase(0, msg.find(delimiter) + delimiter.length()); //msg te el misatge sense el command
-
-	//chat
-	if (command == "MESSAGE") {
-		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-		{
-			sf::TcpSocket& client = **it;
-			if (fromclient->getRemotePort() != client.getRemotePort()) {
-				if (msg != "Disconnected") {
-					textoAEnviar = "MESSAGE_Mensaje de " + std::to_string(fromclient->getRemotePort()) + ": " + msg + "\n_";
-					status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
-				}
-			}
-		}
-	}
-
-	if (command == "NUMBER") {
-		//s'agafa el player que ha enviat el numero
-		//es comprova si el numero el te a la cartilla
-		//si es verdader s'envia la cartilla al jugador actualitzada
-		////si es fals enviem al jugador que no es veritat i no cal actualitzar la cartilla
-		for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
-		{
-			if (it->getPlayerInfo()->getRemotePort() == fromclient->getRemotePort()) {
-				if (it->CheckNumber(std::stoi(msg), myGame->getCurrentNumberPlaying())) {
-					textoAEnviar = "BOOK_" + it->bookReadyToSend() + "_";
-				}
-				else {
-					textoAEnviar = "MESSAGE_The number is incorrect_";
-				}
-				fromclient->send(textoAEnviar.c_str(), textoAEnviar.length());
-			}
-		}
-
-	}
-	if (command == "LINE") {
-		//es comprova si el jugador ha fet linia
-		//si es verdader s'envia linia a tots els jugadors
-		//si es fals enviem al client que ha enviat linia que no es veritat
-
-		int tempHowManyLines = 0;
-
-		for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
-		{
-			if (it->getPlayerInfo()->getRemotePort() == fromclient->getRemotePort()) {
-				int temp = it->CheckLine();
-				if (temp != 0) {
-					textoAEnviar = "LINE_Number of Lines " + std::to_string(temp) + "_";
-					tempHowManyLines = temp;
-				}
-				else {
-					textoAEnviar = "MESSAGE_You dont have any lines yet_";
-				}
-				fromclient->send(textoAEnviar.c_str(), textoAEnviar.length());
-			}
-		}
-
-		if (tempHowManyLines !=0) {
-			for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
-			{
-				if (it->getPlayerInfo()->getRemotePort() != fromclient->getRemotePort()) {
-					textoAEnviar = "MESSAGE_The player " + std::to_string(fromclient->getRemotePort()) + " has " + std::to_string(tempHowManyLines) + " lines_";
-					it->getPlayerInfo()->send(textoAEnviar.c_str(), textoAEnviar.length());
-				}
-			}
-		}
-
-	}
-	if (command == "BINGO") {
-		//es comprova si s'ha fet bingo
-		//si es verdader s'envia bingo a tots els jugadors, al jugador que ha guanyat li donem el bote
-		//si es fals enviem al client que ha enviat bingo que no es veritat
-		
-		bool tempIsBingo = false;
-
-		for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
-		{
-			if (it->getPlayerInfo()->getRemotePort() == fromclient->getRemotePort()) {
-				it->CheckBingo();
-				if (it->getBingo()) {
-					tempIsBingo = true;
-					it->setMoney(it->getMoney() + myGame->getPot());
-					textoAEnviar = "BINGO_Congratulations! You are the Winner! Your money is "+ std::to_string(it->getMoney()) +"_";
-					fromclient->send(textoAEnviar.c_str(), textoAEnviar.length());
-					bingo = GAME_HAS_FINISHED;
-				}
-				else {
-					textoAEnviar = "MESSAGE_You dont have bingo yet_";
-					fromclient->send(textoAEnviar.c_str(), textoAEnviar.length());
-				}
-			}
-		}
-
-		if (tempIsBingo) {
-			for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
-			{
-				if (it->getPlayerInfo()->getRemotePort() != fromclient->getRemotePort()) {
-					textoAEnviar = "MESSAGE_The player " + std::to_string(fromclient->getRemotePort()) + " is the WINNER!_";
-					it->getPlayerInfo()->send(textoAEnviar.c_str(), textoAEnviar.length());
-				}
+void Resend() {
+	//posar mutex??
+	for (std::map<int, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
+		for (std::map<int, sf::Packet>::iterator msg = clientes->second.resending.begin(); msg != clientes->second.resending.end(); ++msg) {
+			status = socket.send(msg->second, clientes->second.ip, clientes->second.port);
+			if (status == sf::Socket::Error)
+				std::cout << "Error sending the message." << std::endl;
+			else if (status == sf::Socket::Disconnected) {
+				std::cout << "Error sending the message. Client disconnected." << std::endl;
+				clients.erase(clientes);
 			}
 		}
 	}
 }
 
-void SendToAllOrClientDueStateGame(std::string command) {
+void NotifyOtherClients(std::string cmd, int id) {
 
-	if (command == "READYTOPLAY_") {
-		//recorrer tota la llista de clients i envia que ha començat la partida
-		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-		{
-			sf::TcpSocket& client = **it;
-			
-			textoAEnviar = "READYTOPLAY_GO!_";
-			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
-			
-		}
-	}
-	if (command == "BOTE_") {
-		//enviar a tots els clients el bote 
-		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-		{
-			sf::TcpSocket& client = **it;
-
-			textoAEnviar = "BOTE_" + std::to_string(myGame->getPot())+ "\n_";
-			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
-
-		}
-	}
-	if (command == "NUMBER_") {
-		//enviar a tots els clients el nou numero random
-		int temp = myGame->RandomWithoutRepetiton();
-
-		if (temp == -1) { //vol dir que tots els numeros de dintre el bingo ja han estat tirats
-			bingo = GAME_HAS_FINISHED;
-		}
-		else {
-			for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-			{
-				sf::TcpSocket& client = **it;
-
-				textoAEnviar = "NUMBER_" + std::to_string(temp) + "\n_";
-				status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
-
-			}
-		}
-	
-	}
-	if (command == "BOOK_") {
-		//enviar a tots els clients la seva cartilla
-		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-		{
-			sf::TcpSocket& client = **it;
-			
-			for (std::vector<Player>::iterator it = myGame->players.begin(); it != myGame->players.end(); ++it)
-			{
-				if (it->getPlayerInfo()->getRemotePort() == client.getRemotePort()) {
-					textoAEnviar = "BOOK_" + it->bookReadyToSend() + "_";
-					client.send(textoAEnviar.c_str(), textoAEnviar.length());
-				}
-			}
-		}
-	}
-
-	if (command == "GAMEFINISHED_") {
-		//enviar a tots els clients el nou numero random
-		for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-		{
-			sf::TcpSocket& client = **it;
-
-			textoAEnviar = "GAMEFINISHED_The game has finished!_";
-			status = client.send(textoAEnviar.c_str(), textoAEnviar.length());
-
-		}
-	}
-	
-}
-
-
-void WaitforDataOnAnySocket() {
-
-	// Endless loop that waits for new connections
-	while (online)
+	for(std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); it++)
 	{
-		// Make the selector wait for data on any socket
-		if (selector.wait())
-		{
-			// Test the listener
-			if (selector.isReady(listener))
-			{
-				// The listener is ready: there is a pending connection
-				sf::TcpSocket* client = new sf::TcpSocket;
-				if (listener.accept(*client) == sf::Socket::Done)
-				{
-					// Add the new client to the clients list
-					shared_cout("Se ha conectado el cliente con puerto " + std::to_string(client->getRemotePort()));
-					clients.push_back(client);
-
-					//nova conexio, s'ha de crear un nou player local i posar-lo dintre del vector de jugadors
-					Player tempPlayer(client); //restem -1 a causa de erase del vector (mirar server) //https://stackoverflow.com/questions/875103/how-do-i-erase-an-element-from-stdvector-by-index
-					myGame->addNewPlayerToList(tempPlayer);
-
-					NotifyAllClients_ConnectedOrDisconnected(NEW_CONNECTION,client);
-					// Add the new client to the selector so that we will
-					// be notified when he sends something
-					selector.add(*client);
-				}
-				else
-				{
-					// Error, we won't get a new connection, delete the socket
-					shared_cout("Error al recoger conexion nueva");
-					delete client;
-				}
+		if (it->first != id) {
+			sf::Packet packet;
+			int iden = id + 10;
+			if (cmd == "CONNECTION") {
+				packet << packetID << "CONNECTION" << id << clients.find(id)->second.pos.x << clients.find(id)->second.pos.y;
+				connectionResending.insert(std::make_pair(iden, packet));
 			}
-			else
-			{
-				// The listener socket is not ready, test all other sockets (the clients)
-				for (std::vector<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-				{
-					sf::TcpSocket& client = **it;
-					if (selector.isReady(client))
-					{
-						// The client has sent some data, we can receive it
-						char buffer[100];
-						size_t bytesReceived;
-						status = client.receive(buffer, 100, bytesReceived);
-						if (status == sf::Socket::Done)
-						{
-							buffer[bytesReceived] = '\0';
-							shared_cout("Mensaje del puerto " + std::to_string(client.getRemotePort()) + ": " + buffer);
-							//segons missatge rebut que envio?
-							SendToAllOrClientDueReceivedMsg(&client, buffer);
-						}
-						else if (status == sf::Socket::Disconnected)
-						{
-							NotifyAllClients_ConnectedOrDisconnected(DISCONNECTED, &client);
-							
-							shared_cout("Se a desconectado el cliente con puerto " + std::to_string(client.getRemotePort()));
-
-							//s'ha de borrar el client del vector de clients
-							//s'ha de borrar el jugador del vector de jugadors
-							
-							selector.remove(client);
-							for (int i = 0; i < myGame->players.size(); i++) {
-								if (myGame->players[i].getPlayerInfo() == &client) {
-									myGame->deletePlayerList(myGame->players[i]);
-								}
-							}
-						}
-						else
-						{
-							shared_cout("Error al recibir de " + std::to_string(client.getRemotePort()));
-						}
-					}
-				}
+			else if (cmd == "DISCONNECTION") {
+				packet << packetID << "DISCONNECTION" << id << clients.find(id)->second.pos.x << clients.find(id)->second.pos.y;
+				clients.find(id)->second.resending.insert(std::make_pair(packetID, packet));
+				packetID++;
 			}
+
 		}
 	}
 }
 
-void EveryTimeThrowNumber() {
 
-	while (bingo != GAME_HAS_FINISHED) {
-		std::this_thread::sleep_for(std::chrono::seconds(7));
-		if (bingo == GAME_HAS_STARTED) {
-			SendToAllOrClientDueStateGame("NUMBER_");
+void SendToAllClients(std::string cmd) {
+
+	for (std::map<int, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
+	{
+		for (std::map<int, Client>::iterator otherClients = clients.begin(); otherClients != clients.end(); ++otherClients)
+		{
+			if (otherClients->first != clientToSend->first) { //no tho enviis a tu mateix
+				sf::Packet packet;
+				if (cmd == "POSITION") {
+					packet << packetID << cmd << otherClients->first << otherClients->second.pos.x << otherClients->second.pos.y;
+					otherClients->second.resending.insert(std::make_pair(packetID, packet));
+					packetID++;
+					//socket.send(p, clientToSend->second.ip, clientToSend->second.port); //controlar errors
+				}
+			}
 		}
+
 	}
-	
+}
+
+void ConnectionReceive() {
+	sf::Packet packet;
+	sf::IpAddress senderIP;
+	unsigned short senderPort;
+	int cID;
+	std::string cmd;
+	status = socket.receive(packet, senderIP, senderPort);
+	if (cmd == "WELCOME_ACK") {
+		if (connectionResending.find(cID) != connectionResending.end())
+			connectionResending.erase(cID);
+	}
 }
 
 void ControlServidor()
 {
-
-	// Create a socket to listen to new connections
-	status = listener.listen(puerto);
+	// bind the socket to a port
+	status = socket.bind(PORT);
 	if (status != sf::Socket::Done)
 	{
-		std::cout << "Error al abrir listener\n";
+		socket.unbind();
 		exit(0);
 	}
-	// Add the listener to the selector
-	selector.add(listener);
+	std::cout << "Server is listening to port " << PORT << ", waiting for clients " << std::endl;
+	sf::Clock t;
+	t.restart();
+	do {
+		sf::Packet packet;
+		sf::IpAddress senderIP;
+		unsigned short senderPort;
+		std::string cmd;
+		status = socket.receive(packet, senderIP, senderPort);
+
+		if (status == sf::Socket::Done) {
+			packet >> cmd;
+			if (cmd == "NEW_CONNECTION") {
+				std::cout << "Connection with client " << clientID << " from PORT " << senderPort << std::endl;
+				Position pos;
+				srand(time(NULL));
+				pos.x = std::rand() % 25;
+				pos.y = std::rand() % 25;
+				packet.clear();
+				packet << "WELCOME" << clientID << pos.x << pos.y;
+				clients.insert(std::make_pair(clientID, Client{ clientID, pos, senderIP, senderPort }));
+				connectionResending.insert(std::make_pair(clientID, packet));
+				if (t.getElapsedTime().asMilliseconds() >= PING) {
+					ConnectionResend();
+					t.restart();
+				}
+				NotifyOtherClients("CONNECTION", clientID);
+				ConnectionReceive();
+				//clients.find(clientID)->second.resending.insert(std::make_pair(packetID, packet));
+				//packetID++;
+				
+				clientID++;
+			}
+		}
+	} while (clients.size() != MAX_CLIENTS);
+
+	SendToAllClients("POSITION");
+	socket.setBlocking(false);
 }
 
 
 
+void ReceiveData() {
+	//nonblocking
+	sf::Packet packet;
+	sf::IpAddress senderIP;
+	unsigned short senderPort;
+	int cID;
+	int pID;
+	std::string cmd;
+	status = socket.receive(packet, senderIP, senderPort);
+
+	if (status == sf::Socket::Done) {
+		//Position pos;
+		packet >> pID >> cmd >> cID;
+		if (cmd == "ACK") {
+			if (clients.find(cID) != clients.end() && clients[cID].resending.find(pID) != clients[cID].resending.end())
+				clients[cID].resending.erase(pID);
+		}else if (cmd == "PING") {
+			clients[cID].timePastPING.restart();
+		}
+		/*else if (cmd == "WELCOME_ACK") {
+		if (connectionResending.find(cID) != connectionResending.end())
+		connectionResending.erase(cID);
+		}*/
+		else {
+			//pillar pos? packet >> pos.x >> pos.y; ??
+			//posar aqui les accions
+
+			//enviar ACK
+			packet.clear();
+			packet << pID << "ACK" << cID;
+			clients[cID].resending.insert(std::make_pair(pID, packet));
+		}
+	}
+}
+
+void RestartTimeClients() {
+	for (std::map<int, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
+		clientes->second.timePastPING.restart();
+	}
+}
+
+void ControlPingClients() {
+	for (std::map<int, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
+		if (clientes->second.timePastPING.getElapsedTime().asMilliseconds() >= CONTROL_PING) {
+			NotifyOtherClients("DISCONNECTION", clientes->first);
+			clients.erase(clientes->first);
+		}
+	}
+}
+
 int main()
 {
-	online = true;
-	std::cout << "Server online... \n";
-	textoAEnviar = "";
-
 	ControlServidor();
-	std::thread t1(&WaitforDataOnAnySocket);
-	std::thread t2(&EveryTimeThrowNumber);
-
-	bingo = WAIT_FOR_ALL_PLAYERS;
-
-	//creacio de la partida, crear objecte bingo (new)
-	myGame = new Game();
+	RestartTimeClients();
+	c.restart();
 
 	do {
-
-		switch (bingo)
-		{
-		case WAIT_FOR_ALL_PLAYERS:
-			if (clients.size() == MAX_CLIENTS) {
-				bingo = ALL_PLAYERS_CONNECTED;
-			}
-			//ha cada nova connexio notificar als altres jugador ja conectats (ja es fa)
-			break;
-
-		case ALL_PLAYERS_CONNECTED:
-			//enviar a tots els cilentes que la partida ha començat (READYTOPLAY_)
-			//treure els diners de la aposta inicial de cada jugador
-			//enviar a tots els jugadors el bote total (BOTE_)
-			//enviar a tots els jugadors la seva cartilla 
-			// (a partir d'aqui els jugadors ja poden començar a parlar amb el servidor)
-			SendToAllOrClientDueStateGame("READYTOPLAY_");
-			myGame->CalculatePot();
-			SendToAllOrClientDueStateGame("BOTE_");
-			SendToAllOrClientDueStateGame("BOOK_");
-			bingo = GAME_HAS_STARTED;
-			break;
-
-		case GAME_HAS_STARTED:
-			//cada cert temps
-			//enviem els numeros random a tots els jugadors (NUMBER_) (amb un thread)
-			//escoltem continuament els missatges de tots els jugadors i actuem en consequencia (ja es fa)
-			if (myGame->players.size() == 0) {
-				bingo = GAME_HAS_FINISHED;
-			}
-
-			break;
-
-		case GAME_HAS_FINISHED:
-			//es notifica a tots els jugadors que la partida a acabat (ja s'ha dit a tots els jugadors qui ha guanyat)
-			if (myGame->players.size() != 0) {
-				SendToAllOrClientDueStateGame("GAMEFINISHED_"); //si hi han jugadors els hi dic
-			}
-			else {
-				shared_cout("Game Finshed"); //si no hi ha ningu ho escric pel server
-			}
-			
-				break;
-		default:
-			break;
+		ControlPingClients();
+		if (c.getElapsedTime().asMilliseconds() >= PING) {
+			Resend();
+			c.restart();
 		}
-
-
+		ReceiveData();
+		if (clients.size() <= 0) online = false;
 	} while (online);
 
-	t1.join();
-	t2.join();
+	clients.clear();
+	socket.unbind();
 	system("pause");
-	//system("exit");
 	return 0;
 }

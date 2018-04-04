@@ -1,8 +1,2 @@
-﻿  Cliente.cpp
-c:\users\anna\documents\github\xarxes_3b\bingo\cliente\cliente.cpp(50): warning C4244: 'inicializando': conversión de 'int' a 'float'; posible pérdida de datos
-c:\users\anna\documents\github\xarxes_3b\bingo\cliente\cliente.cpp(51): warning C4244: 'inicializando': conversión de 'int' a 'float'; posible pérdida de datos
-c:\users\anna\documents\github\xarxes_3b\bingo\cliente\cliente.cpp(151): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-c:\users\anna\documents\github\xarxes_3b\bingo\cliente\cliente.cpp(159): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-c:\users\anna\documents\github\xarxes_3b\bingo\cliente\cliente.cpp(170): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-c:\users\anna\documents\github\xarxes_3b\bingo\cliente\cliente.cpp(183): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-  Cliente.vcxproj -> C:\Users\Anna\Documents\GitHub\Xarxes_3B\UDP\UDP_Game\x64\Debug\Cliente.exe
+﻿  Cliente.vcxproj -> F:\Bingo\x64\Debug\Cliente.exe
+  Cliente.vcxproj -> F:\Bingo\x64\Debug\Cliente.pdb (Partial PDB)

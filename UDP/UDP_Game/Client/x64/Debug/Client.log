@@ -1,0 +1,8 @@
+﻿  Client.cpp
+c:\users\anna\documents\github\xarxes_3b\udp\udp_game\client\client.cpp(55): warning C4244: 'inicializando': conversión de 'int' a 'float'; posible pérdida de datos
+c:\users\anna\documents\github\xarxes_3b\udp\udp_game\client\client.cpp(56): warning C4244: 'inicializando': conversión de 'int' a 'float'; posible pérdida de datos
+c:\users\anna\documents\github\xarxes_3b\udp\udp_game\client\client.cpp(172): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+c:\users\anna\documents\github\xarxes_3b\udp\udp_game\client\client.cpp(180): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+c:\users\anna\documents\github\xarxes_3b\udp\udp_game\client\client.cpp(191): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+c:\users\anna\documents\github\xarxes_3b\udp\udp_game\client\client.cpp(202): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+  Client.vcxproj -> C:\Users\Anna\Documents\GitHub\Xarxes_3B\UDP\UDP_Game\x64\Debug\Client.exe

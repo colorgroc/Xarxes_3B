@@ -1,262 +1,352 @@
-//TALLER 6 - ANNA PONCE I MARC SEGARRA
-
+//TALLER 2 - ANNA PONCE I MARC SEGARRA
 #include <SFML\Graphics.hpp>
 #include <SFML\Network.hpp>
 #include <string>
 #include <iostream>
 #include <vector>
-#include <map>
 #include <mutex>
 
-#define MAX_OPPONENTS 3
-#define CONNECTION 1
-#define DISCONNECTION 2
-#define MOVE_UP 3
-#define MOVE_DOWN 4
-#define MOVE_RIGHT 5
-#define MOVE_LEFT 6
-#define PING 1000 //1000 its 1 second
-#define PORT 50000
+#define MAX_MENSAJES 25
 
-#define SIZE_CELL 20
-#define NUMBER_ROWS_COLUMNS 25
-#define RADIUS_SPRITE 10.0f
+#define RECEIVED 1
+#define WRITED 2
+#define CONNECTION 3
 
-sf::IpAddress serverIP = "localhost";
-unsigned short serverPORT = PORT;
-int state = 1;
-sf::UdpSocket socket;
+sf::String mensajeBook;
+
+enum stateGame {GAME_HASNT_STARTED,  GAME_HAS_STARTED, GAME_HAS_FINISHED } bingo;
+
+sf::TcpSocket socket;
+
+int puerto = 5000;
+
 sf::Socket::Status status;
 std::mutex myMutex;
 
-struct Position {
-	int x;
-	int y;
-};
+std::vector<std::string> aMensajes;
+sf::String mensaje;
 
-struct Player
+inline bool isInteger(const std::string & s)  //https://stackoverflow.com/questions/2844817/how-do-i-check-if-a-c-string-is-an-int
 {
-	int id;
-	Position position;
-};
+	if (s.empty() || ((!isdigit(s[0])) && (s[0] != '-') && (s[0] != '+'))) return false;
 
-Player * myPlayer;
-std::map <int, Position> opponents;
+	char * p;
+	strtol(s.c_str(), &p, 10);
 
-sf::Vector2f GetCell(int _x, int _y)
-{
-	float xCell = _x / SIZE_CELL;
-	float yCell = _y / SIZE_CELL;
-	sf::Vector2f cell(xCell, yCell);
-	return cell;
+	return (*p == 0);
 }
 
-sf::Vector2f BoardToWindows(sf::Vector2f _positionCell)
-{
-	return sf::Vector2f(_positionCell.x * SIZE_CELL, _positionCell.y * SIZE_CELL); //convert to pixels
-}
+void shared_cout(std::string msg, int option) {
 
-void Send(std::string cmd) {
-	//Enviamos a una IP:Puerto concreto, porque el socket no está vinculado
-	//a ningún otro socket en exclusiva
-	sf::Packet packet;
-	if (cmd == "DISCONNECTION") {
-		packet << "DISCONNECTION" << myPlayer->id;
-		//borrar de la llista d'oponnents
-	}
-	else if (cmd == "MOVE_UP") {
+	if (msg != "") {
 
-	}
-	else if (cmd == "MOVE_DOWN") {
-
-	}
-	else if (cmd == "MOVE_RIGHT") {
-
-	}
-	else if (cmd == "MOVE_LEFT") {
-
-	}
-	sf::Clock c;
-	c.restart();
-	while (c.getElapsedTime().asMilliseconds() >= PING);
-		status = socket.send(packet, "localhost", PORT);
-	if (status == sf::Socket::Error) std::cout << "Error" << std::endl;
-	else if (status == sf::Socket::Disconnected) {
-		std::cout << "Server disconnected" << std::endl;
-		socket.unbind();
-	}
-
-}
-
-void ReceiveData() {
-	//nonblocking
-	sf::Packet packet;
-	std::string cmd;
-	int opponentId;
-	status = socket.receive(packet, serverIP, serverPORT);
-
-	if (status == sf::Socket::Done) {
-		packet >> cmd >> opponentId;
-
-		if (cmd == "CONNECTION") {
-			Position pos;
-			packet >> pos.x >> pos.y;
-			std::cout << "A new opponent connected. ID: " << opponentId << " Position: " << pos.x << ", " << pos.y << std::endl;
-			opponents.insert(std::make_pair(opponentId, pos));
-		}
-		else if (cmd == "DISCONNECTION") {
-			std::cout << "An opponent disconnected. ID: " << opponentId << std::endl;
-			opponents.erase(opponentId);
-		}
-		else if (cmd == "POSITION") { //update all positions
-			Position pos;
-			packet >> pos.x >> pos.y;	
-
-			if (opponentId == myPlayer->id) {
-				myPlayer->position = pos; //soc jo
-			}
-			else if (opponents.find(opponentId) == opponents.end()) {
-				//encara no esta a la llista
-				opponents.insert(std::make_pair(opponentId, pos));
-			}
-			else {
-				//esta a la llista i no soc jo
-				opponents.find(opponentId)->second = pos;
-			}
+		//netejem pantalla si hi han massa missatges
+		if (aMensajes.size() >= MAX_MENSAJES) {
+			aMensajes.clear();
 		}
 
+		if (option == RECEIVED) { 
+				//cojer el commad i mostrar un texto segun lo enviado
+				std::string delimiter = "_"; //s'utilitza aquest delimitador per separar commad del msg
+				size_t pos = 0;
+				std::string token;
+				std::vector<std::string> allcommands;
+				std::vector<std::string> alldata;
+				
+				int count = 0;
+				bool flipflop = false;
+				
+				std::vector<int>::iterator it;
+
+				//per manejar multiples missatges enviats, vaig separan amb els limitadors i vaig omplint els dos vectors amb les dades agafades 
+				while ((pos = msg.find(delimiter)) != std::string::npos) {
+					token = msg.substr(0, pos);
+					if(!flipflop){
+						allcommands.push_back(token); count++; flipflop = true;
+					}
+					else { alldata.push_back(token); flipflop = false; }
+					msg.erase(0, pos + delimiter.length());
+					
+				}
+				
+
+				for (int i = 0; i < count; i++) {
+
+					std::string command = allcommands[i];
+					std::string msg = alldata[i];
+
+					if (command == "READYTOPLAY") {
+						//cambiar estat del bingo
+						//mostrar per pantalla el missatge que ha començat la partida
+						bingo = GAME_HAS_STARTED;
+						aMensajes.push_back("The game has started. " + msg);
+					}
+					if (command == "BINGO") {
+						//mostar que el jugador ha guanyat
+						//cambiar estat del bingo a acabat
+						aMensajes.push_back(msg);
+						bingo = GAME_HAS_FINISHED;
+					}
+					else if (command == "LINE") {
+						//mostar que el jugador ha fet linia
+						aMensajes.push_back("Congratulations! " + msg);
+					}
+					else if (command == "BOTE") {
+						//mostar que el jugador el bote
+						aMensajes.push_back("Pot: " + msg);
+						
+					}
+					else if (command == "NUMBER") {
+						//mostar al jugador el nou numero
+						aMensajes.push_back("New number to find: " + msg);
+					}
+					else if (command == "BOOK") {
+						mensajeBook.clear();
+						mensajeBook = msg;
+					}
+					else if (command == "GAMEFINISHED") {
+
+						aMensajes.push_back(msg);
+						bingo = GAME_HAS_FINISHED;
+					}
+					else if (command == "MESSAGE") {
+						aMensajes.push_back(msg);
+						
+					}
+				}
+				
+		
+		}
+		if (option == CONNECTION) { aMensajes.push_back(msg); }
+		else if(option == WRITED) { aMensajes.push_back("Yo: " + msg); }
 	}
 }
 
+void NonBlockingChat() {
 
-void GameManager() {
-
-	sf::RenderWindow window(sf::VideoMode(500, 500), "Traffic Game");
-	while (window.isOpen())
+	status = socket.connect("localhost", puerto, sf::milliseconds(15.f)); //bloqueo durante un tiempo
+	if (status == sf::Socket::Error)
 	{
-		sf::Event event;
-		ReceiveData();
-		//inputs game
-		while (window.pollEvent(event))
-		{
-			switch (event.type)
-			{
-			case sf::Event::Closed:
-				//Send("DISCONNECTION");
-				socket.unbind();
-				window.close();
-				break;
-
-			default:
-				break;
-
-			}
-		}
-
-		//clearing window and drawing again
-		window.clear();
-
-		for (int i = 0; i < NUMBER_ROWS_COLUMNS; i++)
-		{
-			for (int j = 0; j < NUMBER_ROWS_COLUMNS; j++)
-			{
-				sf::RectangleShape rectBlanco(sf::Vector2f(SIZE_CELL, SIZE_CELL));
-				rectBlanco.setFillColor(sf::Color::White);
-				if (i % 2 == 0)
-				{
-					if (j % 2 == 0)
-					{
-						rectBlanco.setPosition(sf::Vector2f(i*SIZE_CELL, j*SIZE_CELL));
-						window.draw(rectBlanco);
-					}
-				}
-				else
-				{
-					if (j % 2 == 1)
-					{
-						rectBlanco.setPosition(sf::Vector2f(i*SIZE_CELL, j*SIZE_CELL));
-						window.draw(rectBlanco);
-					}
-				}
-			}
-		}
-
-		//draw the player circle
-		sf::CircleShape shapePlayer(RADIUS_SPRITE);
-		shapePlayer.setFillColor(sf::Color::Green);
-
-		sf::Vector2f positionPlayer(myPlayer->position.x, myPlayer->position.y);
-		positionPlayer = BoardToWindows(positionPlayer);
-		shapePlayer.setPosition(positionPlayer);
-
-		window.draw(shapePlayer);
-
-		//draw the opponents circle
-		sf::CircleShape shapeOpponent(RADIUS_SPRITE);
-		shapeOpponent.setFillColor(sf::Color::Red);
-
-		for (std::map<int, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
-			sf::Vector2f positionOpponent(it->second.x, it->second.y);
-			positionOpponent = BoardToWindows(positionOpponent);
-			shapeOpponent.setPosition(positionOpponent);
-
-			window.draw(shapeOpponent);
-		}
-
-		window.display();
+		std::cout << "No se ha podido conectar con el servidor. Reintentelo de nuevo." << std::endl;
 	}
-
-}
-
-
-void ConnectionWithServer() {
-
-	std::cout << "Estableciendo conexion con server... \n";
-
-	sf::Packet packet;
-	int packetId = 1;
-	packet << packetId << "NEW_CONNECTION";
-
-	status = socket.send(packet, "localhost", PORT);
-	if (status == sf::Socket::Error) std::cout << "Error" << std::endl;
-	else if (status == sf::Socket::Disconnected) {
-		std::cout << "Server disconnected" << std::endl;
-		socket.unbind();
+	else if (status == sf::Socket::Disconnected)
+	{
+		std::cout << "Servidor desconectado." << std::endl;
 	}
-
-	packet.clear();
-	std::string cmd;
-	status = socket.receive(packet, serverIP, serverPORT);
-	if (status == sf::Socket::Done) {
-		packet >> cmd >> myPlayer->id >> myPlayer->position.x >> myPlayer->position.y;
-		if(cmd == "WELCOME")
-			std::cout << "HELLO!" << "Client ID: " << myPlayer->id << " Initial Position: " << myPlayer->position.x << ", " << myPlayer->position.y << std::endl;
+	else {
+		std::string texto = "Conexion con ... " + (socket.getRemoteAddress()).toString() + ":" + std::to_string(socket.getRemotePort()) + "\n";
+		std::cout << texto;
 	}
 
 	socket.setBlocking(false);
+
+	sf::RenderWindow window;
+	sf::Vector2i screenDimensions(400, 600);
+	window.create(sf::VideoMode(screenDimensions.x, screenDimensions.y), "Chat");
+
+	//creacio de segona pantalla que mostra sempre la cartilla del jugador
+	sf::RenderWindow windowBook;
+	sf::Vector2i screenDimensionsBook(300, 300);
+	windowBook.create(sf::VideoMode(screenDimensionsBook.x, screenDimensionsBook.y), "MyBook");
+	mensajeBook = "";
+
+	sf::Font font;
+	if (!font.loadFromFile("calibri.ttf"))
+	{
+		std::cout << "Can't load the font file" << std::endl;
+	}
+
+	mensaje = "";
+	//msgs mostrados chat
+	sf::Text chattingText(mensaje, font, 14);
+	chattingText.setFillColor(sf::Color(255, 160, 0));
+	chattingText.setStyle(sf::Text::Bold);
+
+	//msg que escribes chat
+	sf::Text text(mensaje, font, 14);
+	text.setFillColor(sf::Color(0, 191, 255));
+	text.setStyle(sf::Text::Italic);
+	text.setPosition(0, 560);
+
+	//linia separadora
+	sf::RectangleShape separator(sf::Vector2f(800, 5));
+	separator.setFillColor(sf::Color(255, 0, 0, 255));
+	separator.setPosition(0, 550);
+	
+	/////// cartilla
+	sf::Text bookText(mensajeBook, font, 20);
+	bookText.setFillColor(sf::Color(255, 255, 255));
+	bookText.setStyle(sf::Text::Bold);
+	bookText.setPosition(windowBook.getSize().x / 6, windowBook.getSize().y / 5);
+	///////
+
+	while (window.isOpen())
+	{
+		sf::Event evento;
+		
+		//sempre escoltem, tant si ha començat el joc com si no
+		if (bingo != GAME_HAS_FINISHED) {
+			char buffer[200];
+			size_t bytesReceived;
+
+			status = socket.receive(buffer, 200, bytesReceived);
+
+			if (status == sf::Socket::Done)
+			{
+				buffer[bytesReceived] = '\0';
+				shared_cout(buffer, RECEIVED);
+			}
+			else if (status == sf::Socket::Disconnected)
+			{
+				//std::cout << "Servidor desconectado" << std::endl;
+				shared_cout("Servidor desconectado", CONNECTION);
+				bingo = GAME_HAS_FINISHED;
+			}
+		}
+		
+		
+
+		while (window.pollEvent(evento))
+		{
+			switch (evento.type)
+			{
+			case sf::Event::Closed:
+				window.close();
+				windowBook.close();
+				bingo = GAME_HAS_FINISHED;
+				break;
+			case sf::Event::KeyPressed:
+				if (evento.key.code == sf::Keyboard::Escape) {
+					window.close();
+					windowBook.close();
+					bingo = GAME_HAS_FINISHED;
+				}
+					
+				else if (evento.key.code == sf::Keyboard::Return)
+				{
+					std::string s_mensaje;
+					size_t bSent;
+
+					if (mensaje == "exit") { //puedes salir siempre que quieras
+						s_mensaje = "Disconnected";
+					}
+
+					if (bingo != GAME_HAS_FINISHED) {
+						////////////////////
+						//segons el que escriu el jugador per consola s'envia un command mes el missatge
+						 if (bingo == GAME_HAS_STARTED) {
+							if (mensaje == "line") {
+								s_mensaje = "LINE_";
+								s_mensaje.append(mensaje);
+
+							}
+							else if (mensaje == "bingo") {
+								s_mensaje = "BINGO_";
+								s_mensaje.append(mensaje);
+
+							}
+							else if (isInteger(mensaje)) {
+								s_mensaje = "NUMBER_";
+								s_mensaje.append(mensaje);
+
+							}
+							else {
+								s_mensaje = "MESSAGE_";
+								s_mensaje.append(mensaje);
+
+							}
+						}
+						 else if (bingo == GAME_HASNT_STARTED) {
+							 s_mensaje = "MESSAGE_";
+							 s_mensaje.append(mensaje);
+						 }
+						
+					
+						status = socket.send(s_mensaje.c_str(), s_mensaje.length(), bSent);
+						
+
+						if (status != sf::Socket::Done)
+						{
+							if (status == sf::Socket::Error) {
+								//std::cout << "Ha fallado el envio." << std::endl;
+								shared_cout("Ha fallado el envio.", CONNECTION);
+							}	
+							else if (status == sf::Socket::Disconnected) {
+								//std::cout << "Servidor desconectado" << std::endl;
+								shared_cout("Servidor desconectado.", CONNECTION);
+							}
+							else if (status == sf::Socket::Partial) {
+								
+								while (bSent < s_mensaje.length()) {
+									std::string msgRest = "";
+									for (size_t i = bSent; i < s_mensaje.length(); i++) {
+										msgRest = s_mensaje[i];
+									}
+									socket.send(msgRest.c_str(), msgRest.size(), bSent);
+								}
+							}
+						} else shared_cout(mensaje, WRITED);
+
+						if (mensaje == "exit") {
+							bingo = GAME_HAS_FINISHED;
+							window.close();
+							windowBook.close();
+						}
+					}
+					///////////////////
+
+					if (aMensajes.size() > 25)
+					{
+						aMensajes.erase(aMensajes.begin(), aMensajes.begin() + 1);
+					}
+					mensaje = "";
+				}
+				break;
+			case sf::Event::TextEntered:
+				if (evento.text.unicode >= 32 && evento.text.unicode <= 126)
+					mensaje += (char)evento.text.unicode;
+				else if (evento.text.unicode == 8 && mensaje.getSize() > 0)
+					mensaje.erase(mensaje.getSize() - 1, mensaje.getSize());
+				break;
+			}
+		}
+
+		window.draw(separator);
+		for (size_t i = 0; i < aMensajes.size(); i++)
+		{
+			std::string chatting = aMensajes[i];
+			chattingText.setPosition(sf::Vector2f(0, 20 * i));
+			chattingText.setString(chatting);
+			window.draw(chattingText);
+		}
+
+		std::string mensaje_ = mensaje + "_";
+		text.setString(mensaje_);
+		window.draw(text);
+		
+		window.display();
+		window.clear();
+
+		//// cartilla
+		bookText.setString(mensajeBook);
+		windowBook.draw(bookText);
+		windowBook.display();
+		windowBook.clear();
+
+		
+	}
 }
 
-void Ping() {
-	sf::Packet packet;
-	packet << "PING" << myPlayer->id;
-	sf::Clock c;
-	c.restart();
-	while(c.getElapsedTime().asMilliseconds() < PING)
-		status = socket.send(packet, "localhost", PORT);
-}
 int main()
 {
-	socket.bind(sf::Socket::AnyPort);
-	myPlayer = new Player();
-	
-	//initial connection
-	ConnectionWithServer();
+	std::cout << "Estableciendo conexion con server... \n";
+	bingo = GAME_HASNT_STARTED;
 
-	GameManager();
-	sf::Thread(&Ping)
-	//socket.unbind();
-	opponents.clear();
-	system("pause");
+	do {
+		NonBlockingChat();
+	} while (bingo != GAME_HAS_FINISHED);
+
+	socket.disconnect();
 
 	return 0;
 }
