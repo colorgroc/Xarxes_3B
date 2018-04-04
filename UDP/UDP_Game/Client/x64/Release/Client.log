@@ -1,0 +1,11 @@
+﻿  Client.cpp
+Client.cpp(41): warning C4244: 'inicializando': conversión de 'int' a 'float'; posible pérdida de datos
+Client.cpp(42): warning C4244: 'inicializando': conversión de 'int' a 'float'; posible pérdida de datos
+Client.cpp(152): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+Client.cpp(160): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+Client.cpp(171): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+Client.cpp(182): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+  Generando código
+  All 216 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Generación de código finalizada
+  Client.vcxproj -> D:\Projects\C++\Xarxes_3B\UDP\UDP_Game\x64\Release\Client.exe

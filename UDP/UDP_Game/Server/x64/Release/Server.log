@@ -1,0 +1,8 @@
+﻿  Server.cpp
+Server.cpp(144): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+  Generando código
+  1 of 316 functions ( 0.3%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    1 functions had inline decision re-evaluated but remain unchanged
+  Generación de código finalizada
+  Server.vcxproj -> D:\Projects\C++\Xarxes_3B\UDP\UDP_Game\x64\Release\Server.exe
