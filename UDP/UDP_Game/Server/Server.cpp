@@ -9,7 +9,7 @@
 #include <mutex>
 #include <thread>
 
-#define MAX_CLIENTS 3
+#define MAX_CLIENTS 4
 #define PING 1000
 #define CONTROL_PING 10000
 #define PORT 50000
@@ -205,6 +205,6 @@ int main()
 
 	clients.clear();
 	socket.unbind();
-	system("pause");
+	system("exit");
 	return 0;
 }

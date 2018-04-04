@@ -144,7 +144,10 @@ void GameManager() {
 			for (int j = 0; j < NUMBER_ROWS_COLUMNS; j++)
 			{
 				sf::RectangleShape rectBlanco(sf::Vector2f(SIZE_CELL, SIZE_CELL));
-				rectBlanco.setFillColor(sf::Color::White);
+				sf::Color grey = sf::Color(49, 51, 53);
+				rectBlanco.setFillColor(grey);
+				//rectBlanco.setOutlineColor(sf::Color::Green);
+				//rectBlanco.setOutlineThickness(2.f);
 				if (i % 2 == 0)
 				{
 					if (j % 2 == 0)
