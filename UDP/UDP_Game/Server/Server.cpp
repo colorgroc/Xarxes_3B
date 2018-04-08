@@ -108,29 +108,29 @@ void SendToAllClients(std::string cmd) {
 }
 
 
-void ManageReveivedData(std::string cmd, int id, sf::IpAddress senderIP, unsigned short senderPort, sf::Packet packet) {
+void ManageReveivedData(std::string cmd, int cID, int pID, sf::IpAddress senderIP, unsigned short senderPort, sf::Packet packet) {
 	
-	int packetIDRecived;
-	packet >> packetIDRecived;
+	//int packetIDRecived;
+	//packet >> packetIDRecived;
 
 	//mirar si hem rebut algun packet amb un id superior
-	for (std::map<int, sf::Packet>::iterator msg = clients.find(id)->second.resending.begin(); msg != clients.find(id)->second.resending.end(); ++msg) {
-		if (msg->first < packetIDRecived) {
-			clients.find(id)->second.resending.erase(msg->first);
+	/*for (std::map<int, sf::Packet>::iterator msg = clients.find(cID)->second.resending.begin(); msg != clients.find(cID)->second.resending.end(); ++msg) {
+		if (msg->first < pID) {
+			clients.find(cID)->second.resending.erase(msg->first);
 		}
-	}
+	}*/
 
-	if (cmd == "ACK" && clients.find(id)->second.resending.find(packetIDRecived) != clients.find(id)->second.resending.end()) {
-		clients.find(id)->second.resending.erase(packetIDRecived);
+	if (cmd == "ACK" && clients.find(cID)->second.resending.find(pID) != clients.find(cID)->second.resending.end()) {
+		clients.find(cID)->second.resending.erase(pID);
 	}
 	//rebem resposta del ping i per tant encara esta conectat
 	//fem reset del seu rellotge intern
 	else if (cmd == "ACK_PING") {
-		clients.find(id)->second.timeElapsedLastPing.restart();
+		clients.find(cID)->second.timeElapsedLastPing.restart();
 	}
 	else if (cmd == "DISCONNECTION") {
-		NotifyOtherClients("DISCONNECTION", id);
-		clients.erase(id);
+		NotifyOtherClients("DISCONNECTION", cID);
+		clients.erase(cID);
 	}
 	if (cmd == "NEWCONNECTION") {
 		std::cout << "Connection with client " << clientID << " from PORT " << senderPort << std::endl;
@@ -150,8 +150,8 @@ void ManageReveivedData(std::string cmd, int id, sf::IpAddress senderIP, unsigne
 	}
 	else {
 		sf::Packet _packet;
-		_packet << "ACK" << packetIDRecived;
-		clients.find(id)->second.resending.insert(std::make_pair(packetIDRecived, _packet));
+		_packet << "ACK" << pID;
+		clients.find(cID)->second.resending.insert(std::make_pair(pID, _packet));
 	}
 	
 }
@@ -162,12 +162,14 @@ void ReceiveData() {
 	sf::IpAddress senderIP;
 	unsigned short senderPort;
 	int IDClient;
+	int packetIDRecived;
 	std::string cmd;
 	status = socket.receive(packet, senderIP, senderPort);
 
 	if (status == sf::Socket::Done) {
-		packet >> cmd >> IDClient; //posar packetID quan tinguem id q envien els clients
-		ManageReveivedData(cmd, IDClient, senderIP, senderPort, packet);
+		packet >> cmd >> packetIDRecived >> IDClient; //posar packetID quan tinguem id q envien els clients
+		ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, packet);
+		
 	}
 }
 
