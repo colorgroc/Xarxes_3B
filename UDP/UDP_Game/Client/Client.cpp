@@ -10,7 +10,7 @@
 
 #define MAX_OPPONENTS 3
 #define PORT 50000
-
+#define PING 500
 #define SIZE_CELL 20
 #define NUMBER_ROWS_COLUMNS 25
 #define RADIUS_SPRITE 10.0f
@@ -22,6 +22,8 @@ sf::UdpSocket socket;
 sf::Socket::Status status;
 std::mutex myMutex;
 bool once = false;
+int packetID;
+sf::Clock c;
 
 struct Position {
 	int x;
@@ -71,15 +73,19 @@ void Send(std::string cmd) {
 	//Enviamos a una IP:Puerto concreto, porque el socket no está vinculado
 	//a ningún otro socket en exclusiva
 	sf::Packet packet;
+	//int packetIDRecived;
+
 	if (cmd == "DISCONNECTION") {
 		packet << "DISCONNECTION" << myPlayer->ID;
-		status = socket.send(packet, "localhost", PORT);
-		if (status == sf::Socket::Error) std::cout << "Error" << std::endl;
+		myPlayer->resending.insert(std::make_pair(-1, packet));
+		/*status = socket.send(packet, serverIP, serverPORT);
+		if (status == sf::Socket::Error) std::cout << "Error" << std::endl;*/
 	}
 	else if (cmd == "ACK_PING") {
 		packet << "ACK_PING" << myPlayer->ID;
-		status = socket.send(packet, serverIP, serverPORT);
-		if (status == sf::Socket::Error) std::cout << "Error." << std::endl;
+		myPlayer->resending.insert(std::make_pair(0, packet));
+		//status = socket.send(packet, serverIP, serverPORT);
+		//if (status == sf::Socket::Error) std::cout << "Error." << std::endl;
 
 	}
 
@@ -92,6 +98,7 @@ void ReceiveData() {
 	std::string cmd;
 	int opponentId;
 	int packetIDRecived;
+	packet.clear();
 	status = socket.receive(packet, serverIP, serverPORT);
 
 	if (status == sf::Socket::Done) {
@@ -109,8 +116,10 @@ void ReceiveData() {
 					std::cout << "WELCOME! " << "Server Packet: " << packetIDRecived << " Client ID: " << myPlayer->ID << " Initial Position: " << myPlayer->position.x << ", " << myPlayer->position.y << std::endl;
 				}
 			}
-			else if (cmd == "ACK" && myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
-				myPlayer->resending.erase(packetIDRecived);
+			else if (cmd == "ACK"){ 
+				if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
+					myPlayer->resending.erase(packetIDRecived);
+				}
 			}
 			else {
 				packet >> opponentId;
@@ -161,11 +170,16 @@ void ReceiveData() {
 void GameManager() {
 
 	sf::RenderWindow window(sf::VideoMode(500, 500), "Traffic Game");
+	c.restart();
+
 	while (window.isOpen())
 	{
 		sf::Event event;
 		ReceiveData();
-		Resend();
+		if (c.getElapsedTime().asMilliseconds() > PING) {
+			Resend();
+			c.restart();
+		}
 		//inputs game
 		while (window.pollEvent(event))
 		{
@@ -194,7 +208,7 @@ void GameManager() {
 				sf::Color grey = sf::Color(49, 51, 53);
 				rectBlanco.setFillColor(grey);
 				//rectBlanco.setOutlineColor(sf::Color::Green);
-				//rectBlanco.setOutlineThickness(2.f);
+				//rectBlanco.setOutlineThickness(2.f);s
 				if (i % 2 == 0)
 				{
 					if (j % 2 == 0)

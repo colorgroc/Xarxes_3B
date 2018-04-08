@@ -9,8 +9,8 @@
 #include <mutex>
 #include <thread>
 
-#define MAX_CLIENTS 4
-#define PING 1000
+#define MAX_CLIENTS 1
+#define PING 500
 #define CONTROL_PING 10000
 #define PORT 50000
 
@@ -40,7 +40,7 @@ int clientID = 1;
 std::map<int, Client> clients;
 sf::UdpSocket socket;
 
-sf::Clock clockPing;
+sf::Clock clockPing, clockSend;
 bool once = false;
 int packetID = 1;
 
@@ -90,7 +90,7 @@ void SendToAllClients(std::string cmd) {
 				packet << cmd << packetID << otherClients->first << otherClients->second.pos.x << otherClients->second.pos.y;
 				clientToSend->second.resending.insert(std::make_pair(packetID, packet));
 				//socket.send(packet, clientToSend->second.ip, clientToSend->second.port); //controlar errors
-				
+
 			}
 
 		}packetID++;
@@ -109,9 +109,7 @@ void SendToAllClients(std::string cmd) {
 
 
 void ManageReveivedData(std::string cmd, int cID, int pID, sf::IpAddress senderIP, unsigned short senderPort, sf::Packet packet) {
-	
-	//int packetIDRecived;
-	//packet >> packetIDRecived;
+
 
 	//mirar si hem rebut algun packet amb un id superior
 	/*for (std::map<int, sf::Packet>::iterator msg = clients.find(cID)->second.resending.begin(); msg != clients.find(cID)->second.resending.end(); ++msg) {
@@ -120,8 +118,10 @@ void ManageReveivedData(std::string cmd, int cID, int pID, sf::IpAddress senderI
 		}
 	}*/
 
-	if (cmd == "ACK" && clients.find(cID)->second.resending.find(pID) != clients.find(cID)->second.resending.end()) {
-		clients.find(cID)->second.resending.erase(pID);
+	if (cmd == "ACK") {
+		if (clients.find(cID)->second.resending.find(pID) != clients.find(cID)->second.resending.end()) {
+			clients.find(cID)->second.resending.erase(pID);
+		}
 	}
 	//rebem resposta del ping i per tant encara esta conectat
 	//fem reset del seu rellotge intern
@@ -132,7 +132,7 @@ void ManageReveivedData(std::string cmd, int cID, int pID, sf::IpAddress senderI
 		NotifyOtherClients("DISCONNECTION", cID);
 		clients.erase(cID);
 	}
-	if (cmd == "NEWCONNECTION") {
+	else if (cmd == "NEWCONNECTION" && clients.size() != MAX_CLIENTS) {
 		std::cout << "Connection with client " << clientID << " from PORT " << senderPort << std::endl;
 		Position pos;
 		srand(time(NULL));
@@ -153,7 +153,6 @@ void ManageReveivedData(std::string cmd, int cID, int pID, sf::IpAddress senderI
 		_packet << "ACK" << pID;
 		clients.find(cID)->second.resending.insert(std::make_pair(pID, _packet));
 	}
-	
 }
 
 void ReceiveData() {
@@ -167,9 +166,14 @@ void ReceiveData() {
 	status = socket.receive(packet, senderIP, senderPort);
 
 	if (status == sf::Socket::Done) {
-		packet >> cmd >> packetIDRecived >> IDClient; //posar packetID quan tinguem id q envien els clients
+		packet >> cmd;
+		if (cmd == "DISCONNECTION" || cmd == "ACK_PING")
+			packet >> IDClient;
+		else
+			packet >> packetIDRecived >> IDClient; //posar packetID quan tinguem id q envien els clients
+
 		ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, packet);
-		
+
 	}
 }
 
@@ -185,12 +189,12 @@ void ControlServidor()
 		exit(0);
 	}
 	std::cout << "Server is listening to port " << PORT << ", waiting for clients " << std::endl;
-		
+
 }
 
 
 void ManagePing() {
-	
+
 	if (!once) {
 		//poso a zero tots els temps
 		for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
@@ -200,34 +204,39 @@ void ManagePing() {
 		clockPing.restart();
 		once = true;
 	}
-	
+
 
 	//cada certa quantiat de temps enviar missatge ping
 	if (clockPing.getElapsedTime().asMilliseconds() > PING) {
 		SendToAllClients("PING");
 		clockPing.restart();
-
-		//quan enviem el missatge ping també comprovem que cap dels jugadors hagi superat el temps maxim
-		//si es supera el temps maxim vol dir que esta desconectat, notifiquem als altres jugadors, i el borrem de la llista del server
-		for (std::map<int, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
-			if (clientes->second.timeElapsedLastPing.getElapsedTime().asMilliseconds() > CONTROL_PING) {
-				NotifyOtherClients("DISCONNECTION", clientes->first);
-				clients.erase(clientes->first);
-			}
+	}
+	//quan enviem el missatge ping també comprovem que cap dels jugadors hagi superat el temps maxim
+	//si es supera el temps maxim vol dir que esta desconectat, notifiquem als altres jugadors, i el borrem de la llista del server
+	for (std::map<int, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
+		if (clientes->second.timeElapsedLastPing.getElapsedTime().asMilliseconds() > CONTROL_PING) {
+			NotifyOtherClients("DISCONNECTION", clientes->first);
+			clients.erase(clientes->first);
 		}
 	}
+
 }
 
 int main()
 {
 	ControlServidor();
+	clockSend.restart();
 	//SI EL Q ES VOL ES Q NO SURTIN LES PESTANYES DE JUGAR FINS Q TOTS NO ESTIGUIN CONNECTATS, ALESHORES FER EL RECEIVE DEL WELCOME I EL SEND COM ESTAVA EN ELS ANTERIORS COMMITS
 	do {
-		Resend();
 		ReceiveData();
+		//cada certa quantiat de temps enviar missatge ping
+		if (clockSend.getElapsedTime().asMilliseconds() > PING) {
+			Resend();
+			clockSend.restart();
+		}	
 		ManagePing();
-		
-	} while (clients.size() >= 0 && clients.size() <= MAX_CLIENTS);
+
+	} while (clients.size() >= 0);// && clients.size() <= MAX_CLIENTS);
 
 	clients.clear();
 	socket.unbind();
