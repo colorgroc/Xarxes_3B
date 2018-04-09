@@ -9,7 +9,7 @@
 #include <mutex>
 #include <thread>
 
-#define MAX_CLIENTS 1
+#define MAX_CLIENTS 2
 #define PING 500
 #define CONTROL_PING 10000
 #define PORT 50000
@@ -29,6 +29,7 @@ struct Client {
 	Position pos;
 	sf::IpAddress ip;
 	unsigned short port;
+	bool connected;
 	std::map<int, sf::Packet> resending;
 	sf::Clock timeElapsedLastPing;
 };
@@ -51,7 +52,7 @@ void Resend() {
 		for (std::map<int, sf::Packet>::iterator msg = clientes->second.resending.begin(); msg != clientes->second.resending.end(); ++msg) {
 			status = socket.send(msg->second, clientes->second.ip, clientes->second.port);
 			if (status == sf::Socket::Error)
-				std::cout << "Error sending the message." << std::endl;
+				std::cout << "Error sending the message.Server to Client." << std::endl;
 			else if (status == sf::Socket::Disconnected) {
 				std::cout << "Error sending the message. Client disconnected." << std::endl;
 				clients.erase(clientes);
@@ -73,8 +74,10 @@ void NotifyOtherClients(std::string cmd, int id) {
 				packet << cmd << packetID << id;
 			}
 			//socket.send(p, it->second.ip, it->second.port); //controlar errors
-			clients.find(id)->second.resending.insert(std::make_pair(packetID, packet));
-			packetID++;
+			//if (clients.find(id)->second.resending.find(packetID) == clients.find(id)->second.resending.end()) {
+				clients.find(id)->second.resending.insert(std::make_pair(packetID, packet));
+				packetID++;
+			//}
 		}
 	}
 }
@@ -88,8 +91,10 @@ void SendToAllClients(std::string cmd) {
 			{
 				sf::Packet packet;
 				packet << cmd << packetID << otherClients->first << otherClients->second.pos.x << otherClients->second.pos.y;
-				clientToSend->second.resending.insert(std::make_pair(packetID, packet));
-				//socket.send(packet, clientToSend->second.ip, clientToSend->second.port); //controlar errors
+				//if (clientToSend->second.resending.find(packetID) == clientToSend->second.resending.end()) {
+					clientToSend->second.resending.insert(std::make_pair(packetID, packet));
+					//socket.send(packet, clientToSend->second.ip, clientToSend->second.port); //controlar errors
+				//}
 
 			}
 
@@ -113,9 +118,9 @@ void ManageReveivedData(std::string cmd, int cID, int pID, sf::IpAddress senderI
 
 	//mirar si hem rebut algun packet amb un id superior
 	/*for (std::map<int, sf::Packet>::iterator msg = clients.find(cID)->second.resending.begin(); msg != clients.find(cID)->second.resending.end(); ++msg) {
-		if (msg->first < pID) {
-			clients.find(cID)->second.resending.erase(msg->first);
-		}
+	if (msg->first < pID) {
+	clients.find(cID)->second.resending.erase(msg->first);
+	}
 	}*/
 
 	if (cmd == "ACK") {
@@ -130,7 +135,7 @@ void ManageReveivedData(std::string cmd, int cID, int pID, sf::IpAddress senderI
 	}
 	else if (cmd == "DISCONNECTION") {
 		NotifyOtherClients("DISCONNECTION", cID);
-		clients.erase(cID);
+		clients[cID].connected = false;
 	}
 	else if (cmd == "NEWCONNECTION" && clients.size() != MAX_CLIENTS) {
 		std::cout << "Connection with client " << clientID << " from PORT " << senderPort << std::endl;
@@ -140,18 +145,20 @@ void ManageReveivedData(std::string cmd, int cID, int pID, sf::IpAddress senderI
 		pos.y = std::rand() % 25;
 		packet.clear();
 		packet << "WELCOME" << packetID << clientID << pos.x << pos.y;
-
-		clients.insert(std::make_pair(clientID, Client{ clientID, pos, senderIP, senderPort }));
-		clients[clientID].resending.insert(std::make_pair(packetID, packet));
-		NotifyOtherClients("CONNECTION", clientID);
-		SendToAllClients("POSITION");
-		clientID++;
-		packetID++;
+		if (clients.find(clientID) == clients.end()) {
+			clients.insert(std::make_pair(clientID, Client{ clientID, pos, senderIP, senderPort, true }));
+			clients[clientID].resending.insert(std::make_pair(packetID, packet));
+			NotifyOtherClients("CONNECTION", clientID);
+			SendToAllClients("POSITION");
+			clientID++;
+			packetID++;
+		}
 	}
 	else {
 		sf::Packet _packet;
 		_packet << "ACK" << pID;
-		clients.find(cID)->second.resending.insert(std::make_pair(pID, _packet));
+		if (clients.find(cID) != clients.end())
+			clients.find(cID)->second.resending.insert(std::make_pair(pID, _packet));
 	}
 }
 
@@ -167,8 +174,10 @@ void ReceiveData() {
 
 	if (status == sf::Socket::Done) {
 		packet >> cmd;
-		if (cmd == "DISCONNECTION" || cmd == "ACK_PING")
+		if (cmd == "DISCONNECTION" || cmd == "ACK_PING") {
 			packet >> IDClient;
+			packetIDRecived = -1;
+		}
 		else
 			packet >> packetIDRecived >> IDClient; //posar packetID quan tinguem id q envien els clients
 
@@ -216,10 +225,16 @@ void ManagePing() {
 	for (std::map<int, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
 		if (clientes->second.timeElapsedLastPing.getElapsedTime().asMilliseconds() > CONTROL_PING) {
 			NotifyOtherClients("DISCONNECTION", clientes->first);
-			clients.erase(clientes->first);
+			//clients.erase(clientes->first);
+			clientes->second.connected = false;
 		}
 	}
 
+	for (int i = 0; i < clients.size(); i++) {
+		if (!clients[i].connected) {
+			clients.erase(clients[i].id);
+		}
+	}
 }
 
 int main()
@@ -233,7 +248,7 @@ int main()
 		if (clockSend.getElapsedTime().asMilliseconds() > PING) {
 			Resend();
 			clockSend.restart();
-		}	
+		}
 		ManagePing();
 
 	} while (clients.size() >= 0);// && clients.size() <= MAX_CLIENTS);
