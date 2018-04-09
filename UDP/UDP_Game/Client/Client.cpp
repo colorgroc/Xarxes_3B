@@ -10,37 +10,37 @@
 
 #define MAX_OPPONENTS 3
 #define PORT 50000
-#define PING 500
+#define SENDING_PING 500
 #define SIZE_CELL 20
 #define NUMBER_ROWS_COLUMNS 25
 #define RADIUS_SPRITE 10.0f
 
 sf::IpAddress serverIP = "localhost";
 unsigned short serverPORT = PORT;
-int state = 1;
+int8_t state = 1;
 sf::UdpSocket socket;
 sf::Socket::Status status;
 std::mutex myMutex;
-bool once = false;
-int packetID;
+//bool once = false;
+int8_t packetID = 1;
 sf::Clock c;
 
 struct Position {
-	int x;
-	int y;
+	int8_t x;
+	int8_t y;
 };
 
 struct Player
 {
-	int ID = -1;
+	int8_t ID = -1;
 	Position position;
-	std::map<int, sf::Packet> resending;
+	std::map<int8_t, sf::Packet> resending;
 };
 
 Player * myPlayer;
-std::map <int, Position> opponents;
+std::map <int8_t, Position> opponents;
 
-sf::Vector2f GetCell(int _x, int _y)
+sf::Vector2f GetCell(int8_t _x, int8_t _y)
 {
 	float xCell = _x / SIZE_CELL;
 	float yCell = _y / SIZE_CELL;
@@ -56,7 +56,7 @@ sf::Vector2f BoardToWindows(sf::Vector2f _positionCell)
 void Resend() {
 	//posar mutex??
 
-	for (std::map<int, sf::Packet>::iterator msg = myPlayer->resending.begin(); msg != myPlayer->resending.end(); ++msg) {
+	for (std::map<int8_t, sf::Packet>::iterator msg = myPlayer->resending.begin(); msg != myPlayer->resending.end(); ++msg) {
 		status = socket.send(msg->second, serverIP, serverPORT);
 		if (status == sf::Socket::Error)
 			std::cout << "Error sending the message. Client to Server." << std::endl;
@@ -96,8 +96,8 @@ void ReceiveData() {
 	//nonblocking
 	sf::Packet packet;
 	std::string cmd;
-	int opponentId;
-	int packetIDRecived;
+	int8_t opponentId = 0;
+	int8_t packetIDRecived = 0;
 	packet.clear();
 	status = socket.receive(packet, serverIP, serverPORT);
 
@@ -115,7 +115,7 @@ void ReceiveData() {
 					//if (!once) {
 					//once = true;
 
-					std::cout << "WELCOME! " << "Server Packet: " << packetIDRecived << " Client ID: " << myPlayer->ID << " Initial Position: " << myPlayer->position.x << ", " << myPlayer->position.y << std::endl;
+					std::cout << "WELCOME! " << "Server Packet: " << std::to_string(packetIDRecived) << " Client ID: " << std::to_string(myPlayer->ID) << " Initial Position: " << std::to_string(myPlayer->position.x) << ", " << std::to_string(myPlayer->position.y) << std::endl;
 					//}
 				}
 			}
@@ -131,13 +131,13 @@ void ReceiveData() {
 					if (opponents.find(opponentId) == opponents.end()) {
 						Position pos;
 						packet >> pos.x >> pos.y;
-						std::cout << "A new opponent connected. ID: " << opponentId << " Position: " << pos.x << ", " << pos.y << " PacketID Server: " << packetIDRecived << std::endl;
+						std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << " PacketID Server: " << packetIDRecived << std::endl;
 						opponents.insert(std::make_pair(opponentId, pos));
 					}
 				}
 				else if (cmd == "DISCONNECTION") {
 					if (opponents.find(opponentId) != opponents.end()) {
-						std::cout << "An opponent disconnected. ID: " << opponentId << " PacketID Server: " << packetIDRecived << std::endl;
+						std::cout << "An opponent disconnected. ID: " << std::to_string(opponentId) << " PacketID Server: " << std::to_string(packetIDRecived) << std::endl;
 						opponents.erase(opponentId);
 					}
 				}
@@ -184,7 +184,7 @@ void GameManager() {
 	{
 		sf::Event event;
 		ReceiveData();
-		if (c.getElapsedTime().asMilliseconds() > PING) {
+		if (c.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
 			c.restart();
 		}
@@ -208,9 +208,9 @@ void GameManager() {
 		//clearing window and drawing again
 		window.clear();
 
-		for (int i = 0; i < NUMBER_ROWS_COLUMNS; i++)
+		for (int8_t i = 0; i < NUMBER_ROWS_COLUMNS; i++)
 		{
-			for (int j = 0; j < NUMBER_ROWS_COLUMNS; j++)
+			for (int8_t j = 0; j < NUMBER_ROWS_COLUMNS; j++)
 			{
 				sf::RectangleShape rectBlanco(sf::Vector2f(SIZE_CELL, SIZE_CELL));
 				sf::Color grey = sf::Color(49, 51, 53);
@@ -250,7 +250,7 @@ void GameManager() {
 		sf::CircleShape shapeOpponent(RADIUS_SPRITE);
 		shapeOpponent.setFillColor(sf::Color::Red);
 
-		for (std::map<int, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
+		for (std::map<int8_t, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 			sf::Vector2f positionOpponent(it->second.x, it->second.y);
 			positionOpponent = BoardToWindows(positionOpponent);
 			shapeOpponent.setPosition(positionOpponent);

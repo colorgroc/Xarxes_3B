@@ -10,7 +10,8 @@
 #include <thread>
 
 #define MAX_CLIENTS 2
-#define PING 500
+#define SENDING_PING 500
+#define PING 5000
 #define CONTROL_PING 10000
 #define PORT 50000
 
@@ -21,35 +22,35 @@ enum stateGame { WAIT_FOR_ALL_PLAYERS, ALL_PLAYERS_CONNECTED, GAME_HAS_STARTED }
 bool online = true;
 
 struct Position {
-	int x;
-	int y;
+	int8_t x;
+	int8_t y;
 };
 struct Client {
-	int id;
+	int8_t id;
 	Position pos;
 	sf::IpAddress ip;
 	unsigned short port;
 	bool connected;
-	std::map<int, sf::Packet> resending;
+	std::map<int8_t, sf::Packet> resending;
 	sf::Clock timeElapsedLastPing;
 };
 
 sf::Socket::Status status;
 std::mutex myMutex;
-int clientID = 1;
+int8_t clientID = 1;
 
-std::map<int, Client> clients;
+std::map<int8_t, Client> clients;
 sf::UdpSocket socket;
 
 sf::Clock clockPing, clockSend;
 bool once = false;
-int packetID = 1;
+int8_t packetID = 1;
 
 
 void Resend() {
 	//posar mutex??
-	for (std::map<int, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
-		for (std::map<int, sf::Packet>::iterator msg = clientes->second.resending.begin(); msg != clientes->second.resending.end(); ++msg) {
+	for (std::map<int8_t, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
+		for (std::map<int8_t, sf::Packet>::iterator msg = clientes->second.resending.begin(); msg != clientes->second.resending.end(); ++msg) {
 			status = socket.send(msg->second, clientes->second.ip, clientes->second.port);
 			if (status == sf::Socket::Error)
 				std::cout << "Error sending the message.Server to Client." << std::endl;
@@ -61,9 +62,9 @@ void Resend() {
 	}
 }
 
-void NotifyOtherClients(std::string cmd, int id) {
+void NotifyOtherClients(std::string cmd, int8_t id) {
 
-	for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+	for (std::map<int8_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
 	{
 		if (it->first != id) {
 			sf::Packet packet;
@@ -85,9 +86,9 @@ void NotifyOtherClients(std::string cmd, int id) {
 void SendToAllClients(std::string cmd) {
 
 	if (cmd == "POSITION") {
-		for (std::map<int, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
+		for (std::map<int8_t, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
 		{
-			for (std::map<int, Client>::iterator otherClients = clients.begin(); otherClients != clients.end(); ++otherClients)
+			for (std::map<int8_t, Client>::iterator otherClients = clients.begin(); otherClients != clients.end(); ++otherClients)
 			{
 				sf::Packet packet;
 				packet << cmd << packetID << otherClients->first << otherClients->second.pos.x << otherClients->second.pos.y;
@@ -102,7 +103,7 @@ void SendToAllClients(std::string cmd) {
 	}
 
 	if (cmd == "PING") {
-		for (std::map<int, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
+		for (std::map<int8_t, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
 		{
 			sf::Packet packet;
 			packet << cmd; //no hace falta poner packetID 
@@ -113,7 +114,7 @@ void SendToAllClients(std::string cmd) {
 }
 
 
-void ManageReveivedData(std::string cmd, int cID, int pID, sf::IpAddress senderIP, unsigned short senderPort, sf::Packet packet) {
+void ManageReveivedData(std::string cmd, int8_t cID, int8_t pID, sf::IpAddress senderIP, unsigned short senderPort, sf::Packet packet) {
 
 
 	//mirar si hem rebut algun packet amb un id superior
@@ -167,8 +168,8 @@ void ReceiveData() {
 	sf::Packet packet;
 	sf::IpAddress senderIP;
 	unsigned short senderPort;
-	int IDClient;
-	int packetIDRecived;
+	int8_t IDClient = 0;
+	int8_t packetIDRecived = 0;
 	std::string cmd;
 	status = socket.receive(packet, senderIP, senderPort);
 
@@ -206,7 +207,7 @@ void ManagePing() {
 
 	if (!once) {
 		//poso a zero tots els temps
-		for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+		for (std::map<int8_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
 			it->second.timeElapsedLastPing.restart();
 		}
 		//a zero el rellotge
@@ -222,7 +223,7 @@ void ManagePing() {
 	}
 	//quan enviem el missatge ping també comprovem que cap dels jugadors hagi superat el temps maxim
 	//si es supera el temps maxim vol dir que esta desconectat, notifiquem als altres jugadors, i el borrem de la llista del server
-	for (std::map<int, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
+	for (std::map<int8_t, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
 		if (clientes->second.timeElapsedLastPing.getElapsedTime().asMilliseconds() > CONTROL_PING) {
 			NotifyOtherClients("DISCONNECTION", clientes->first);
 			//clients.erase(clientes->first);
@@ -230,7 +231,7 @@ void ManagePing() {
 		}
 	}
 
-	for (int i = 0; i < clients.size(); i++) {
+	for (int8_t i = 0; i < clients.size(); i++) {
 		if (!clients[i].connected) {
 			clients.erase(clients[i].id);
 		}
@@ -245,7 +246,7 @@ int main()
 	do {
 		ReceiveData();
 		//cada certa quantiat de temps enviar missatge ping
-		if (clockSend.getElapsedTime().asMilliseconds() > PING) {
+		if (clockSend.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
 			clockSend.restart();
 		}
