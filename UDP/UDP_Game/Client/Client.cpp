@@ -58,8 +58,13 @@ void Resend() {
 
 	for (std::map<int8_t, sf::Packet>::iterator msg = myPlayer->resending.begin(); msg != myPlayer->resending.end(); ++msg) {
 		status = socket.send(msg->second, serverIP, serverPORT);
-		if (status == sf::Socket::Error)
-			std::cout << "Error sending the message. Client to Server." << std::endl;
+		std::string cmd;
+		msg->second >> cmd;
+		if (status == sf::Socket::Error) {
+			
+			std::cout << "Error sending the message. Client to Server." << "Message IP: " << std::to_string(msg->first) << "Message: " << cmd << std::endl;
+
+		}
 		else if (status == sf::Socket::Disconnected) {
 			std::cout << "Error sending the message. Server disconnected." << std::endl;
 			//connected = false;
@@ -157,10 +162,12 @@ void ReceiveData() {
 						opponents.find(opponentId)->second = pos;
 					}
 				}
-				packet.clear();
-				packet << "ACK" << packetIDRecived << myPlayer->ID;
-				if (myPlayer->resending.find(packetIDRecived) == myPlayer->resending.end())
+				
+				/*if (myPlayer->resending.find(packetIDRecived) == myPlayer->resending.end()) {
+					packet.clear();
+					packet << "ACK" << packetIDRecived << myPlayer->ID;
 					myPlayer->resending.insert(std::make_pair(packetIDRecived, packet));
+				}*/
 				//fer resend
 			}
 		}

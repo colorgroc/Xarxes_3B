@@ -58,6 +58,12 @@ void Resend() {
 				std::cout << "Error sending the message. Client disconnected." << std::endl;
 				clients.erase(clientes);
 			}
+			else {
+				std::string cmd;
+				int8_t pID;
+				msg->second >> cmd >> pID;
+				std::cout << "Mensage enviado. Cliente: " << std::to_string(clientes->first) << " ID Packet: " << std::to_string(pID) << "Comando: " << cmd << std::endl;
+			}
 		}
 	}
 }
@@ -124,14 +130,15 @@ void ManageReveivedData(std::string cmd, int8_t cID, int8_t pID, sf::IpAddress s
 	}
 	}*/
 
-	if (cmd == "ACK") {
+	/*if (cmd == "ACK") {
 		if (clients.find(cID)->second.resending.find(pID) != clients.find(cID)->second.resending.end()) {
 			clients.find(cID)->second.resending.erase(pID);
 		}
-	}
+	}*/
 	//rebem resposta del ping i per tant encara esta conectat
 	//fem reset del seu rellotge intern
-	else if (cmd == "ACK_PING") {
+	if (cmd == "ACK_PING") {
+		if(clients.find(cID) != clients.end())
 		clients.find(cID)->second.timeElapsedLastPing.restart();
 	}
 	else if (cmd == "DISCONNECTION") {
@@ -139,7 +146,7 @@ void ManageReveivedData(std::string cmd, int8_t cID, int8_t pID, sf::IpAddress s
 		clients[cID].connected = false;
 	}
 	else if (cmd == "NEWCONNECTION" && clients.size() != MAX_CLIENTS) {
-		std::cout << "Connection with client " << clientID << " from PORT " << senderPort << std::endl;
+		std::cout << "Connection with client " << std::to_string(clientID) << " from PORT " << senderPort << std::endl;
 		Position pos;
 		srand(time(NULL));
 		pos.x = std::rand() % 25;
@@ -155,12 +162,12 @@ void ManageReveivedData(std::string cmd, int8_t cID, int8_t pID, sf::IpAddress s
 			packetID++;
 		}
 	}
-	else {
+	/*else {
 		sf::Packet _packet;
 		_packet << "ACK" << pID;
 		if (clients.find(cID) != clients.end())
 			clients.find(cID)->second.resending.insert(std::make_pair(pID, _packet));
-	}
+	}*/
 }
 
 void ReceiveData() {
