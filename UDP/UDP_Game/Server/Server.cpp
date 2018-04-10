@@ -50,13 +50,18 @@ Position lastPosCreated;
 
 void Resend() {
 
-	for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
-		for (std::map<int, sf::Packet>::iterator msg = it->second.resending.begin(); msg != it->second.resending.end(); ++msg) {
-			status = socket.send(msg->second, it->second.ip, it->second.port);
-			if (status == sf::Socket::Error)
-				std::cout << "Error sending the message. Server to Client." << std::endl;
+	if (clockResend.getElapsedTime().asMilliseconds() > RESEND) { //cada cert temps torno ha enviar
+
+		for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+			for (std::map<int, sf::Packet>::iterator msg = it->second.resending.begin(); msg != it->second.resending.end(); ++msg) {
+				status = socket.send(msg->second, it->second.ip, it->second.port);
+				if (status == sf::Socket::Error)
+					std::cout << "Error sending the message. Server to Client." << std::endl;
+			}
 		}
+		clockResend.restart();
 	}
+	
 
 }
 
@@ -113,9 +118,9 @@ void SendDueReceivedToOneClient(std::string cmd, int idPacketReceived, int id, s
 		pos.y = std::rand() % 25;
 		lastPosCreated = pos;
 		packet << "WELCOME" << packetID++ << clientID << pos.x << pos.y;
-
-		clients.find(id)->second.resending.insert(std::make_pair(packetID, packet));
-
+		
+		clients.insert(std::make_pair(clientID, Client{ clientID, lastPosCreated, senderIP, senderPort }));
+		clients.find(clientID)->second.resending.insert(std::make_pair(packetID, packet));
 	}
 	//hi han missatges que tindran que respondre al client amb un ack
 }
@@ -143,7 +148,8 @@ void ManageReveivedData(std::string cmd, int idPacketReceived, int id, sf::IpAdd
 		SendDueReceivedToOneClient("NEWCONNECTION", idPacketReceived, clientID, senderIP, senderPort);
 	}
 	if (cmd == "ACK_WELCOME") {
-		clients.insert(std::make_pair(clientID, Client{ clientID, lastPosCreated, senderIP, senderPort }));
+
+		clients.find(clientID)->second = Client{ clientID, lastPosCreated, senderIP, senderPort };
 		NotifyOtherClients("CONNECTION", clientID);
 		SendToAllClients("POSITION");
 		clientID++;
@@ -221,10 +227,7 @@ int main()
 	do {
 	
 		ReceiveData();
-		if (clockResend.getElapsedTime().asMilliseconds() > RESEND) { //cada cert temps torno ha enviar
-			Resend();
-			clockResend.restart();
-		}
+		Resend();
 		ManagePing();
 
 	} while (clients.size() >= 0);

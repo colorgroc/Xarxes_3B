@@ -59,7 +59,7 @@ void Resend() {
 	if (clockResend.getElapsedTime().asMilliseconds() > RESEND) { //cada cert temps torno ha enviar
 		for (std::map<int, sf::Packet>::iterator msg = myPlayer->resending.begin(); msg != myPlayer->resending.end(); ++msg) {
 
-			status = socket.send(msg->second, serverIP, serverPORT);
+			status = socket.send(msg->second, "localhost", PORT);
 
 			if (status == sf::Socket::Error)
 				std::cout << "Error sending the message. Client to Server." << std::endl;
@@ -103,6 +103,7 @@ void SendDueClient(std::string cmd) {
 	}
 	if (cmd == "NEWCONNECTION") {
 		packet << "NEWCONNECTION" << idPacket++ <<-1; //encara no te id
+		//status = socket.send(packet, "localhost", PORT);
 		myPlayer->resending.insert(std::make_pair(idPacket, packet));
 	}
 }

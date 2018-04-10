@@ -1,8 +1,9 @@
 ﻿  Client.cpp
-d:\projects\c++\xarxes_3b\udp\udp_game\client\client.cpp(46): warning C4244: 'inicializando': conversión de 'int' a 'float'; posible pérdida de datos
-d:\projects\c++\xarxes_3b\udp\udp_game\client\client.cpp(47): warning C4244: 'inicializando': conversión de 'int' a 'float'; posible pérdida de datos
-d:\projects\c++\xarxes_3b\udp\udp_game\client\client.cpp(216): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-d:\projects\c++\xarxes_3b\udp\udp_game\client\client.cpp(224): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-d:\projects\c++\xarxes_3b\udp\udp_game\client\client.cpp(235): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-d:\projects\c++\xarxes_3b\udp\udp_game\client\client.cpp(246): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-  Client.vcxproj -> D:\Projects\C++\Xarxes_3B\UDP\UDP_Game\x64\Debug\Client.exe
+c:\users\msegarra\documents\github\xarxes_3b\udp\udp_game\client\client.cpp(46): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\users\msegarra\documents\github\xarxes_3b\udp\udp_game\client\client.cpp(47): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\users\msegarra\documents\github\xarxes_3b\udp\udp_game\client\client.cpp(217): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\msegarra\documents\github\xarxes_3b\udp\udp_game\client\client.cpp(225): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\msegarra\documents\github\xarxes_3b\udp\udp_game\client\client.cpp(236): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+c:\users\msegarra\documents\github\xarxes_3b\udp\udp_game\client\client.cpp(247): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+  Client.vcxproj -> C:\Users\msegarra\Documents\GitHub\Xarxes_3B\UDP\UDP_Game\x64\Debug\Client.exe
+  Client.vcxproj -> C:\Users\msegarra\Documents\GitHub\Xarxes_3B\UDP\UDP_Game\x64\Debug\Client.pdb (Partial PDB)

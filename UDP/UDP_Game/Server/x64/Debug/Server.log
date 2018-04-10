@@ -1,3 +1,4 @@
 ﻿  Server.cpp
-d:\projects\c++\xarxes_3b\udp\udp_game\server\server.cpp(111): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
-  Server.vcxproj -> D:\Projects\C++\Xarxes_3B\UDP\UDP_Game\x64\Debug\Server.exe
+c:\users\msegarra\documents\github\xarxes_3b\udp\udp_game\server\server.cpp(116): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  Server.vcxproj -> C:\Users\msegarra\Documents\GitHub\Xarxes_3B\UDP\UDP_Game\x64\Debug\Server.exe
+  Server.vcxproj -> C:\Users\msegarra\Documents\GitHub\Xarxes_3B\UDP\UDP_Game\x64\Debug\Server.pdb (Partial PDB)
