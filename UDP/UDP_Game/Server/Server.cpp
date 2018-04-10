@@ -10,7 +10,7 @@
 #include <thread>
 
 #define MAX_CLIENTS 2
-#define SENDING_PING 500
+#define SENDING_PING 1000
 #define PING 5000
 #define CONTROL_PING 10000
 #define PORT 50000
@@ -130,11 +130,11 @@ void ManageReveivedData(std::string cmd, int8_t cID, int8_t pID, sf::IpAddress s
 	}
 	}*/
 
-	/*if (cmd == "ACK") {
-		if (clients.find(cID)->second.resending.find(pID) != clients.find(cID)->second.resending.end()) {
+	if (cmd == "ACK") {
+		if (clients.find(cID)->second.resending.find(pID) != clients.find(cID)->second.resending.end() && clients.find(cID) != clients.end()) {
 			clients.find(cID)->second.resending.erase(pID);
 		}
-	}*/
+	}
 	//rebem resposta del ping i per tant encara esta conectat
 	//fem reset del seu rellotge intern
 	if (cmd == "ACK_PING") {
@@ -152,8 +152,8 @@ void ManageReveivedData(std::string cmd, int8_t cID, int8_t pID, sf::IpAddress s
 		pos.x = std::rand() % 25;
 		pos.y = std::rand() % 25;
 		packet.clear();
-		packet << "WELCOME" << packetID << clientID << pos.x << pos.y;
 		if (clients.find(clientID) == clients.end()) {
+			packet << "WELCOME" << packetID << clientID << pos.x << pos.y;
 			clients.insert(std::make_pair(clientID, Client{ clientID, pos, senderIP, senderPort, true }));
 			clients[clientID].resending.insert(std::make_pair(packetID, packet));
 			NotifyOtherClients("CONNECTION", clientID);
@@ -255,6 +255,7 @@ int main()
 		//cada certa quantiat de temps enviar missatge ping
 		if (clockSend.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
+			std::cout << clients.size() << std::endl;
 			clockSend.restart();
 		}
 		ManagePing();

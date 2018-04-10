@@ -71,6 +71,9 @@ void Resend() {
 			socket.unbind();
 			system("exit");
 		}
+		else {
+			std::cout << "yupi" << std::endl;
+		}
 	}
 }
 
@@ -122,23 +125,27 @@ void ReceiveData() {
 
 					std::cout << "WELCOME! " << "Server Packet: " << std::to_string(packetIDRecived) << " Client ID: " << std::to_string(myPlayer->ID) << " Initial Position: " << std::to_string(myPlayer->position.x) << ", " << std::to_string(myPlayer->position.y) << std::endl;
 					//}
+
+					/*sf::Packet p;
+					p << "ACK" << packetIDRecived << myPlayer->ID;
+					myPlayer->resending.insert(std::make_pair(packetIDRecived, p));*/
 				}
 			}
-			else if (cmd == "ACK") {
+			/*else if (cmd == "ACK") {
 				if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
 					myPlayer->resending.erase(packetIDRecived);
 				}
-			}
+			}*/
 			else {
 				packet >> opponentId;
-
+				std::cout << std::to_string(opponentId) << std::endl;
 				if (cmd == "CONNECTION") {
-					if (opponents.find(opponentId) == opponents.end()) {
+					//if (opponents.find(opponentId) == opponents.end()) {
 						Position pos;
 						packet >> pos.x >> pos.y;
 						std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << " PacketID Server: " << packetIDRecived << std::endl;
 						opponents.insert(std::make_pair(opponentId, pos));
-					}
+					//}
 				}
 				else if (cmd == "DISCONNECTION") {
 					if (opponents.find(opponentId) != opponents.end()) {
@@ -185,7 +192,7 @@ void ReceiveData() {
 void GameManager() {
 
 	sf::RenderWindow window(sf::VideoMode(500, 500), "Traffic Game");
-	c.restart();
+	//c.restart();
 
 	while (window.isOpen())
 	{
@@ -299,6 +306,8 @@ int main()
 	ConnectionWithServer();
 
 	GameManager();
+
+	
 
 	//socket.disconnect();
 	system("pause");
