@@ -1,0 +1,12 @@
+﻿  Client.cpp
+Client.cpp(33): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+Client.cpp(34): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+Client.cpp(189): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+Client.cpp(197): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+  Generating code
+  361 of 361 functions (100.0%) were compiled, the rest were copied from previous compilation.
+    342 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  GameClient.vcxproj -> C:\Users\aponce\Desktop\Platilla_3Projects\x64\Release\GameClient.exe
+  GameClient.vcxproj -> C:\Users\aponce\Desktop\Platilla_3Projects\x64\Release\GameClient.pdb (Full PDB)
