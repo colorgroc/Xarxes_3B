@@ -36,8 +36,8 @@ sf::Int8 packetID = 1;
 sf::Clock c;
 
 struct Position {
-	sf::Int16 x;
-	sf::Int16 y;
+	sf::Int8 x;
+	sf::Int8 y;
 };
 
 struct Player

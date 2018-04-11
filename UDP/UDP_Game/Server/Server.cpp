@@ -31,8 +31,8 @@ bool online = true;
 
 
 struct Position {
-	sf::Int16 x;
-	sf::Int16 y;
+	sf::Int8 x;
+	sf::Int8 y;
 };
 struct Client {
 	sf::Int8 id;
