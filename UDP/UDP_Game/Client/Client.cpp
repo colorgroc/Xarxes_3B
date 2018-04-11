@@ -290,7 +290,7 @@ int main()
 
 
 	//socket.disconnect();
-	system("pause");
+	system("exit");
 
 	return 0;
 }

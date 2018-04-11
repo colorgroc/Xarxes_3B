@@ -9,10 +9,10 @@
 #include <mutex>
 #include <thread>
 
-#define MAX_CLIENTS 2
-#define SENDING_PING 1000
-#define _PING 5000
-#define CONTROL_PING 10000
+#define MAX_CLIENTS 4
+#define SENDING_PING 500
+#define _PING 1000
+#define CONTROL_PING 5000
 #define PORT 50000
 
 //comandos
@@ -29,11 +29,11 @@ sf::Int8 ACK_PING = 7;
 bool online = true;
 
 
-
 struct Position {
 	sf::Int8 x;
 	sf::Int8 y;
 };
+
 struct Client {
 	sf::Int8 id;
 	std::string nickname;
@@ -260,13 +260,14 @@ int main()
 	//SI EL Q ES VOL ES Q NO SURTIN LES PESTANYES DE JUGAR FINS Q TOTS NO ESTIGUIN CONNECTATS, ALESHORES FER EL RECEIVE DEL WELCOME I EL SEND COM ESTAVA EN ELS ANTERIORS COMMITS
 	do {
 		ReceiveData();
+		ManagePing();
 		//cada certa quantiat de temps enviar missatge ping
 		if (clockSend.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
 			clockSend.restart();
 		}
-		ManagePing();
-
+		
+		
 	} while (clients.size() >= 0);// && clients.size() <= MAX_CLIENTS);
 
 	clients.clear();
