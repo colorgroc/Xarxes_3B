@@ -1,15 +1,16 @@
 //TALLER 6 - ANNA PONCE I MARC SEGARRA
 
-#include <SFML\Graphics.hpp>
-#include <SFML\Network.hpp>
-#include <string>
-#include <iostream>
-#include <vector>
-#include <map>
-#include <mutex>
-#include <thread>
 #include<GlobalValues.h>
 
+//comandos
+int8_t HELLO = 0;
+int8_t ACK_HELLO = 1;
+int8_t NEW_CONNECTION = 2;
+int8_t ACK_NEW_CONNECTION = 3;
+int8_t DISCONNECTION = 4;
+int8_t ACK_DISCONNECTION = 5;
+int8_t PING = 6;
+int8_t ACK_PING = 7;
 
 bool online = true;
 
@@ -22,7 +23,8 @@ sf::UdpSocket socket;
 sf::Clock clockPing, clockSend;
 bool once = false;
 int8_t packetID = 1;
-
+//variable para controlar cuando se han desconnectado todos hasta que hagamos los estados
+int8_t clientsConnected = 0;
 
 void Resend() {
 	//posar mutex??
@@ -116,8 +118,11 @@ void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress sender
 			}
 			clients.insert(std::make_pair(clientID, Client{ clientID, nickname, pos, senderIP, senderPort, true }));
 			NotifyOtherClients(NEW_CONNECTION, clientID);
+			clients[clientID].timeElapsedLastPing.restart();
+			clientsConnected++;
 			//clients[clientID].resending.insert(std::make_pair(packetID, packet));
 			clientID++;
+			
 		}
 		status = socket.send(packet, senderIP, senderPort);
 		if (status != sf::Socket::Done) {
@@ -172,17 +177,6 @@ void ControlServidor()
 
 void ManagePing() {
 
-	if (!once) {
-		//poso a zero tots els temps
-		for (std::map<int8_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
-			it->second.timeElapsedLastPing.restart();
-		}
-		//a zero el rellotge
-		clockPing.restart();
-		once = true;
-	}
-
-
 	//cada certa quantiat de temps enviar missatge ping
 	if (clockPing.getElapsedTime().asMilliseconds() > _PING) {
 		SendToAllClients(PING);
@@ -198,8 +192,9 @@ void ManagePing() {
 		}
 	}
 
-	for (int8_t i = 0; i < clients.size(); i++) {
-		if (!clients[i].connected) {
+	for (int8_t i = 1; i <= clients.size(); i++) {
+		if (clients.find(i) != clients.end() && !clients[i].connected) {
+			std::cout << "Client " << std::to_string(clients[i].id) << " disconnected." << std::endl;
 			clients.erase(clients[i].id);
 		}
 	}
@@ -207,19 +202,21 @@ void ManagePing() {
 
 int main()
 {
+	online = true;
 	ControlServidor();
 	clockSend.restart();
+	clockPing.restart();
 	//SI EL Q ES VOL ES Q NO SURTIN LES PESTANYES DE JUGAR FINS Q TOTS NO ESTIGUIN CONNECTATS, ALESHORES FER EL RECEIVE DEL WELCOME I EL SEND COM ESTAVA EN ELS ANTERIORS COMMITS
 	do {
 		ReceiveData();
+		ManagePing();
 		//cada certa quantiat de temps enviar missatge ping
 		if (clockSend.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
 			clockSend.restart();
 		}
-		ManagePing();
-
-	} while (clients.size() >= 0);// && clients.size() <= MAX_CLIENTS);
+		if (clients.size() <= 0 && clientsConnected == MAX_CLIENTS) online = false;
+	} while (clients.size() <= MAX_CLIENTS && online);
 
 	clients.clear();
 	socket.unbind();

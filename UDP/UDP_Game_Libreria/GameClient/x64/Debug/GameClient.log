@@ -1,1 +1,4 @@
-﻿LINK : fatal error LNK1104: cannot open file 'GameLib.lib'
+﻿  Client.cpp
+c:\users\anna\documents\github\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(177): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+c:\users\anna\documents\github\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(185): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+  GameClient.vcxproj -> C:\Users\Anna\Documents\GitHub\Xarxes_3B\UDP\UDP_Game_Libreria\x64\Debug\GameClient.exe

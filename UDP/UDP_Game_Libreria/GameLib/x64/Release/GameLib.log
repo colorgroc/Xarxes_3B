@@ -1,1 +1,4 @@
-﻿
+﻿  GlobalValues.cpp
+GlobalValues.cpp(20): warning C4244: 'inicializando': conversión de 'int' a 'float'; posible pérdida de datos
+GlobalValues.cpp(21): warning C4244: 'inicializando': conversión de 'int' a 'float'; posible pérdida de datos
+  GameLib.vcxproj -> C:\Users\Anna\Documents\GitHub\Xarxes_3B\UDP\UDP_Game_Libreria\x64\Release\GameLib.lib

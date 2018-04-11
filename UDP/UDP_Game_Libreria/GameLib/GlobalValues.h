@@ -12,9 +12,9 @@
 #define MAX_CLIENTS 2
 #define MAX_OPPONENTS 3
 
-#define _PING 5000
-#define SENDING_PING 1000
-#define CONTROL_PING 10000
+#define _PING 1000
+#define SENDING_PING 500
+#define CONTROL_PING 2000
 
 #define PORT 50000
 
@@ -22,18 +22,20 @@
 #define NUMBER_ROWS_COLUMNS 25
 #define RADIUS_SPRITE 10.0f
 
-//comandos
-int8_t HELLO = 0;
-int8_t ACK_HELLO = 1;
-int8_t NEW_CONNECTION = 2;
-int8_t ACK_NEW_CONNECTION = 3;
-int8_t DISCONNECTION = 4;
-int8_t ACK_DISCONNECTION = 5;
-int8_t PING = 6;
-int8_t ACK_PING = 7;
-
-sf::IpAddress serverIP = "localhost";
-unsigned short serverPORT = PORT;
+////comandos
+//namespace _cmd {
+//	int8_t HELLO;
+//	int8_t ACK_HELLO;
+//	int8_t NEW_CONNECTION;
+//	int8_t ACK_NEW_CONNECTION;
+//	int8_t DISCONNECTION;
+//	int8_t ACK_DISCONNECTION;
+//	int8_t PING;
+//	int8_t ACK_PING;
+//
+//	sf::IpAddress serverIP;
+//	unsigned short serverPORT;
+//}
 
 struct Position {
 	int8_t x;
@@ -54,30 +56,16 @@ struct Client {
 struct Player
 {
 	int8_t ID = 0;
+	std::string nickname;
 	Position position;
 	std::map<int8_t, sf::Packet> resending;
 };
 
 
-sf::Vector2f GetCell(int8_t _x, int8_t _y)
-{
-	float xCell = _x / SIZE_CELL;
-	float yCell = _y / SIZE_CELL;
-	sf::Vector2f cell(xCell, yCell);
-	return cell;
-}
+sf::Vector2f GetCell(int8_t _x, int8_t _y);
 
-sf::Vector2f BoardToWindows(sf::Vector2f _positionCell)
-{
-	return sf::Vector2f(_positionCell.x * SIZE_CELL, _positionCell.y * SIZE_CELL); //convert to pixels
-}
+sf::Vector2f BoardToWindows(sf::Vector2f _positionCell);
 
-/*sf::Packet& operator <<(sf::Packet& Packet, const Position& pos)
-{
-return Packet << pos.x << pos.y;
-}
+/*sf::Packet& operator <<(sf::Packet& Packet, const Position& pos);
 
-sf::Packet& operator >>(sf::Packet& Packet, Position& pos)
-{
-return Packet >> pos.x >> pos.y;
-}*/
+sf::Packet& operator >>(sf::Packet& Packet, Position& pos);*/

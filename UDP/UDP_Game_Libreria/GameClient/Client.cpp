@@ -1,7 +1,19 @@
 //TALLER 6 - ANNA PONCE I MARC SEGARRA
 
-
 #include <GlobalValues.h>
+
+//comandos
+int8_t HELLO = 0;
+int8_t ACK_HELLO = 1;
+int8_t NEW_CONNECTION = 2;
+int8_t ACK_NEW_CONNECTION = 3;
+int8_t DISCONNECTION = 4;
+int8_t ACK_DISCONNECTION = 5;
+int8_t PING = 6;
+int8_t ACK_PING = 7;
+
+sf::IpAddress serverIP = "localhost";
+unsigned short serverPORT = PORT;
 
 sf::UdpSocket socket;
 sf::Socket::Status status;
@@ -47,6 +59,12 @@ void SendACK(int8_t cmd, int8_t pID) {
 	packet << cmd << pID << myPlayer->ID;
 	status = socket.send(packet, "localhost", PORT);
 	if (status == sf::Socket::Error) std::cout << "Error. " << com << std::endl;
+	else if (status == sf::Socket::Disconnected) {
+		std::cout << "Server disconnected. " << com << std::endl;
+		opponents.clear();
+		socket.unbind();
+		system("exit");
+	}
 	packet.clear();
 }
 
@@ -113,7 +131,7 @@ void ReceiveData() {
 
 void GameManager() {
 
-	sf::RenderWindow window(sf::VideoMode(500, 500), "Traffic Game");
+	sf::RenderWindow window(sf::VideoMode(500, 500), "Traffic Game - Client: " + myPlayer->nickname);
 	//c.restart();
 
 	while (window.isOpen())
@@ -202,11 +220,10 @@ void GameManager() {
 void ConnectionWithServer() {
 
 	std::cout << "Estableciendo conexion con server... \n";
-	std::string nickname;
 	std::cout << "Type your nickname: ";
-	std::getline(std::cin, nickname);
+	std::getline(std::cin, myPlayer->nickname);
 	sf::Packet packet;
-	packet << HELLO << packetID << nickname; //poner packetID
+	packet << HELLO << packetID << myPlayer->nickname; //poner packetID
 	myPlayer->resending.insert(std::make_pair(packetID, packet));
 	packetID++;
 	packet.clear();
