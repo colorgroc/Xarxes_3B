@@ -31,8 +31,8 @@ bool online = true;
 
 
 struct Position {
-	sf::Int8 x;
-	sf::Int8 y;
+	sf::Int16 x;
+	sf::Int16 y;
 };
 struct Client {
 	sf::Int8 id;
@@ -152,9 +152,10 @@ void ManageReveivedData(sf::Int8 cmd, sf::Int8 cID, sf::Int8 pID, sf::IpAddress 
 		pos.x = std::rand() % 25;
 		pos.y = std::rand() % 25;
 		sf::Packet packet;
+		packet.clear();
 		if (!alreadyConnected) {
 			std::cout << "Connection with client " << std::to_string(clientID) << " from PORT " << senderPort << std::endl;
-			packet << ACK_HELLO << pID << clientID << pos.x << pos.y;
+			packet << ACK_HELLO << pID << clientID << pos.x << pos.y << numOfOpponents;
 			if (numOfOpponents > 0) {
 				//inserim al packet la ID i la pos de cada oponent
 				for (std::map<sf::Int8, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {

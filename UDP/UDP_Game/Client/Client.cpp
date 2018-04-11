@@ -36,8 +36,8 @@ sf::Int8 packetID = 1;
 sf::Clock c;
 
 struct Position {
-	sf::Int8 x;
-	sf::Int8 y;
+	sf::Int16 x;
+	sf::Int16 y;
 };
 
 struct Player
@@ -123,6 +123,7 @@ void ReceiveData() {
 
 	if (status == sf::Socket::Done) {
 		packet >> cmd >> packetIDRecived;
+
 		if (cmd == PING) {	
 			SendACK(ACK_PING, packetIDRecived);
 		}
@@ -130,7 +131,7 @@ void ReceiveData() {
 			//std::cout << "ACK_HELLO recived." << std::endl;
 			if (myPlayer->ID == 0) {
 				sf::Int8 numOfOpponents = 0;
-				packet >> myPlayer->ID >> myPlayer->position.x >> myPlayer->position.x >> numOfOpponents;
+				packet >> myPlayer->ID >> myPlayer->position.x >> myPlayer->position.y >> numOfOpponents;
 				if (numOfOpponents > 0) {
 					//treiem del packet la ID i la pos de cada oponent
 					for (int i = 0; i < numOfOpponents; i++) {
@@ -152,7 +153,7 @@ void ReceiveData() {
 			packet >> opponentId;
 			if (opponents.find(opponentId) == opponents.end()) {
 				Position pos;
-				packet >> packetIDRecived >> opponentId >> pos.x >> pos.y;
+				packet >> pos.x >> pos.y;
 				std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << " PacketID Server: " << std::to_string(packetIDRecived) << std::endl;
 				opponents.insert(std::make_pair(opponentId, pos));
 			}
