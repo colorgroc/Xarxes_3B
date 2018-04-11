@@ -28,7 +28,7 @@ sf::Vector2f BoardToWindows(sf::Vector2f _positionCell)
 	return sf::Vector2f(_positionCell.x * SIZE_CELL, _positionCell.y * SIZE_CELL); //convert to pixels
 }
 
-/*sf::Packet& operator <<(sf::Packet& Packet, const Position& pos)
+sf::Packet& operator <<(sf::Packet& Packet, const Position& pos)
 {
 return Packet << pos.x << pos.y;
 }
@@ -36,4 +36,4 @@ return Packet << pos.x << pos.y;
 sf::Packet& operator >>(sf::Packet& Packet, Position& pos)
 {
 return Packet >> pos.x >> pos.y;
-}*/
+}

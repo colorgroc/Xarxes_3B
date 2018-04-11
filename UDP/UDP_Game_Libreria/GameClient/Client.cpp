@@ -87,13 +87,13 @@ void ReceiveData() {
 			//std::cout << "ACK_HELLO recived." << std::endl;
 			if (myPlayer->ID == 0) {
 				int8_t numOfOpponents = 0;
-				packet >> myPlayer->ID >> myPlayer->position.x >> myPlayer->position.y >> numOfOpponents;
+				packet >> myPlayer->ID >> myPlayer->position >> numOfOpponents;
 				if (numOfOpponents > 0) {
 					//treiem del packet la ID i la pos de cada oponent
 					for (int i = 0; i < numOfOpponents; i++) {
 						int8_t oID;
 						Position oPos;
-						packet >> oID >> oPos.x >> oPos.y;
+						packet >> oID >> oPos;
 						opponents.insert(std::make_pair(oID, oPos));
 					}
 				}
@@ -109,7 +109,7 @@ void ReceiveData() {
 			packet >> opponentId;
 			if (opponents.find(opponentId) == opponents.end()) {
 				Position pos;
-				packet >> pos.x >> pos.y;
+				packet >> pos;
 				std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << " PacketID Server: " << std::to_string(packetIDRecived) << std::endl;
 				opponents.insert(std::make_pair(opponentId, pos));
 			}
@@ -131,7 +131,7 @@ void ReceiveData() {
 
 void GameManager() {
 
-	sf::RenderWindow window(sf::VideoMode(500, 500), "Traffic Game - Client: " + myPlayer->nickname);
+	sf::RenderWindow window(sf::VideoMode(WINDOW_SIZE, WINDOW_SIZE), "Traffic Game - Client: " + myPlayer->nickname);
 	//c.restart();
 
 	while (window.isOpen())

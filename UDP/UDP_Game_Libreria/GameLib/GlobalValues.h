@@ -18,6 +18,7 @@
 
 #define PORT 50000
 
+#define WINDOW_SIZE 500
 #define SIZE_CELL 20
 #define NUMBER_ROWS_COLUMNS 25
 #define RADIUS_SPRITE 10.0f
@@ -66,6 +67,6 @@ sf::Vector2f GetCell(int8_t _x, int8_t _y);
 
 sf::Vector2f BoardToWindows(sf::Vector2f _positionCell);
 
-/*sf::Packet& operator <<(sf::Packet& Packet, const Position& pos);
+sf::Packet& operator <<(sf::Packet& Packet, const Position& pos);
 
-sf::Packet& operator >>(sf::Packet& Packet, Position& pos);*/
+sf::Packet& operator >>(sf::Packet& Packet, Position& pos);

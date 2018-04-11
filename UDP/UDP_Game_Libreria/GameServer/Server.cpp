@@ -62,7 +62,7 @@ void NotifyOtherClients(int8_t cmd, int8_t cID) {
 			{
 				sf::Packet packet;
 				if (it->first != cID) {
-					packet << cmd << packetID << cID << clients.find(cID)->second.pos.x << clients.find(cID)->second.pos.y;
+					packet << cmd << packetID << cID << clients.find(cID)->second.pos;
 					it->second.resending.insert(std::make_pair(packetID, packet));
 				}
 			} packetID++;
@@ -109,11 +109,11 @@ void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress sender
 		packet.clear();
 		if (!alreadyConnected) {
 			std::cout << "Connection with client " << std::to_string(clientID) << " from PORT " << senderPort << std::endl;
-			packet << ACK_HELLO << pID << clientID << pos.x << pos.y << numOfOpponents;
+			packet << ACK_HELLO << pID << clientID << pos << numOfOpponents;
 			if (numOfOpponents > 0) {
 				//inserim al packet la ID i la pos de cada oponent
 				for (std::map<int8_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
-					packet << it->second.id << it->second.pos.x << it->second.pos.y;
+					packet << it->second.id << it->second.pos;
 				}
 			}
 			clients.insert(std::make_pair(clientID, Client{ clientID, nickname, pos, senderIP, senderPort, true }));
