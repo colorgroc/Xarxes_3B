@@ -10,37 +10,57 @@
 
 #define MAX_OPPONENTS 3
 #define PORT 50000
-#define SENDING_PING 500
+#define SENDING_PING 1000
 #define SIZE_CELL 20
 #define NUMBER_ROWS_COLUMNS 25
 #define RADIUS_SPRITE 10.0f
 
+//comandos
+sf::Int8 HELLO = 0;
+sf::Int8 ACK_HELLO = 1;
+sf::Int8 NEW_CONNECTION = 2;
+sf::Int8 ACK_NEW_CONNECTION = 3;
+sf::Int8 DISCONNECTION = 4;
+sf::Int8 ACK_DISCONNECTION = 5;
+sf::Int8 PING = 6;
+sf::Int8 ACK_PING = 7;
+
 sf::IpAddress serverIP = "localhost";
 unsigned short serverPORT = PORT;
-int8_t state = 1;
+sf::Int8 state = 1;
 sf::UdpSocket socket;
 sf::Socket::Status status;
 std::mutex myMutex;
 //bool once = false;
-int8_t packetID = 1;
+sf::Int8 packetID = 1;
 sf::Clock c;
 
 struct Position {
-	int8_t x;
-	int8_t y;
+	sf::Int8 x;
+	sf::Int8 y;
 };
 
 struct Player
 {
-	int8_t ID = -1;
+	sf::Int8 ID = 0;
 	Position position;
-	std::map<int8_t, sf::Packet> resending;
+	std::map<sf::Int8, sf::Packet> resending;
 };
 
 Player * myPlayer;
-std::map <int8_t, Position> opponents;
+std::map <sf::Int8, Position> opponents;
 
-sf::Vector2f GetCell(int8_t _x, int8_t _y)
+/*sf::Packet& operator <<(sf::Packet& Packet, const Position& pos)
+{
+	return Packet << pos.x << pos.y;
+}
+
+sf::Packet& operator >>(sf::Packet& Packet, Position& pos)
+{
+	return Packet >> pos.x >> pos.y;
+}*/
+
+sf::Vector2f GetCell(sf::Int8 _x, sf::Int8 _y)
 {
 	float xCell = _x / SIZE_CELL;
 	float yCell = _y / SIZE_CELL;
@@ -56,14 +76,12 @@ sf::Vector2f BoardToWindows(sf::Vector2f _positionCell)
 void Resend() {
 	//posar mutex??
 
-	for (std::map<int8_t, sf::Packet>::iterator msg = myPlayer->resending.begin(); msg != myPlayer->resending.end(); ++msg) {
-		status = socket.send(msg->second, serverIP, serverPORT);
-		std::string cmd;
-		msg->second >> cmd;
+	for (std::map<sf::Int8, sf::Packet>::iterator msg = myPlayer->resending.begin(); msg != myPlayer->resending.end(); ++msg) {
+		status = socket.send(msg->second, "localhost", PORT);
 		if (status == sf::Socket::Error) {
-			
+			std::string cmd;
+			msg->second >> cmd;
 			std::cout << "Error sending the message. Client to Server." << "Message IP: " << std::to_string(msg->first) << "Message: " << cmd << std::endl;
-
 		}
 		else if (status == sf::Socket::Disconnected) {
 			std::cout << "Error sending the message. Server disconnected." << std::endl;
@@ -71,121 +89,86 @@ void Resend() {
 			socket.unbind();
 			system("exit");
 		}
-		else {
-			std::cout << "yupi" << std::endl;
-		}
 	}
 }
 
-void Send(std::string cmd) {
-	//Enviamos a una IP:Puerto concreto, porque el socket no está vinculado
-	//a ningún otro socket en exclusiva
+void SendACK(sf::Int8 cmd, sf::Int8 pID) {
 	sf::Packet packet;
-	//int packetIDRecived;
+	std::string com;
 
-	if (cmd == "DISCONNECTION") {
-		packet << "DISCONNECTION" << myPlayer->ID;
-		//myPlayer->resending.insert(std::make_pair(-1, packet));
-		status = socket.send(packet, serverIP, serverPORT);
-		if (status == sf::Socket::Error) std::cout << "Disconnection Error." << std::endl;
+	if (cmd == ACK_DISCONNECTION) {
+		com = "DISCONNECTION";
 	}
-	else if (cmd == "ACK_PING") {
-		packet << "ACK_PING" << myPlayer->ID;
-		//myPlayer->resending.insert(std::make_pair(0, packet));
-		status = socket.send(packet, serverIP, serverPORT);
-		if (status == sf::Socket::Error) std::cout << "ACK Ping Error." << std::endl;
-
+	else if (cmd == ACK_NEW_CONNECTION) {
+		com = "NEW_CONNECTION";
+	}
+	else if (cmd == ACK_PING) {
+		com = "ACK_PING";
 	}
 
-
+	packet << cmd << pID << myPlayer->ID;
+	status = socket.send(packet, "localhost", PORT);
+	if (status == sf::Socket::Error) std::cout << "Error. " << com << std::endl;
+	packet.clear();
 }
 
 void ReceiveData() {
 	//nonblocking
 	sf::Packet packet;
-	std::string cmd;
-	int8_t opponentId = 0;
-	int8_t packetIDRecived = 0;
-	packet.clear();
+	sf::Int8 cmd = 0;
+	sf::Int8 opponentId = 0;
+	sf::Int8 packetIDRecived = 0;
+	
 	status = socket.receive(packet, serverIP, serverPORT);
 
 	if (status == sf::Socket::Done) {
-		packet >> cmd;
-		if (cmd == "PING") {
-			Send("ACK_PING");
+		packet >> cmd >> packetIDRecived;
+		if (cmd == PING) {	
+			SendACK(ACK_PING, packetIDRecived);
 		}
-		else {
-			packet >> packetIDRecived;
-			if (cmd == "WELCOME") {
-				if (myPlayer->ID == -1) {
-					packet >> myPlayer->ID >> myPlayer->position.x >> myPlayer->position.y;
-
-					//if (!once) {
-					//once = true;
-
-					std::cout << "WELCOME! " << "Server Packet: " << std::to_string(packetIDRecived) << " Client ID: " << std::to_string(myPlayer->ID) << " Initial Position: " << std::to_string(myPlayer->position.x) << ", " << std::to_string(myPlayer->position.y) << std::endl;
-					//}
-
-					/*sf::Packet p;
-					p << "ACK" << packetIDRecived << myPlayer->ID;
-					myPlayer->resending.insert(std::make_pair(packetIDRecived, p));*/
+		else if (cmd == ACK_HELLO) {
+			//std::cout << "ACK_HELLO recived." << std::endl;
+			if (myPlayer->ID == 0) {
+				sf::Int8 numOfOpponents = 0;
+				packet >> myPlayer->ID >> myPlayer->position.x >> myPlayer->position.x >> numOfOpponents;
+				if (numOfOpponents > 0) {
+					//treiem del packet la ID i la pos de cada oponent
+					for (int i = 0; i < numOfOpponents; i++) {
+						sf::Int8 oID;
+						Position oPos;
+						packet >> oID >> oPos.x >> oPos.y;
+						opponents.insert(std::make_pair(oID, oPos));
+					}
 				}
-			}
-			/*else if (cmd == "ACK") {
 				if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
 					myPlayer->resending.erase(packetIDRecived);
 				}
-			}*/
-			else {
-				packet >> opponentId;
-				std::cout << std::to_string(opponentId) << std::endl;
-				if (cmd == "CONNECTION") {
-					//if (opponents.find(opponentId) == opponents.end()) {
-						Position pos;
-						packet >> pos.x >> pos.y;
-						std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << " PacketID Server: " << packetIDRecived << std::endl;
-						opponents.insert(std::make_pair(opponentId, pos));
-					//}
-				}
-				else if (cmd == "DISCONNECTION") {
-					if (opponents.find(opponentId) != opponents.end()) {
-						std::cout << "An opponent disconnected. ID: " << std::to_string(opponentId) << " PacketID Server: " << std::to_string(packetIDRecived) << std::endl;
-						opponents.erase(opponentId);
-					}
-				}
-				else if (cmd == "POSITION") { //update all positions
-					Position pos;
-					packet >> pos.x >> pos.y;
-
-					if (opponentId == myPlayer->ID) {
-						myPlayer->position = pos; //soc jo
-					}
-					else if (opponents.find(opponentId) == opponents.end()) {
-						//encara no esta a la llista
-						opponents.insert(std::make_pair(opponentId, pos));
-					}
-					else {
-						//esta a la llista i no soc jo
-						opponents.find(opponentId)->second = pos;
-					}
-				}
-				
-				/*if (myPlayer->resending.find(packetIDRecived) == myPlayer->resending.end()) {
-					packet.clear();
-					packet << "ACK" << packetIDRecived << myPlayer->ID;
-					myPlayer->resending.insert(std::make_pair(packetIDRecived, packet));
-				}*/
-				//fer resend
+				std::cout << "WELCOME! " << " Client ID: " << std::to_string(myPlayer->ID) << " Initial Position: " << std::to_string(myPlayer->position.x) << ", " << std::to_string(myPlayer->position.y) << std::endl;
 			}
 		}
-	}
-	//mirar si hem rebut algun packet amb un id superior
-	/* for (std::map<int, sf::Packet>::iterator msg = myPlayer->resending.begin(); msg != myPlayer->resending.end(); ++msg) {
-	if (msg->first < packetIDRecived) {
-	myPlayer->resending.erase(msg->first);
-	}
-	}*/
 
+		//std::cout << std::to_string(opponentId) << std::endl;
+		else if (cmd == NEW_CONNECTION) {
+			packet >> opponentId;
+			if (opponents.find(opponentId) == opponents.end()) {
+				Position pos;
+				packet >> packetIDRecived >> opponentId >> pos.x >> pos.y;
+				std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << " PacketID Server: " << std::to_string(packetIDRecived) << std::endl;
+				opponents.insert(std::make_pair(opponentId, pos));
+			}
+			SendACK(ACK_NEW_CONNECTION, packetIDRecived);
+
+		}
+		else if (cmd == DISCONNECTION) {
+			packet >> opponentId;
+			if (opponents.find(opponentId) != opponents.end()) {
+				std::cout << "An opponent disconnected. ID: " << std::to_string(opponentId) << " PacketID Server: " << std::to_string(packetIDRecived) << std::endl;
+				opponents.erase(opponentId);
+			}
+			SendACK(ACK_DISCONNECTION, packetIDRecived);
+		}
+
+	} packet.clear();
 }
 
 
@@ -208,7 +191,6 @@ void GameManager() {
 			switch (event.type)
 			{
 			case sf::Event::Closed:
-				Send("DISCONNECTION");
 				socket.unbind();
 				window.close();
 				break;
@@ -222,9 +204,9 @@ void GameManager() {
 		//clearing window and drawing again
 		window.clear();
 
-		for (int8_t i = 0; i < NUMBER_ROWS_COLUMNS; i++)
+		for (sf::Int8 i = 0; i < NUMBER_ROWS_COLUMNS; i++)
 		{
-			for (int8_t j = 0; j < NUMBER_ROWS_COLUMNS; j++)
+			for (sf::Int8 j = 0; j < NUMBER_ROWS_COLUMNS; j++)
 			{
 				sf::RectangleShape rectBlanco(sf::Vector2f(SIZE_CELL, SIZE_CELL));
 				sf::Color grey = sf::Color(49, 51, 53);
@@ -264,7 +246,7 @@ void GameManager() {
 		sf::CircleShape shapeOpponent(RADIUS_SPRITE);
 		shapeOpponent.setFillColor(sf::Color::Red);
 
-		for (std::map<int8_t, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
+		for (std::map<sf::Int8, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 			sf::Vector2f positionOpponent(it->second.x, it->second.y);
 			positionOpponent = BoardToWindows(positionOpponent);
 			shapeOpponent.setPosition(positionOpponent);
@@ -281,16 +263,13 @@ void GameManager() {
 void ConnectionWithServer() {
 
 	std::cout << "Estableciendo conexion con server... \n";
-
+	std::string nickname;
+	std::cout << "Type your nickname: ";
+	std::getline(std::cin, nickname);
 	sf::Packet packet;
-	packet << "NEWCONNECTION"; //poner packetID
-	status = socket.send(packet, serverIP, serverPORT); //fer resend?
-	if (status == sf::Socket::Error) std::cout << "Error." << std::endl;
-	else if (status == sf::Socket::Disconnected) {
-		std::cout << "Server disconnected" << std::endl;
-		socket.unbind();
-	}
-
+	packet << HELLO << packetID << nickname; //poner packetID
+	myPlayer->resending.insert(std::make_pair(packetID, packet));
+	packetID++;
 	packet.clear();
 }
 
@@ -307,7 +286,7 @@ int main()
 
 	GameManager();
 
-	
+
 
 	//socket.disconnect();
 	system("pause");
