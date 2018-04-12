@@ -9,12 +9,12 @@
 #include <mutex>
 #include <thread>
 
-#define MAX_CLIENTS 2
+#define MAX_CLIENTS 4
 #define MAX_OPPONENTS 3
 
 #define _PING 1000
 #define SENDING_PING 500
-#define CONTROL_PING 2000
+#define CONTROL_PING 5000
 
 #define PORT 50000
 

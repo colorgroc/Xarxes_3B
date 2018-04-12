@@ -133,10 +133,7 @@ void ReceiveData() {
 			if (opponents.find(opponentId) != opponents.end()) {
 				Position pos;
 				packet >> pos;
-				
-				for (std::map<int8_t, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
-					it->second = pos;
-				}
+				opponents.find(opponentId)->second = pos;
 			}
 			SendACK(ACK_REFRESH_POSITIONS, packetIDRecived);
 
@@ -192,19 +189,34 @@ void GameManager() {
 				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) //moure personatge dreta
 				{
 					if (myPlayer->position.x != RIGHT_LIMIT - 1) {
-						myPlayer->position.x = myPlayer->position.x + 1;
+						sf::Packet packet;
+						Position trypos = Position{ myPlayer->position.x + 1,myPlayer->position.y };
+						packet << TRY_POSITION << packetID << myPlayer->ID << trypos; //poner packetID
+						myPlayer->resending.insert(std::make_pair(packetID, packet));
+						packetID++;
+						//myPlayer->position.x = myPlayer->position.x + 1;
 					}
 				}
 				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) //moure personatge dalt
 				{
 					if (myPlayer->position.y != TOP_LIMIT) {
-						myPlayer->position.y = myPlayer->position.y - 1;
+						sf::Packet packet;
+						Position trypos = Position{ myPlayer->position.x,myPlayer->position.y - 1 };
+						packet << TRY_POSITION << packetID << myPlayer->ID << trypos; //poner packetID
+						myPlayer->resending.insert(std::make_pair(packetID, packet));
+						packetID++;
+						//myPlayer->position.y = myPlayer->position.y - 1;
 					}
 				}
 				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) //moure personatge baix
 				{
 					if (myPlayer->position.y != LOW_LIMIT - 1) {
-						myPlayer->position.y = myPlayer->position.y + 1;
+						sf::Packet packet;
+						Position trypos = Position{ myPlayer->position.x,myPlayer->position.y + 1 };
+						packet << TRY_POSITION << packetID << myPlayer->ID << trypos; //poner packetID
+						myPlayer->resending.insert(std::make_pair(packetID, packet));
+						packetID++;
+						//myPlayer->position.y = myPlayer->position.y + 1;
 					}
 				}
 			default:
