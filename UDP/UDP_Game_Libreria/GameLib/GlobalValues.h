@@ -22,6 +22,10 @@
 #define SIZE_CELL 20
 #define NUMBER_ROWS_COLUMNS 25
 #define RADIUS_SPRITE 10.0f
+#define TOP_LIMIT 0
+#define	LOW_LIMIT 25
+#define RIGHT_LIMIT 25
+#define LEFT_LIMIT 0
 
 ////comandos
 //namespace _cmd {
@@ -33,7 +37,9 @@
 //	int8_t ACK_DISCONNECTION;
 //	int8_t PING;
 //	int8_t ACK_PING;
-//
+//  int8_t TRY_POSITION = 8;
+//  int8_t OK_POSITION = 9;
+
 //	sf::IpAddress serverIP;
 //	unsigned short serverPORT;
 //}
@@ -63,9 +69,9 @@ struct Player
 };
 
 
-sf::Vector2f GetCell(int8_t _x, int8_t _y);
+sf::Vector2f PixelToCell(int8_t _x, int8_t _y);
 
-sf::Vector2f BoardToWindows(sf::Vector2f _positionCell);
+sf::Vector2f CellToPixel(sf::Vector2f _positionCell);
 
 sf::Packet& operator <<(sf::Packet& Packet, const Position& pos);
 

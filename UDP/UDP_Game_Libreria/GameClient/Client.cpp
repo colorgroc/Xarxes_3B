@@ -11,6 +11,8 @@ int8_t DISCONNECTION = 4;
 int8_t ACK_DISCONNECTION = 5;
 int8_t PING = 6;
 int8_t ACK_PING = 7;
+int8_t TRY_POSITION = 8;
+int8_t OK_POSITION = 9;
 
 sf::IpAddress serverIP = "localhost";
 unsigned short serverPORT = PORT;
@@ -151,7 +153,37 @@ void GameManager() {
 				socket.unbind();
 				window.close();
 				break;
+			case  sf::Event::KeyPressed: //el moviment en aquesta versio es per celes
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) //moure personatge esquerra
+				{
+					if (myPlayer->position.x != LEFT_LIMIT) {
+						sf::Packet packet;
+						Position trypos = Position{ myPlayer->position.x - 1,myPlayer->position.y };
+						packet << TRY_POSITION << packetID << myPlayer->ID << trypos; //poner packetID
+						myPlayer->resending.insert(std::make_pair(packetID, packet));
+						packetID++;
+						//myPlayer->position.x = myPlayer->position.x - 1;
+					}
 
+				}
+				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) //moure personatge dreta
+				{
+					if (myPlayer->position.x != RIGHT_LIMIT - 1) {
+						myPlayer->position.x = myPlayer->position.x + 1;
+					}
+				}
+				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) //moure personatge dalt
+				{
+					if (myPlayer->position.y != TOP_LIMIT) {
+						myPlayer->position.y = myPlayer->position.y - 1;
+					}
+				}
+				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) //moure personatge baix
+				{
+					if (myPlayer->position.y != LOW_LIMIT - 1) {
+						myPlayer->position.y = myPlayer->position.y + 1;
+					}
+				}
 			default:
 				break;
 
@@ -194,7 +226,7 @@ void GameManager() {
 		shapePlayer.setFillColor(sf::Color::Green);
 
 		sf::Vector2f positionPlayer(myPlayer->position.x, myPlayer->position.y);
-		positionPlayer = BoardToWindows(positionPlayer);
+		positionPlayer = CellToPixel(positionPlayer);
 		shapePlayer.setPosition(positionPlayer);
 
 		window.draw(shapePlayer);
@@ -205,7 +237,7 @@ void GameManager() {
 
 		for (std::map<int8_t, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 			sf::Vector2f positionOpponent(it->second.x, it->second.y);
-			positionOpponent = BoardToWindows(positionOpponent);
+			positionOpponent = CellToPixel(positionOpponent);
 			shapeOpponent.setPosition(positionOpponent);
 
 			window.draw(shapeOpponent);
@@ -248,3 +280,12 @@ int main()
 
 	return 0;
 }
+
+
+
+
+
+
+
+
+

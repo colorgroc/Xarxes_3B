@@ -11,6 +11,8 @@ int8_t DISCONNECTION = 4;
 int8_t ACK_DISCONNECTION = 5;
 int8_t PING = 6;
 int8_t ACK_PING = 7;
+ int8_t TRY_POSITION = 8;
+ int8_t OK_POSITION = 9;
 
 bool online = true;
 
@@ -84,7 +86,7 @@ void NotifyOtherClients(int8_t cmd, int8_t cID) {
 }
 
 
-void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname) {
+void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, Position trypos) {
 
 
 	if (cmd == ACK_PING) {
@@ -135,6 +137,13 @@ void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress sender
 			clients[cID].resending.erase(pID);
 		}
 	}
+	else if (cmd == TRY_POSITION) {
+		if (trypos.x != LEFT_LIMIT && trypos.x != RIGHT_LIMIT - 1 && trypos.y != TOP_LIMIT && trypos.y != LOW_LIMIT - 1) {
+			clients.find(cID)->second.pos = trypos; //si esta dintre del mapa mou
+			std::cout << "new position " << std::to_string(clients.find(cID)->second.pos.x) << " " << std::to_string(clients.find(cID)->second.pos.y) << std::endl;
+		}
+
+	}
 
 }
 
@@ -147,14 +156,22 @@ void ReceiveData() {
 	int8_t packetIDRecived = 0;
 	int8_t cmd;
 	std::string nickname = "";
+	Position trypos = Position{ 0, 0 };
 	status = socket.receive(packet, senderIP, senderPort);
 
 	if (status == sf::Socket::Done) {
 		packet >> cmd >> packetIDRecived;
-		if (cmd == HELLO)
+		if (cmd == HELLO) {
 			packet >> nickname;
-		else packet >> IDClient;
-		ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, nickname);
+		}
+		else {
+			packet >> IDClient;
+
+			if (cmd == TRY_POSITION) {
+				packet >> trypos;
+			}
+		}
+		ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, nickname, trypos);
 	}
 	packet.clear();
 }

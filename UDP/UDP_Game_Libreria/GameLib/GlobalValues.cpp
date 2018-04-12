@@ -15,7 +15,7 @@
 //	unsigned short serverPORT = PORT;
 //}
 
-sf::Vector2f GetCell(int8_t _x, int8_t _y)
+sf::Vector2f PixelToCell(int8_t _x, int8_t _y)
 {
 	float xCell = _x / SIZE_CELL;
 	float yCell = _y / SIZE_CELL;
@@ -23,7 +23,7 @@ sf::Vector2f GetCell(int8_t _x, int8_t _y)
 	return cell;
 }
 
-sf::Vector2f BoardToWindows(sf::Vector2f _positionCell)
+sf::Vector2f CellToPixel(sf::Vector2f _positionCell)
 {
 	return sf::Vector2f(_positionCell.x * SIZE_CELL, _positionCell.y * SIZE_CELL); //convert to pixels
 }
