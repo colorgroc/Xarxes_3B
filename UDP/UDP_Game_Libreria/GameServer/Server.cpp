@@ -160,6 +160,7 @@ void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress sender
 			if (status != sf::Socket::Done) {
 				std::cout << "Error sending OK_POSITION to client " << std::to_string(cID) << std::endl;
 			}
+			NotifyOtherClients(REFRESH_POSITIONS, cID);
 			packet.clear();
 		}
 

@@ -130,7 +130,7 @@ void ReceiveData() {
 		}
 		else if (cmd == REFRESH_POSITIONS) {
 			packet >> opponentId;
-			if (opponents.find(opponentId) == opponents.end()) {
+			if (opponents.find(opponentId) != opponents.end()) {
 				Position pos;
 				packet >> pos;
 				
