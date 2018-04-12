@@ -15,6 +15,14 @@
 #define CONTROL_PING 5000
 #define PORT 50000
 
+#define SIZE_CELL 20
+#define NUMBER_ROWS_COLUMNS 25
+#define TOP_LIMIT 0
+#define	LOW_LIMIT 25
+#define RIGHT_LIMIT 25
+#define LEFT_LIMIT 0
+#define RADIUS_SPRITE 10.0f
+
 //comandos
 sf::Int8 HELLO = 0;
 sf::Int8 ACK_HELLO = 1;
@@ -24,7 +32,8 @@ sf::Int8 DISCONNECTION = 4;
 sf::Int8 ACK_DISCONNECTION = 5;
 sf::Int8 PING = 6;
 sf::Int8 ACK_PING = 7;
-
+sf::Int8 TRY_POSITION = 8;
+sf::Int8 OK_POSITION = 9;
 
 bool online = true;
 
@@ -130,7 +139,7 @@ void NotifyOtherClients(sf::Int8 cmd, sf::Int8 cID) {
 }
 
 
-void ManageReveivedData(sf::Int8 cmd, sf::Int8 cID, sf::Int8 pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname) {
+void ManageReveivedData(sf::Int8 cmd, sf::Int8 cID, sf::Int8 pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, Position trypos) {
 	
 
 	if (cmd == ACK_PING) {
@@ -178,6 +187,13 @@ void ManageReveivedData(sf::Int8 cmd, sf::Int8 cID, sf::Int8 pID, sf::IpAddress 
 			clients[cID].resending.erase(pID);
 		}
 	}
+	else if (cmd == TRY_POSITION) {
+		if (trypos.x != LEFT_LIMIT && trypos.x != RIGHT_LIMIT - 1 && trypos.y != TOP_LIMIT && trypos.y != LOW_LIMIT - 1) {
+			clients.find(cID)->second.pos = trypos; //si esta dintre del mapa mou
+			std::cout << "new position " << std::to_string(clients.find(cID)->second.pos.x) << " " << std::to_string(clients.find(cID)->second.pos.y) <<std::endl;
+		}
+		
+	}
 
 }
 
@@ -190,14 +206,23 @@ void ReceiveData() {
 	sf::Int8 packetIDRecived = 0;
 	sf::Int8 cmd;
 	std::string nickname = "";
+	Position trypos{ 0, 0 };
 	status = socket.receive(packet, senderIP, senderPort);
 
 	if (status == sf::Socket::Done) {	
 		packet >> cmd >> packetIDRecived;
-		if(cmd == HELLO )
+		if (cmd == HELLO) {
 			packet >> nickname;
-		else packet >> IDClient;
-		ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, nickname);
+		}
+		else {
+			packet >> IDClient;
+
+			if (cmd == TRY_POSITION) {
+				packet >> trypos.x >> trypos.y;
+			}
+		}
+			
+		ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, nickname, trypos);
 	}
 	packet.clear();
 }

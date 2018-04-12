@@ -28,6 +28,8 @@ sf::Int8 DISCONNECTION = 4;
 sf::Int8 ACK_DISCONNECTION = 5;
 sf::Int8 PING = 6;
 sf::Int8 ACK_PING = 7;
+sf::Int8 TRY_POSITION = 8;
+sf::Int8 OK_POSITION = 9;
 
 sf::IpAddress serverIP = "localhost";
 unsigned short serverPORT = PORT;
@@ -203,7 +205,11 @@ void GameManager() {
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) //moure personatge esquerra
 				{
 					if (myPlayer->position.x != LEFT_LIMIT) {
-						myPlayer->position.x = myPlayer->position.x - 1;
+						sf::Packet packet;
+						packet << TRY_POSITION << packetID << myPlayer->ID << myPlayer->position.x - 1 << myPlayer->position.y; //poner packetID
+						myPlayer->resending.insert(std::make_pair(packetID, packet));
+						packetID++;
+						//myPlayer->position.x = myPlayer->position.x - 1;
 					}
 				
 				}
@@ -243,7 +249,7 @@ void GameManager() {
 				sf::Color grey = sf::Color(49, 51, 53);
 				rectBlanco.setFillColor(grey);
 				//rectBlanco.setOutlineColor(sf::Color::Green);
-				//rectBlanco.setOutlineThickness(2.f);s
+				//rectBlanco.setOutlineThickness(2.f);
 				if (i % 2 == 0)
 				{
 					if (j % 2 == 0)
@@ -316,8 +322,6 @@ int main()
 	ConnectionWithServer();
 
 	GameManager();
-
-
 
 	//socket.disconnect();
 	system("exit");
