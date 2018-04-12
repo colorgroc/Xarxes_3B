@@ -13,6 +13,10 @@
 #define SENDING_PING 1000
 #define SIZE_CELL 20
 #define NUMBER_ROWS_COLUMNS 25
+#define TOP_LIMIT 0
+#define	LOW_LIMIT 25
+#define RIGHT_LIMIT 25
+#define LEFT_LIMIT 0
 #define RADIUS_SPRITE 10.0f
 
 //comandos
@@ -60,7 +64,7 @@ sf::Packet& operator >>(sf::Packet& Packet, Position& pos)
 	return Packet >> pos.x >> pos.y;
 }*/
 
-sf::Vector2f GetCell(sf::Int8 _x, sf::Int8 _y)
+sf::Vector2f PixelsToCell(sf::Int8 _x, sf::Int8 _y)
 {
 	float xCell = _x / SIZE_CELL;
 	float yCell = _y / SIZE_CELL;
@@ -68,7 +72,7 @@ sf::Vector2f GetCell(sf::Int8 _x, sf::Int8 _y)
 	return cell;
 }
 
-sf::Vector2f BoardToWindows(sf::Vector2f _positionCell)
+sf::Vector2f CellToPixels(sf::Vector2f _positionCell)
 {
 	return sf::Vector2f(_positionCell.x * SIZE_CELL, _positionCell.y * SIZE_CELL); //convert to pixels
 }
@@ -195,7 +199,33 @@ void GameManager() {
 				socket.unbind();
 				window.close();
 				break;
-
+			case  sf::Event::KeyPressed: //el moviment en aquesta versio es per celes
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) //moure personatge esquerra
+				{
+					if (myPlayer->position.x != LEFT_LIMIT) {
+						myPlayer->position.x = myPlayer->position.x - 1;
+					}
+				
+				}
+				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) //moure personatge dreta
+				{
+					if (myPlayer->position.x != RIGHT_LIMIT-1) {
+						myPlayer->position.x = myPlayer->position.x + 1;
+					}
+				}
+				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) //moure personatge dalt
+				{
+					if (myPlayer->position.y != TOP_LIMIT) {
+						myPlayer->position.y = myPlayer->position.y - 1;
+					}
+				}
+				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) //moure personatge baix
+				{
+					if (myPlayer->position.y != LOW_LIMIT-1) {
+						myPlayer->position.y = myPlayer->position.y + 1;
+					}
+				}
+			
 			default:
 				break;
 
@@ -238,7 +268,7 @@ void GameManager() {
 		shapePlayer.setFillColor(sf::Color::Green);
 
 		sf::Vector2f positionPlayer(myPlayer->position.x, myPlayer->position.y);
-		positionPlayer = BoardToWindows(positionPlayer);
+		positionPlayer = CellToPixels(positionPlayer);
 		shapePlayer.setPosition(positionPlayer);
 
 		window.draw(shapePlayer);
@@ -249,7 +279,7 @@ void GameManager() {
 
 		for (std::map<sf::Int8, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 			sf::Vector2f positionOpponent(it->second.x, it->second.y);
-			positionOpponent = BoardToWindows(positionOpponent);
+			positionOpponent = CellToPixels(positionOpponent);
 			shapeOpponent.setPosition(positionOpponent);
 
 			window.draw(shapeOpponent);
