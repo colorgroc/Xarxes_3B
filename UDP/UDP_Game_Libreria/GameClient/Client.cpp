@@ -13,6 +13,8 @@ int8_t PING = 6;
 int8_t ACK_PING = 7;
 int8_t TRY_POSITION = 8;
 int8_t OK_POSITION = 9;
+int8_t REFRESH_POSITIONS = 10;
+int8_t ACK_REFRESH_POSITIONS = 11;
 
 sf::IpAddress serverIP = "localhost";
 unsigned short serverPORT = PORT;
@@ -56,6 +58,9 @@ void SendACK(int8_t cmd, int8_t pID) {
 	}
 	else if (cmd == ACK_PING) {
 		com = "ACK_PING";
+	}
+	else if (cmd == ACK_REFRESH_POSITIONS) {
+		com = "ACK_REFRESH_POSITIONS";
 	}
 
 	packet << cmd << pID << myPlayer->ID;
@@ -116,6 +121,24 @@ void ReceiveData() {
 				opponents.insert(std::make_pair(opponentId, pos));
 			}
 			SendACK(ACK_NEW_CONNECTION, packetIDRecived);
+		}
+		else if (cmd == OK_POSITION) {
+			packet >> myPlayer->position;
+			if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end())
+				myPlayer->resending.erase(packetIDRecived);
+	
+		}
+		else if (cmd == REFRESH_POSITIONS) {
+			packet >> opponentId;
+			if (opponents.find(opponentId) == opponents.end()) {
+				Position pos;
+				packet >> pos;
+				
+				for (std::map<int8_t, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
+					it->second = pos;
+				}
+			}
+			SendACK(ACK_REFRESH_POSITIONS, packetIDRecived);
 
 		}
 		else if (cmd == DISCONNECTION) {

@@ -11,8 +11,10 @@ int8_t DISCONNECTION = 4;
 int8_t ACK_DISCONNECTION = 5;
 int8_t PING = 6;
 int8_t ACK_PING = 7;
- int8_t TRY_POSITION = 8;
- int8_t OK_POSITION = 9;
+int8_t TRY_POSITION = 8;
+int8_t OK_POSITION = 9;
+int8_t REFRESH_POSITIONS = 10;
+int8_t ACK_REFRESH_POSITIONS = 11;
 
 bool online = true;
 
@@ -83,6 +85,18 @@ void NotifyOtherClients(int8_t cmd, int8_t cID) {
 		}packetID++;
 		//}
 	}
+	else if (cmd == REFRESH_POSITIONS) {
+		if (clients.find(cID) != clients.end()) {
+			for (std::map<int8_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+			{
+				sf::Packet packet;
+				if (it->first != cID) {
+					packet << cmd << packetID << cID << clients.find(cID)->second.pos;
+					it->second.resending.insert(std::make_pair(packetID, packet));
+				}
+			} packetID++;
+		}
+	}
 }
 
 
@@ -132,7 +146,7 @@ void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress sender
 		}//else std::cout << "Sent ACK_HELLO to client " << std::to_string(clientID - 1) << std::endl;
 		packet.clear();
 	}
-	else if (cmd == ACK_NEW_CONNECTION || cmd == ACK_DISCONNECTION) {
+	else if (cmd == ACK_NEW_CONNECTION || cmd == ACK_DISCONNECTION || cmd == ACK_REFRESH_POSITIONS) {
 		if (clients.find(cID) != clients.end() && clients[cID].resending.find(pID) != clients[cID].resending.end()) {
 			clients[cID].resending.erase(pID);
 		}
@@ -140,7 +154,13 @@ void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress sender
 	else if (cmd == TRY_POSITION) {
 		if (trypos.x != LEFT_LIMIT && trypos.x != RIGHT_LIMIT - 1 && trypos.y != TOP_LIMIT && trypos.y != LOW_LIMIT - 1) {
 			clients.find(cID)->second.pos = trypos; //si esta dintre del mapa mou
-			std::cout << "new position " << std::to_string(clients.find(cID)->second.pos.x) << " " << std::to_string(clients.find(cID)->second.pos.y) << std::endl;
+			sf::Packet packet;
+			packet << OK_POSITION << pID << clients.find(cID)->second.pos;
+			status = socket.send(packet, senderIP, senderPort);
+			if (status != sf::Socket::Done) {
+				std::cout << "Error sending OK_POSITION to client " << std::to_string(cID) << std::endl;
+			}
+			packet.clear();
 		}
 
 	}
