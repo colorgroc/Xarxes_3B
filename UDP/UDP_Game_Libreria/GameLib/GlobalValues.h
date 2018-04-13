@@ -15,7 +15,7 @@
 #define _PING 1000
 #define SENDING_PING 500
 #define CONTROL_PING 5000
-#define SEND_ACCUMMOVEMENTS 200
+#define SEND_ACCUMMOVEMENTS 100
 
 #define PORT 50000
 
@@ -51,7 +51,6 @@ struct Position {
 };
 
 struct AccumMovements {
-	int8_t idMove;
 	Position delta;
 	Position absolute;
 };
@@ -65,6 +64,9 @@ struct Client {
 	bool connected;
 	std::map<int8_t, sf::Packet> resending;
 	sf::Clock timeElapsedLastPing;
+	std::map<int8_t, std::pair<int8_t, AccumMovements>> MapAccumMovements; //idpacket rebut de part del client (utilitzat per despres borrarlo del resend del client), 
+																//	idmovement per controlar validacions,
+																//	moviments acumulats
 };
 
 struct Player
@@ -84,3 +86,7 @@ Position CellToPixel(int8_t _x, int8_t _y);
 sf::Packet& operator <<(sf::Packet& Packet, const Position& pos);
 
 sf::Packet& operator >>(sf::Packet& Packet, Position& pos);
+
+sf::Packet& operator <<(sf::Packet& Packet, const AccumMovements& accum);
+
+sf::Packet& operator >>(sf::Packet& Packet, AccumMovements& accum);

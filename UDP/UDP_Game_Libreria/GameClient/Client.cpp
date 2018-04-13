@@ -27,6 +27,9 @@ sf::Clock c;
 Player * myPlayer;
 std::map <int8_t, Position> opponents;
 
+sf::Clock clockPositions;
+int8_t idMovements;
+
 void Resend() {
 	//posar mutex??
 
@@ -95,14 +98,9 @@ void ReceiveData() {
 			if (myPlayer->ID == 0) {
 				int8_t numOfOpponents = 0;
 				packet >> myPlayer->ID >> myPlayer->position >> numOfOpponents;
-				//std::cout << std::to_string(myPlayer->position.x) << "  " << std::to_string(myPlayer->position.y) << std::endl;
-				//////////////////////////// PREGUNTAR
-				//myPlayer->position = CellToPixel(myPlayer->position.x, myPlayer->position.y);
-				std::cout << std::to_string(myPlayer->position.x) << "  " << std::to_string(myPlayer->position.y) << std::endl;
-				myPlayer->position.x *= SIZE_CELL;
-				myPlayer->position.y *= SIZE_CELL;
-				std::cout << std::to_string(myPlayer->position.x) << "  " << std::to_string(myPlayer->position.y) << std::endl;
-				////////////////////////
+				
+				myPlayer->position = CellToPixel(myPlayer->position.x, myPlayer->position.y);
+
 				if (numOfOpponents > 0) {
 					//treiem del packet la ID i la pos de cada oponent
 					for (int i = 0; i < numOfOpponents; i++) {
@@ -172,6 +170,18 @@ void GameManager() {
 			Resend();
 			c.restart();
 		}
+
+		if (clockPositions.getElapsedTime().asMilliseconds() > SEND_ACCUMMOVEMENTS) { //si es més gran envio, restart rellotge, al rebre he de borrarlos de la llista
+
+			sf::Packet packet; 
+			packet << TRY_POSITION << packetID << myPlayer->ID << myPlayer->MapAccumMovements.find(idMovements)->first << myPlayer->MapAccumMovements.find(idMovements)->second; //montar un paquet amb totes les posicions acumulades
+
+			myPlayer->resending.insert(std::make_pair(packetID, packet));
+			packetID++;
+			idMovements++; //una avegada enviem ja puc incrementar
+			clockPositions.restart; 
+		}
+	
 		//inputs game
 		while (window.pollEvent(event))
 		{
@@ -184,47 +194,80 @@ void GameManager() {
 			case  sf::Event::KeyPressed: //el moviment en aquesta versio es per celes
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) //moure personatge esquerra
 				{
-					if (myPlayer->position.x != LEFT_LIMIT) {
+						/*
 						sf::Packet packet;
 						Position trypos = Position{ myPlayer->position.x - 1,myPlayer->position.y };
 						packet << TRY_POSITION << packetID << myPlayer->ID << trypos; //poner packetID
 						myPlayer->resending.insert(std::make_pair(packetID, packet));
 						packetID++;
-						//myPlayer->position.x = myPlayer->position.x - 1;
-					}
+						*/
 
+						if (myPlayer->MapAccumMovements.find(idMovements) != myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
+							myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ -1,0 },  Position{ myPlayer->position.x - 1,myPlayer->position.y } }));
+						}
+						else { //si ja existeix acumulo moviments, actualitzem
+							myPlayer->MapAccumMovements.find(idMovements)->second.delta.x += -1;
+							myPlayer->MapAccumMovements.find(idMovements)->second.delta.y += 0;
+							myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += -1;
+							myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += 0;
+						}
+					
 				}
 				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) //moure personatge dreta
 				{
-					if (myPlayer->position.x != RIGHT_LIMIT - 1) {
+						/*
 						sf::Packet packet;
 						Position trypos = Position{ myPlayer->position.x + 1,myPlayer->position.y };
 						packet << TRY_POSITION << packetID << myPlayer->ID << trypos; //poner packetID
 						myPlayer->resending.insert(std::make_pair(packetID, packet));
 						packetID++;
-						//myPlayer->position.x = myPlayer->position.x + 1;
+						*/
+					if (myPlayer->MapAccumMovements.find(idMovements) != myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
+						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ +1,0 },  Position{ myPlayer->position.x + 1,myPlayer->position.y } }));
+					}
+					else { //si ja existeix acumulo moviments, actualitzem
+						myPlayer->MapAccumMovements.find(idMovements)->second.delta.x += 1;
+						myPlayer->MapAccumMovements.find(idMovements)->second.delta.y += 0;
+						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += 1;
+						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += 0;
 					}
 				}
 				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) //moure personatge dalt
-				{
-					if (myPlayer->position.y != TOP_LIMIT) {
+				{		
+						/*
 						sf::Packet packet;
 						Position trypos = Position{ myPlayer->position.x,myPlayer->position.y - 1 };
 						packet << TRY_POSITION << packetID << myPlayer->ID << trypos; //poner packetID
 						myPlayer->resending.insert(std::make_pair(packetID, packet));
 						packetID++;
-						//myPlayer->position.y = myPlayer->position.y - 1;
+						*/
+					if (myPlayer->MapAccumMovements.find(idMovements) != myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
+						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ 0,-1 },  Position{ myPlayer->position.x, myPlayer->position.y -1 } }));
+					}
+					else { //si ja existeix acumulo moviments, actualitzem
+						myPlayer->MapAccumMovements.find(idMovements)->second.delta.x += 0;
+						myPlayer->MapAccumMovements.find(idMovements)->second.delta.y += -1;
+						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += 0;
+						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += -1;
 					}
 				}
 				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) //moure personatge baix
 				{
-					if (myPlayer->position.y != LOW_LIMIT - 1) {
+						/*
 						sf::Packet packet;
 						Position trypos = Position{ myPlayer->position.x,myPlayer->position.y + 1 };
 						packet << TRY_POSITION << packetID << myPlayer->ID << trypos; //poner packetID
 						myPlayer->resending.insert(std::make_pair(packetID, packet));
 						packetID++;
-						//myPlayer->position.y = myPlayer->position.y + 1;
+						*/
+					if (myPlayer->MapAccumMovements.find(idMovements) != myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
+						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ 0, 1 },  Position{ myPlayer->position.x, myPlayer->position.y + 1 } }));
+					}
+					else { //si ja existeix acumulo moviments, actualitzem
+						myPlayer->MapAccumMovements.find(idMovements)->second.delta.x += 0;
+						myPlayer->MapAccumMovements.find(idMovements)->second.delta.y += 1;
+						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += 0;
+						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += 1;
 					}
 				}
 			default:
@@ -313,6 +356,7 @@ int main()
 	//initial connection
 	ConnectionWithServer();
 
+	clockPositions.restart(); //a partir daqui ja es pot acabar de moure per tant fem un reset del rellotje
 	GameManager();
 
 	opponents.clear();

@@ -30,6 +30,16 @@ int8_t packetID = 1;
 //variable para controlar cuando se han desconnectado todos hasta que hagamos los estados
 int8_t clientsConnected = 0;
 
+sf::Clock clockPositions;
+
+void PositionValidations() {
+	//recorre tota la llista de clients
+	//anar validant i descartant
+	//enviar amb OkPosition
+	//reenviar a tots els altres jugadors
+	//REFRESH_POSITIONS (encara falta fer rebre del client
+}
+
 void Resend() {
 	//posar mutex??
 	for (std::map<int8_t, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
@@ -100,7 +110,7 @@ void NotifyOtherClients(int8_t cmd, int8_t cID) {
 }
 
 
-void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, Position trypos) {
+void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, int8_t idMovements, AccumMovements tryaccum) {
 
 
 	if (cmd == ACK_PING) {
@@ -152,6 +162,10 @@ void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress sender
 		}
 	}
 	else if (cmd == TRY_POSITION) {
+
+		//posarlo a dintre duna llista per més tard fer les validacions
+		clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(pID, std::make_pair(idMovements, tryaccum)));
+		/*
 		if (trypos.x != LEFT_LIMIT && trypos.x != RIGHT_LIMIT - 1 && trypos.y != TOP_LIMIT && trypos.y != LOW_LIMIT - 1) {
 			clients.find(cID)->second.pos = trypos; //si esta dintre del mapa mou
 			sf::Packet packet;
@@ -162,7 +176,7 @@ void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress sender
 			}
 			NotifyOtherClients(REFRESH_POSITIONS, cID);
 			packet.clear();
-		}
+		}*/
 
 	}
 
@@ -177,7 +191,8 @@ void ReceiveData() {
 	int8_t packetIDRecived = 0;
 	int8_t cmd;
 	std::string nickname = "";
-	Position trypos = Position{ 0, 0 };
+	AccumMovements tryaccum = AccumMovements{ Position{0, 0},  Position{ 0, 0 } };
+	int8_t idMovements = 0;
 	status = socket.receive(packet, senderIP, senderPort);
 
 	if (status == sf::Socket::Done) {
@@ -189,10 +204,11 @@ void ReceiveData() {
 			packet >> IDClient;
 
 			if (cmd == TRY_POSITION) {
-				packet >> trypos;
+				packet >> idMovements;
+				packet >> tryaccum;
 			}
 		}
-		ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, nickname, trypos);
+		ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, nickname, idMovements, tryaccum);
 	}
 	packet.clear();
 }
@@ -248,7 +264,14 @@ int main()
 	do {
 		ReceiveData();
 		ManagePing();
-		//cada certa quantiat de temps enviar missatge ping
+
+		//validem moviments jugadors
+		if(clockPositions.getElapsedTime().asMilliseconds() > SEND_ACCUMMOVEMENTS){
+			PositionValidations();
+			clockPositions.restart();
+		}
+
+		//cada certa quantiat de temps enviar missatges
 		if (clockSend.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
 			clockSend.restart();

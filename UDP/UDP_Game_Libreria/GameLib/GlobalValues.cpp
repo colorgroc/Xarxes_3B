@@ -36,3 +36,11 @@ sf::Packet& operator >>(sf::Packet& Packet, Position& pos)
 {
 return Packet >> pos.x >> pos.y;
 }
+
+sf::Packet& operator <<(sf::Packet& Packet, const AccumMovements& accum) {
+	return Packet << accum.delta << accum.absolute;
+}
+
+sf::Packet& operator >>(sf::Packet& Packet, AccumMovements& accum) {
+	return Packet >> accum.delta >> accum.absolute;
+}
