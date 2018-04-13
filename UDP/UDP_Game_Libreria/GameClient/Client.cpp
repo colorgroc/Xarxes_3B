@@ -95,9 +95,10 @@ void ReceiveData() {
 			if (myPlayer->ID == 0) {
 				int8_t numOfOpponents = 0;
 				packet >> myPlayer->ID >> myPlayer->position >> numOfOpponents;
-				std::cout << std::to_string(myPlayer->position.x) << "  " << std::to_string(myPlayer->position.y) << std::endl;
+				//std::cout << std::to_string(myPlayer->position.x) << "  " << std::to_string(myPlayer->position.y) << std::endl;
 				//////////////////////////// PREGUNTAR
 				//myPlayer->position = CellToPixel(myPlayer->position.x, myPlayer->position.y);
+				std::cout << std::to_string(myPlayer->position.x) << "  " << std::to_string(myPlayer->position.y) << std::endl;
 				myPlayer->position.x *= SIZE_CELL;
 				myPlayer->position.y *= SIZE_CELL;
 				std::cout << std::to_string(myPlayer->position.x) << "  " << std::to_string(myPlayer->position.y) << std::endl;
@@ -124,7 +125,7 @@ void ReceiveData() {
 			if (opponents.find(opponentId) == opponents.end()) {
 				Position pos;
 				packet >> pos;
-				std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << " PacketID Server: " << std::to_string(packetIDRecived) << std::endl;
+				std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << std::endl;
 				opponents.insert(std::make_pair(opponentId, pos));
 			}
 			SendACK(ACK_NEW_CONNECTION, packetIDRecived);
@@ -148,7 +149,7 @@ void ReceiveData() {
 		else if (cmd == DISCONNECTION) {
 			packet >> opponentId;
 			if (opponents.find(opponentId) != opponents.end()) {
-				std::cout << "An opponent disconnected. ID: " << std::to_string(opponentId) << " PacketID Server: " << std::to_string(packetIDRecived) << std::endl;
+				std::cout << "An opponent disconnected. ID: " << std::to_string(opponentId) << std::endl;
 				opponents.erase(opponentId);
 			}
 			SendACK(ACK_DISCONNECTION, packetIDRecived);
