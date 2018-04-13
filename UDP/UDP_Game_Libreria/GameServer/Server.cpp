@@ -119,8 +119,8 @@ void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress sender
 		Position pos;
 		int8_t numOfOpponents = clients.size();
 		srand(time(NULL));
-		pos.x = std::rand() % 25;
-		pos.y = std::rand() % 25;
+		pos.x = std::rand() % NUMBER_ROWS_COLUMNS;
+		pos.y = std::rand() % NUMBER_ROWS_COLUMNS;
 		sf::Packet packet;
 		packet.clear();
 		if (!alreadyConnected) {

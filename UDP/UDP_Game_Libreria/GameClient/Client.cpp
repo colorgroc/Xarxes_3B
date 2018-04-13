@@ -95,6 +95,13 @@ void ReceiveData() {
 			if (myPlayer->ID == 0) {
 				int8_t numOfOpponents = 0;
 				packet >> myPlayer->ID >> myPlayer->position >> numOfOpponents;
+				std::cout << std::to_string(myPlayer->position.x) << "  " << std::to_string(myPlayer->position.y) << std::endl;
+				//////////////////////////// PREGUNTAR
+				//myPlayer->position = CellToPixel(myPlayer->position.x, myPlayer->position.y);
+				myPlayer->position.x *= SIZE_CELL;
+				myPlayer->position.y *= SIZE_CELL;
+				std::cout << std::to_string(myPlayer->position.x) << "  " << std::to_string(myPlayer->position.y) << std::endl;
+				////////////////////////
 				if (numOfOpponents > 0) {
 					//treiem del packet la ID i la pos de cada oponent
 					for (int i = 0; i < numOfOpponents; i++) {
@@ -261,7 +268,6 @@ void GameManager() {
 		shapePlayer.setFillColor(sf::Color::Green);
 
 		sf::Vector2f positionPlayer(myPlayer->position.x, myPlayer->position.y);
-		positionPlayer = CellToPixel(positionPlayer);
 		shapePlayer.setPosition(positionPlayer);
 
 		window.draw(shapePlayer);
@@ -272,7 +278,6 @@ void GameManager() {
 
 		for (std::map<int8_t, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 			sf::Vector2f positionOpponent(it->second.x, it->second.y);
-			positionOpponent = CellToPixel(positionOpponent);
 			shapeOpponent.setPosition(positionOpponent);
 
 			window.draw(shapeOpponent);

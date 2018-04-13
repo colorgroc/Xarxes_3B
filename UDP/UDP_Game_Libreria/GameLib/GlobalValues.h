@@ -15,6 +15,7 @@
 #define _PING 1000
 #define SENDING_PING 500
 #define CONTROL_PING 5000
+#define SEND_ACCUMMOVEMENTS 200
 
 #define PORT 50000
 
@@ -23,8 +24,8 @@
 #define NUMBER_ROWS_COLUMNS 25
 #define RADIUS_SPRITE 10.0f
 #define TOP_LIMIT 0
-#define	LOW_LIMIT 25
-#define RIGHT_LIMIT 25
+#define	LOW_LIMIT 500
+#define RIGHT_LIMIT 500
 #define LEFT_LIMIT 0
 
 ////comandos
@@ -49,6 +50,12 @@ struct Position {
 	int8_t y;
 };
 
+struct AccumMovements {
+	int8_t idMove;
+	Position delta;
+	Position absolute;
+};
+
 struct Client {
 	int8_t id;
 	std::string nickname;
@@ -66,12 +73,13 @@ struct Player
 	std::string nickname;
 	Position position;
 	std::map<int8_t, sf::Packet> resending;
+	std::map<int8_t, AccumMovements> MapAccumMovements;
 };
 
 
-sf::Vector2f PixelToCell(int8_t _x, int8_t _y);
+Position PixelToCell(int8_t _x, int8_t _y);
 
-sf::Vector2f CellToPixel(sf::Vector2f _positionCell);
+Position CellToPixel(int8_t _x, int8_t _y);
 
 sf::Packet& operator <<(sf::Packet& Packet, const Position& pos);
 

@@ -15,17 +15,16 @@
 //	unsigned short serverPORT = PORT;
 //}
 
-sf::Vector2f PixelToCell(int8_t _x, int8_t _y)
+Position PixelToCell(int8_t _x, int8_t _y)
 {
-	float xCell = _x / SIZE_CELL;
-	float yCell = _y / SIZE_CELL;
-	sf::Vector2f cell(xCell, yCell);
-	return cell;
+	int8_t xCell = _x / SIZE_CELL;
+	int8_t yCell = _y / SIZE_CELL;
+	return 	Position{ xCell, yCell };
 }
 
-sf::Vector2f CellToPixel(sf::Vector2f _positionCell)
+Position CellToPixel(int8_t _x, int8_t _y)
 {
-	return sf::Vector2f(_positionCell.x * SIZE_CELL, _positionCell.y * SIZE_CELL); //convert to pixels
+	return Position{ _x * SIZE_CELL, _y * SIZE_CELL };; //convert to pixels
 }
 
 sf::Packet& operator <<(sf::Packet& Packet, const Position& pos)
