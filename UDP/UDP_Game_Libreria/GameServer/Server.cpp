@@ -32,14 +32,6 @@ int8_t clientsConnected = 0;
 
 sf::Clock clockPositions;
 
-void PositionValidations() {
-	//recorre tota la llista de clients
-	//anar validant i descartant
-	//enviar amb OkPosition
-	//reenviar a tots els altres jugadors
-	//REFRESH_POSITIONS (encara falta fer rebre del client
-}
-
 void Resend() {
 	//posar mutex??
 	for (std::map<int8_t, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
@@ -251,6 +243,37 @@ void ManagePing() {
 			std::cout << "Client " << std::to_string(clients[i].id) << " disconnected." << std::endl;
 			clients.erase(clients[i].id);
 		}
+	}
+}
+
+void PositionValidations() {
+	//recorre tota la llista de clients
+	//anar validant i descartant
+	//enviar amb OkPosition
+	//reenviar a tots els altres jugadors
+	//REFRESH_POSITIONS 
+	for (std::map<int8_t, Client>::iterator client = clients.begin(); client != clients.end(); ++client) {
+
+		for (std::map<int8_t, std::pair<int8_t, AccumMovements>>::iterator pos = client->second.MapAccumMovements.begin(); pos != client->second.MapAccumMovements.end(); ++pos) {
+
+			if (pos->second.second.absolute.x != LEFT_LIMIT && pos->second.second.absolute.x != RIGHT_LIMIT - 1 && pos->second.second.absolute.y != TOP_LIMIT && pos->second.second.absolute.y != LOW_LIMIT - 1) {
+				client->second.pos = pos->second.second.absolute; //actualitzo posicio ja que es correcta
+
+																  //enviem i notifiquem
+				sf::Packet packet;
+				packet << OK_POSITION << pos->first << pos->second.first << client->second.pos;
+				status = socket.send(packet, client->second.ip, client->second.port);
+				if (status != sf::Socket::Done) {
+					std::cout << "Error sending OK_POSITION to client " << std::to_string(client->second.id) << std::endl;
+				}
+				NotifyOtherClients(REFRESH_POSITIONS, client->second.id);
+				packet.clear();
+
+				//borrem el accum analitzat de la llista del client
+				client->second.MapAccumMovements.erase(pos->first);
+			}
+		}
+
 	}
 }
 

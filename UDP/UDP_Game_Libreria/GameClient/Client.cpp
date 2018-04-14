@@ -129,9 +129,13 @@ void ReceiveData() {
 			SendACK(ACK_NEW_CONNECTION, packetIDRecived);
 		}
 		else if (cmd == OK_POSITION) {
-			packet >> myPlayer->position;
-			if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end())
+		
+			int8_t idMov;
+			packet >> idMov >> myPlayer->position;
+			if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) { 	//eliminar paquet de la llista de resendings
 				myPlayer->resending.erase(packetIDRecived);
+			}
+			//borrar el acccum de dintre el mapa del my player i manegar si ni han d'anteriors...
 	
 		}
 		else if (cmd == REFRESH_POSITIONS) {
@@ -178,8 +182,8 @@ void GameManager() {
 
 			myPlayer->resending.insert(std::make_pair(packetID, packet));
 			packetID++;
-			idMovements++; //una avegada enviem ja puc incrementar
-			clockPositions.restart; 
+			idMovements++; //una avegada enviem ja puc incrementar, per tant nomes es posara una vegada al resending
+			clockPositions.restart(); 
 		}
 	
 		//inputs game

@@ -1,4 +1,1 @@
-﻿  Server.cpp
-c:\users\anna\documents\github\xarxes_3b\udp\udp_game_libreria\gameserver\server.cpp(104): warning C4267: 'inicializando': conversión de 'size_t' a 'int8_t'; posible pérdida de datos
-c:\users\anna\documents\github\xarxes_3b\udp\udp_game_libreria\gameserver\server.cpp(105): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
-  GameServer.vcxproj -> C:\Users\Anna\Documents\GitHub\Xarxes_3B\UDP\UDP_Game_Libreria\x64\Debug\GameServer.exe
+﻿  GameServer.vcxproj -> D:\Projects\C++\Xarxes_3B\UDP\UDP_Game_Libreria\x64\Debug\GameServer.exe
