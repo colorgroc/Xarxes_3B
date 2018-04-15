@@ -28,7 +28,7 @@ Player * myPlayer;
 std::map <int8_t, Position> opponents;
 
 sf::Clock clockPositions;
-int8_t idMovements;
+int8_t idMovements = 1;
 
 void Resend() {
 	//posar mutex??
@@ -98,8 +98,6 @@ void ReceiveData() {
 			if (myPlayer->ID == 0) {
 				int8_t numOfOpponents = 0;
 				packet >> myPlayer->ID >> myPlayer->position >> numOfOpponents;
-				
-				myPlayer->position = CellToPixel(myPlayer->position.x, myPlayer->position.y);
 
 				if (numOfOpponents > 0) {
 					//treiem del packet la ID i la pos de cada oponent
@@ -178,12 +176,15 @@ void GameManager() {
 		if (clockPositions.getElapsedTime().asMilliseconds() > SEND_ACCUMMOVEMENTS) { //si es més gran envio, restart rellotge, al rebre he de borrarlos de la llista
 
 			sf::Packet packet; 
-			packet << TRY_POSITION << packetID << myPlayer->ID << myPlayer->MapAccumMovements.find(idMovements)->first << myPlayer->MapAccumMovements.find(idMovements)->second; //montar un paquet amb totes les posicions acumulades
+			if (myPlayer->MapAccumMovements.find(idMovements) != myPlayer->MapAccumMovements.end()) {
+				packet << TRY_POSITION << packetID << myPlayer->ID << myPlayer->MapAccumMovements.find(idMovements)->first << myPlayer->MapAccumMovements.find(idMovements)->second; //montar un paquet amb totes les posicions acumulades
 
-			myPlayer->resending.insert(std::make_pair(packetID, packet));
-			packetID++;
-			idMovements++; //una avegada enviem ja puc incrementar, per tant nomes es posara una vegada al resending
-			clockPositions.restart(); 
+				myPlayer->resending.insert(std::make_pair(packetID, packet));
+				packetID++;
+				idMovements++; //una avegada enviem ja puc incrementar, per tant nomes es posara una vegada al resending
+				clockPositions.restart();
+			}
+		
 		}
 	
 		//inputs game
@@ -206,7 +207,7 @@ void GameManager() {
 						packetID++;
 						*/
 
-						if (myPlayer->MapAccumMovements.find(idMovements) != myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
+						if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
 							myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ -1,0 },  Position{ myPlayer->position.x - 1,myPlayer->position.y } }));
 						}
 						else { //si ja existeix acumulo moviments, actualitzem
@@ -226,7 +227,7 @@ void GameManager() {
 						myPlayer->resending.insert(std::make_pair(packetID, packet));
 						packetID++;
 						*/
-					if (myPlayer->MapAccumMovements.find(idMovements) != myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
+					if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
 						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ +1,0 },  Position{ myPlayer->position.x + 1,myPlayer->position.y } }));
 					}
 					else { //si ja existeix acumulo moviments, actualitzem
@@ -245,7 +246,7 @@ void GameManager() {
 						myPlayer->resending.insert(std::make_pair(packetID, packet));
 						packetID++;
 						*/
-					if (myPlayer->MapAccumMovements.find(idMovements) != myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
+					if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
 						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ 0,-1 },  Position{ myPlayer->position.x, myPlayer->position.y -1 } }));
 					}
 					else { //si ja existeix acumulo moviments, actualitzem
@@ -264,7 +265,7 @@ void GameManager() {
 						myPlayer->resending.insert(std::make_pair(packetID, packet));
 						packetID++;
 						*/
-					if (myPlayer->MapAccumMovements.find(idMovements) != myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
+					if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
 						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ 0, 1 },  Position{ myPlayer->position.x, myPlayer->position.y + 1 } }));
 					}
 					else { //si ja existeix acumulo moviments, actualitzem

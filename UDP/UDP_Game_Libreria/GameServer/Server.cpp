@@ -123,6 +123,7 @@ void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress sender
 		srand(time(NULL));
 		pos.x = std::rand() % NUMBER_ROWS_COLUMNS;
 		pos.y = std::rand() % NUMBER_ROWS_COLUMNS;
+		pos = CellToPixel(pos.x ,pos.y);
 		sf::Packet packet;
 		packet.clear();
 		if (!alreadyConnected) {
@@ -156,7 +157,10 @@ void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress sender
 	else if (cmd == TRY_POSITION) {
 
 		//posarlo a dintre duna llista per més tard fer les validacions
-		clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(pID, std::make_pair(idMovements, tryaccum)));
+		if (clients.find(cID)->second.MapAccumMovements.find(pID) == clients.find(cID)->second.MapAccumMovements.end()) { //sino existeix el poso, sino vol dir que ja lhe rebut
+			clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(pID, std::make_pair(idMovements, tryaccum)));
+		}
+		
 		/*
 		if (trypos.x != LEFT_LIMIT && trypos.x != RIGHT_LIMIT - 1 && trypos.y != TOP_LIMIT && trypos.y != LOW_LIMIT - 1) {
 			clients.find(cID)->second.pos = trypos; //si esta dintre del mapa mou
