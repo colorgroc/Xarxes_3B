@@ -1,4 +1,4 @@
 ﻿  Client.cpp
-d:\projects\c++\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(300): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-d:\projects\c++\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(308): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+d:\projects\c++\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(326): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
+d:\projects\c++\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(334): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
   GameClient.vcxproj -> D:\Projects\C++\Xarxes_3B\UDP\UDP_Game_Libreria\x64\Debug\GameClient.exe

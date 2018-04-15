@@ -29,6 +29,7 @@ std::map <int8_t, Position> opponents;
 
 sf::Clock clockPositions;
 int8_t idMovements = 1;
+int8_t idUltimMoviment = 0;
 
 void Resend() {
 	//posar mutex??
@@ -38,7 +39,7 @@ void Resend() {
 		if (status == sf::Socket::Error) {
 			std::string cmd;
 			msg->second >> cmd;
-			std::cout << "Error sending the message. Client to Server." << "Message IP: " << std::to_string(msg->first) << "Message: " << cmd << std::endl;
+std::cout << "Error sending the message. Client to Server." << "Message IP: " << std::to_string(msg->first) << "Message: " << cmd << std::endl;
 		}
 		else if (status == sf::Socket::Disconnected) {
 			std::cout << "Error sending the message. Server disconnected." << std::endl;
@@ -127,13 +128,38 @@ void ReceiveData() {
 			SendACK(ACK_NEW_CONNECTION, packetIDRecived);
 		}
 		else if (cmd == OK_POSITION) {
-		
+
+			//solucionar problemes d'ordre de paquets
+			//si hi han id mes petits a la llista del client es poden borrar ja que es va a la poscio més allunyada
+			//si la posicio reb un -1 -1 vol dir que la poscio es incorrecta i per tant no ens movem i borrem les altres poscions anterirors acumulades
 			int8_t idMov;
-			packet >> idMov >> myPlayer->position;
+			Position tempPos;
+			packet >> idMov >> tempPos;
+
+			if (tempPos.x == -1 && tempPos.y == -1) {
+				//es invalida la posicio i per tant no actualitzem posicio, borrem de la llista accum
+				std::cout << "Out"; //els jugadors a vegades poden sortir ja al limit (falta arreglar, mes endavant) i no es poden moure!!!
+				if(myPlayer->MapAccumMovements.find(packetIDRecived) != myPlayer->MapAccumMovements.end()){
+					myPlayer->MapAccumMovements.erase(packetIDRecived);
+				}
+			}
+			else {
+				//valida
+				if (idMov > idUltimMoviment) { //nomes si es mes gran valido , eliminem de la llista de accum
+					idUltimMoviment = idMov;
+					myPlayer->position = tempPos;
+				}
+				else { //ja s'ha acceptat un moviment posterior i per tant aquest moviment anterior no s'executa i es dona per valid, eliminem de la llista de accum
+					if (myPlayer->MapAccumMovements.find(packetIDRecived) != myPlayer->MapAccumMovements.end()) {
+						myPlayer->MapAccumMovements.erase(packetIDRecived);
+					}
+				}
+				
+			}
+			
 			if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) { 	//eliminar paquet de la llista de resendings
 				myPlayer->resending.erase(packetIDRecived);
 			}
-			//borrar el acccum de dintre el mapa del my player i manegar si ni han d'anteriors...
 	
 		}
 		else if (cmd == REFRESH_POSITIONS) {

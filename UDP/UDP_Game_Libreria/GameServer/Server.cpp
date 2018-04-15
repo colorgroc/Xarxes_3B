@@ -264,7 +264,7 @@ void PositionValidations() {
 
 		for (std::map<int8_t, std::pair<int8_t, AccumMovements>>::iterator pos = client->second.MapAccumMovements.begin(); pos != client->second.MapAccumMovements.end(); ++pos) {
 
-			if (pos->second.second.absolute.x != LEFT_LIMIT && pos->second.second.absolute.x != RIGHT_LIMIT - 1 && pos->second.second.absolute.y != TOP_LIMIT && pos->second.second.absolute.y != LOW_LIMIT - 1) {
+			if (pos->second.second.absolute.x > LEFT_LIMIT + 10 && pos->second.second.absolute.x < RIGHT_LIMIT -10 && pos->second.second.absolute.y > TOP_LIMIT + 10 && pos->second.second.absolute.y < LOW_LIMIT -10) {
 				client->second.pos = pos->second.second.absolute; //actualitzo posicio ja que es correcta
 
 																  //enviem i notifiquem
@@ -277,11 +277,21 @@ void PositionValidations() {
 				NotifyOtherClients(REFRESH_POSITIONS, client->second.id);
 				packet.clear();
 
-				//borrem el accum analitzat de la llista del client
-				posToDelete.push_back(pos->first);
-				//client->second.MapAccumMovements.erase(pos->first);
 			}
+			else {
+				//posem posicion -1 -1 per que el client pugui eliminarlo i que no es mogui
+				sf::Packet packet;
+				packet << OK_POSITION << pos->first << pos->second.first << Position{-1,-1};
+				status = socket.send(packet, client->second.ip, client->second.port);
+				if (status != sf::Socket::Done) {
+					std::cout << "Error sending OK_POSITION to client " << std::to_string(client->second.id) << std::endl;
+				}
+				packet.clear();
+			}
+			//guardem per borrar
+			posToDelete.push_back(pos->first);
 		}
+		//borrem tots els accum analitzats de la llista del client
 		for (std::vector<int8_t>::iterator toDelete = posToDelete.begin(); toDelete != posToDelete.end(); ++toDelete) {
 			client->second.MapAccumMovements.erase(*toDelete);
 		}
