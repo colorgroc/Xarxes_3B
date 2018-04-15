@@ -2,20 +2,6 @@
 
 #include<GlobalValues.h>
 
-//comandos
-int8_t HELLO = 0;
-int8_t ACK_HELLO = 1;
-int8_t NEW_CONNECTION = 2;
-int8_t ACK_NEW_CONNECTION = 3;
-int8_t DISCONNECTION = 4;
-int8_t ACK_DISCONNECTION = 5;
-int8_t PING = 6;
-int8_t ACK_PING = 7;
-int8_t TRY_POSITION = 8;
-int8_t OK_POSITION = 9;
-int8_t REFRESH_POSITIONS = 10;
-int8_t ACK_REFRESH_POSITIONS = 11;
-
 bool online = true;
 
 sf::Socket::Status status;
@@ -49,7 +35,7 @@ void Resend() {
 
 
 
-void SendToAllClients(int8_t cmd) {
+void SendToAllClients(int cmd) {
 
 	if (cmd == PING) {
 		for (std::map<int8_t, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
@@ -61,7 +47,7 @@ void SendToAllClients(int8_t cmd) {
 	}
 }
 
-void NotifyOtherClients(int8_t cmd, int8_t cID) {
+void NotifyOtherClients(int cmd, int8_t cID) {
 	if (cmd == NEW_CONNECTION) {
 		if (clients.find(cID) != clients.end()) {
 			for (std::map<int8_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
@@ -102,7 +88,7 @@ void NotifyOtherClients(int8_t cmd, int8_t cID) {
 }
 
 
-void ManageReveivedData(int8_t cmd, int8_t cID, int8_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, int8_t idMovements, AccumMovements tryaccum) {
+void ManageReveivedData(int cmd, int8_t cID, int8_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, int8_t idMovements, AccumMovements tryaccum) {
 
 
 	if (cmd == ACK_PING) {
@@ -185,7 +171,7 @@ void ReceiveData() {
 	unsigned short senderPort;
 	int8_t IDClient = 0;
 	int8_t packetIDRecived = 0;
-	int8_t cmd;
+	int cmd;
 	std::string nickname = "";
 	AccumMovements tryaccum = AccumMovements{ Position{0, 0},  Position{ 0, 0 } };
 	int8_t idMovements = 0;

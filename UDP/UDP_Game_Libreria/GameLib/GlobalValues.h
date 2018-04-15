@@ -28,22 +28,10 @@
 #define RIGHT_LIMIT 500
 #define LEFT_LIMIT 0
 
-////comandos
-//namespace _cmd {
-//	int8_t HELLO;
-//	int8_t ACK_HELLO;
-//	int8_t NEW_CONNECTION;
-//	int8_t ACK_NEW_CONNECTION;
-//	int8_t DISCONNECTION;
-//	int8_t ACK_DISCONNECTION;
-//	int8_t PING;
-//	int8_t ACK_PING;
-//  int8_t TRY_POSITION = 8;
-//  int8_t OK_POSITION = 9;
 
-//	sf::IpAddress serverIP;
-//	unsigned short serverPORT;
-//}
+enum Cmds {
+	HELLO, ACK_HELLO, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, OK_POSITION, REFRESH_POSITIONS, ACK_REFRESH_POSITIONS
+};
 
 struct Position {
 	int16_t x;

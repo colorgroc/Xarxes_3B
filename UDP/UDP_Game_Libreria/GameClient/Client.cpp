@@ -2,20 +2,6 @@
 
 #include <GlobalValues.h>
 
-//comandos
-int8_t HELLO = 0;
-int8_t ACK_HELLO = 1;
-int8_t NEW_CONNECTION = 2;
-int8_t ACK_NEW_CONNECTION = 3;
-int8_t DISCONNECTION = 4;
-int8_t ACK_DISCONNECTION = 5;
-int8_t PING = 6;
-int8_t ACK_PING = 7;
-int8_t TRY_POSITION = 8;
-int8_t OK_POSITION = 9;
-int8_t REFRESH_POSITIONS = 10;
-int8_t ACK_REFRESH_POSITIONS = 11;
-
 sf::IpAddress serverIP = "localhost";
 unsigned short serverPORT = PORT;
 
@@ -50,7 +36,7 @@ std::cout << "Error sending the message. Client to Server." << "Message IP: " <<
 	}
 }
 
-void SendACK(int8_t cmd, int8_t pID) {
+void SendACK(int cmd, int8_t pID) {
 	sf::Packet packet;
 	std::string com;
 
@@ -82,7 +68,7 @@ void SendACK(int8_t cmd, int8_t pID) {
 void ReceiveData() {
 	//nonblocking
 	sf::Packet packet;
-	int8_t cmd = 0;
+	int cmd = 0;
 	int8_t opponentId = 0;
 	int8_t packetIDRecived = 0;
 
