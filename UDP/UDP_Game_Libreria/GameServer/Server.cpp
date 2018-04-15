@@ -256,9 +256,11 @@ void PositionValidations() {
 	//enviar amb OkPosition
 	//reenviar a tots els altres jugadors
 	//REFRESH_POSITIONS 
-	int8_t posToDelete;
+	
 
 	for (std::map<int8_t, Client>::iterator client = clients.begin(); client != clients.end(); ++client) {
+
+		std::vector<int8_t> posToDelete;
 
 		for (std::map<int8_t, std::pair<int8_t, AccumMovements>>::iterator pos = client->second.MapAccumMovements.begin(); pos != client->second.MapAccumMovements.end(); ++pos) {
 
@@ -276,16 +278,14 @@ void PositionValidations() {
 				packet.clear();
 
 				//borrem el accum analitzat de la llista del client
-				posToDelete = pos->first;
+				posToDelete.push_back(pos->first);
 				//client->second.MapAccumMovements.erase(pos->first);
 			}
 		}
-
-	}
-	for (int8_t i = 1; i <= clients.size(); i++) {
-		if (clients.find(i) != clients.end() && clients[i].MapAccumMovements.find(posToDelete) != clients[i].MapAccumMovements.end()) {
-			clients[i].MapAccumMovements.erase(posToDelete);
+		for (std::vector<int8_t>::iterator toDelete = posToDelete.begin(); toDelete != posToDelete.end(); ++toDelete) {
+			client->second.MapAccumMovements.erase(*toDelete);
 		}
+	
 	}
 }
 
