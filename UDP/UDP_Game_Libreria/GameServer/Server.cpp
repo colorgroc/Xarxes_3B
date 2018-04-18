@@ -143,7 +143,8 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 	else if (cmd == TRY_POSITION) {
 
 		//posarlo a dintre duna llista per més tard fer les validacions
-		if (clients.find(cID)->second.MapAccumMovements.find(pID) == clients.find(cID)->second.MapAccumMovements.end()) { //sino existeix el poso, sino vol dir que ja lhe rebut
+		//std::cout << cID << " wea!" << std::endl;
+		if (clients.find(cID) != clients.end() && clients.find(cID)->second.MapAccumMovements.find(pID) == clients.find(cID)->second.MapAccumMovements.end()) { //sino existeix el poso, sino vol dir que ja lhe rebut
 			clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(pID, std::make_pair(idMovements, tryaccum)));
 		}
 		
@@ -227,7 +228,7 @@ void ManagePing() {
 		}
 	}
 
-	for (int8_t i = 1; i <= clients.size(); i++) {
+	for (int32_t i = 1; i <= clients.size(); i++) {
 		if (clients.find(i) != clients.end() && !clients[i].connected) {
 			std::cout << "Client " << std::to_string(clients[i].id) << " disconnected." << std::endl;
 			clients.erase(clients[i].id);
