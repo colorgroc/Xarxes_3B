@@ -7,20 +7,20 @@ unsigned short serverPORT = PORT;
 
 sf::UdpSocket socket;
 sf::Socket::Status status;
-int8_t packetID = 1;
+int32_t packetID = 1;
 sf::Clock c;
 
 Player * myPlayer;
-std::map <int8_t, Position> opponents;
+std::map <int32_t, Position> opponents;
 
 sf::Clock clockPositions;
-int8_t idMovements = 1;
-int8_t idUltimMoviment = 0;
+int32_t idMovements = 1;
+int32_t idUltimMoviment = 0;
 
 void Resend() {
 	//posar mutex??
 
-	for (std::map<int8_t, sf::Packet>::iterator msg = myPlayer->resending.begin(); msg != myPlayer->resending.end(); ++msg) {
+	for (std::map<int32_t, sf::Packet>::iterator msg = myPlayer->resending.begin(); msg != myPlayer->resending.end(); ++msg) {
 		status = socket.send(msg->second, "localhost", PORT);
 		if (status == sf::Socket::Error) {
 			std::string cmd;
@@ -36,7 +36,7 @@ std::cout << "Error sending the message. Client to Server." << "Message IP: " <<
 	}
 }
 
-void SendACK(int cmd, int8_t pID) {
+void SendACK(int cmd, int32_t pID) {
 	sf::Packet packet;
 	std::string com;
 
@@ -69,8 +69,8 @@ void ReceiveData() {
 	//nonblocking
 	sf::Packet packet;
 	int cmd = 0;
-	int8_t opponentId = 0;
-	int8_t packetIDRecived = 0;
+	int32_t opponentId = 0;
+	int32_t packetIDRecived = 0;
 
 	status = socket.receive(packet, serverIP, serverPORT);
 
@@ -83,13 +83,13 @@ void ReceiveData() {
 		else if (cmd == ACK_HELLO) {
 			//std::cout << "ACK_HELLO recived." << std::endl;
 			if (myPlayer->ID == 0) {
-				int8_t numOfOpponents = 0;
+				int32_t numOfOpponents = 0;
 				packet >> myPlayer->ID >> myPlayer->position >> numOfOpponents;
 
 				if (numOfOpponents > 0) {
 					//treiem del packet la ID i la pos de cada oponent
 					for (int i = 0; i < numOfOpponents; i++) {
-						int8_t oID;
+						int32_t oID;
 						Position oPos;
 						packet >> oID >> oPos;
 						opponents.insert(std::make_pair(oID, oPos));
@@ -118,7 +118,7 @@ void ReceiveData() {
 			//solucionar problemes d'ordre de paquets
 			//si hi han id mes petits a la llista del client es poden borrar ja que es va a la poscio més allunyada
 			//si la posicio reb un -1 -1 vol dir que la poscio es incorrecta i per tant no ens movem i borrem les altres poscions anterirors acumulades
-			int8_t idMov;
+			int32_t idMov;
 			Position tempPos;
 			packet >> idMov >> tempPos;
 
@@ -191,7 +191,7 @@ void GameManager() {
 			if (myPlayer->MapAccumMovements.find(idMovements) != myPlayer->MapAccumMovements.end()) {
 				packet << TRY_POSITION << packetID << myPlayer->ID << myPlayer->MapAccumMovements.find(idMovements)->first << myPlayer->MapAccumMovements.find(idMovements)->second; //montar un paquet amb totes les posicions acumulades
 
-				myPlayer->resending.insert(std::make_pair(packetID, packet));
+				status = socket.send(packet, "localhost", PORT);
 				packetID++;
 				idMovements++; //una avegada enviem ja puc incrementar, per tant nomes es posara una vegada al resending
 				clockPositions.restart();
@@ -337,7 +337,7 @@ void GameManager() {
 		sf::CircleShape shapeOpponent(RADIUS_SPRITE);
 		shapeOpponent.setFillColor(sf::Color::Red);
 
-		for (std::map<int8_t, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
+		for (std::map<int32_t, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 			sf::Vector2f positionOpponent(it->second.x, it->second.y);
 			shapeOpponent.setPosition(positionOpponent);
 

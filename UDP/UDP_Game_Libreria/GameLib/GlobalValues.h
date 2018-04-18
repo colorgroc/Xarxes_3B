@@ -44,26 +44,26 @@ struct AccumMovements {
 };
 
 struct Client {
-	int8_t id;
+	int32_t id;
 	std::string nickname;
 	Position pos;
 	sf::IpAddress ip;
 	unsigned short port;
 	bool connected;
-	std::map<int8_t, sf::Packet> resending;
+	std::map<int32_t, sf::Packet> resending;
 	sf::Clock timeElapsedLastPing;
-	std::map<int8_t, std::pair<int8_t, AccumMovements>> MapAccumMovements; //idpacket rebut de part del client (utilitzat per despres borrarlo del resend del client), 
+	std::map<int32_t, std::pair<int32_t, AccumMovements>> MapAccumMovements; //idpacket rebut de part del client (utilitzat per despres borrarlo del resend del client), 
 																//	idmovement per controlar validacions,
 																//	moviments acumulats
 };
 
 struct Player
 {
-	int8_t ID = 0;
+	int32_t ID = 0;
 	std::string nickname;
 	Position position;
-	std::map<int8_t, sf::Packet> resending;
-	std::map<int8_t, AccumMovements> MapAccumMovements;
+	std::map<int32_t, sf::Packet> resending;
+	std::map<int32_t, AccumMovements> MapAccumMovements;
 };
 
 

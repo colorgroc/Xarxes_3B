@@ -5,23 +5,23 @@
 bool online = true;
 
 sf::Socket::Status status;
-int8_t clientID = 1;
+int32_t clientID = 1;
 
-std::map<int8_t, Client> clients;
+std::map<int32_t, Client> clients;
 sf::UdpSocket socket;
 
 sf::Clock clockPing, clockSend;
 bool once = false;
-int8_t packetID = 1;
+int32_t packetID = 1;
 //variable para controlar cuando se han desconnectado todos hasta que hagamos los estados
-int8_t clientsConnected = 0;
+int32_t clientsConnected = 0;
 
 sf::Clock clockPositions;
 
 void Resend() {
 	//posar mutex??
-	for (std::map<int8_t, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
-		for (std::map<int8_t, sf::Packet>::iterator msg = clientes->second.resending.begin(); msg != clientes->second.resending.end(); ++msg) {
+	for (std::map<int32_t, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
+		for (std::map<int32_t, sf::Packet>::iterator msg = clientes->second.resending.begin(); msg != clientes->second.resending.end(); ++msg) {
 			status = socket.send(msg->second, clientes->second.ip, clientes->second.port);
 			if (status == sf::Socket::Error)
 				std::cout << "Error sending the message.Server to Client." << std::endl;
@@ -38,7 +38,7 @@ void Resend() {
 void SendToAllClients(int cmd) {
 
 	if (cmd == PING) {
-		for (std::map<int8_t, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
+		for (std::map<int32_t, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
 		{
 			sf::Packet packet;
 			packet << cmd; //no hace falta poner packetID 
@@ -47,10 +47,10 @@ void SendToAllClients(int cmd) {
 	}
 }
 
-void NotifyOtherClients(int cmd, int8_t cID) {
+void NotifyOtherClients(int cmd, int32_t cID) {
 	if (cmd == NEW_CONNECTION) {
 		if (clients.find(cID) != clients.end()) {
-			for (std::map<int8_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+			for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
 			{
 				sf::Packet packet;
 				if (it->first != cID) {
@@ -62,7 +62,7 @@ void NotifyOtherClients(int cmd, int8_t cID) {
 	}
 	else if (cmd == DISCONNECTION) {
 		//if (clients.find(cID) != clients.end()) {
-		for (std::map<int8_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+		for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
 		{
 			sf::Packet packet;
 			packet << cmd;
@@ -75,7 +75,7 @@ void NotifyOtherClients(int cmd, int8_t cID) {
 	}
 	else if (cmd == REFRESH_POSITIONS) {
 		if (clients.find(cID) != clients.end()) {
-			for (std::map<int8_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+			for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
 			{
 				sf::Packet packet;
 				if (it->first != cID) {
@@ -88,7 +88,7 @@ void NotifyOtherClients(int cmd, int8_t cID) {
 }
 
 
-void ManageReveivedData(int cmd, int8_t cID, int8_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, int8_t idMovements, AccumMovements tryaccum) {
+void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, int32_t idMovements, AccumMovements tryaccum) {
 
 
 	if (cmd == ACK_PING) {
@@ -98,14 +98,14 @@ void ManageReveivedData(int cmd, int8_t cID, int8_t pID, sf::IpAddress senderIP,
 	else if (cmd == HELLO && clients.size() < MAX_CLIENTS) {
 		//comprobar si el client ja esta connectat. Anteriorment comprovat amb el port pero es pot donar el cas d q es repeteixi el port
 		bool alreadyConnected = false;
-		for (std::map<int8_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+		for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
 			if (it->second.nickname == nickname) {
 				alreadyConnected = true;
 			}
 		}
 
 		Position pos;
-		int8_t numOfOpponents = clients.size();
+		int32_t numOfOpponents = clients.size();
 		srand(time(NULL));
 		pos.x = std::rand() % NUMBER_ROWS_COLUMNS;
 		pos.y = std::rand() % NUMBER_ROWS_COLUMNS;
@@ -117,7 +117,7 @@ void ManageReveivedData(int cmd, int8_t cID, int8_t pID, sf::IpAddress senderIP,
 			packet << ACK_HELLO << pID << clientID << pos << numOfOpponents;
 			if (numOfOpponents > 0) {
 				//inserim al packet la ID i la pos de cada oponent
-				for (std::map<int8_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+				for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
 					packet << it->second.id << it->second.pos;
 				}
 			}
@@ -169,12 +169,12 @@ void ReceiveData() {
 	sf::Packet packet;
 	sf::IpAddress senderIP;
 	unsigned short senderPort;
-	int8_t IDClient = 0;
-	int8_t packetIDRecived = 0;
+	int32_t IDClient = 0;
+	int32_t packetIDRecived = 0;
 	int cmd;
 	std::string nickname = "";
 	AccumMovements tryaccum = AccumMovements{ Position{0, 0},  Position{ 0, 0 } };
-	int8_t idMovements = 0;
+	int32_t idMovements = 0;
 	status = socket.receive(packet, senderIP, senderPort);
 
 	if (status == sf::Socket::Done) {
@@ -220,10 +220,9 @@ void ManagePing() {
 	}
 	//quan enviem el missatge ping també comprovem que cap dels jugadors hagi superat el temps maxim
 	//si es supera el temps maxim vol dir que esta desconectat, notifiquem als altres jugadors, i el borrem de la llista del server
-	for (std::map<int8_t, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
+	for (std::map<int32_t, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
 		if (clientes->second.timeElapsedLastPing.getElapsedTime().asMilliseconds() > CONTROL_PING) {
 			NotifyOtherClients(DISCONNECTION, clientes->first);
-			//clients.erase(clientes->first);
 			clientes->second.connected = false;
 		}
 	}
@@ -244,11 +243,11 @@ void PositionValidations() {
 	//REFRESH_POSITIONS 
 	
 
-	for (std::map<int8_t, Client>::iterator client = clients.begin(); client != clients.end(); ++client) {
+	for (std::map<int32_t, Client>::iterator client = clients.begin(); client != clients.end(); ++client) {
 
-		std::vector<int8_t> posToDelete;
+		std::vector<int32_t> posToDelete;
 
-		for (std::map<int8_t, std::pair<int8_t, AccumMovements>>::iterator pos = client->second.MapAccumMovements.begin(); pos != client->second.MapAccumMovements.end(); ++pos) {
+		for (std::map<int32_t, std::pair<int32_t, AccumMovements>>::iterator pos = client->second.MapAccumMovements.begin(); pos != client->second.MapAccumMovements.end(); ++pos) {
 
 			if (pos->second.second.absolute.x > LEFT_LIMIT + 10 && pos->second.second.absolute.x < RIGHT_LIMIT -10 && pos->second.second.absolute.y > TOP_LIMIT + 10 && pos->second.second.absolute.y < LOW_LIMIT -10) {
 				client->second.pos = pos->second.second.absolute; //actualitzo posicio ja que es correcta
@@ -260,7 +259,10 @@ void PositionValidations() {
 				if (status != sf::Socket::Done) {
 					std::cout << "Error sending OK_POSITION to client " << std::to_string(client->second.id) << std::endl;
 				}
-				NotifyOtherClients(REFRESH_POSITIONS, client->second.id);
+				if (clients.size() > 1) {
+					NotifyOtherClients(REFRESH_POSITIONS, client->second.id);
+				}
+			
 				packet.clear();
 
 			}
@@ -278,7 +280,7 @@ void PositionValidations() {
 			posToDelete.push_back(pos->first);
 		}
 		//borrem tots els accum analitzats de la llista del client
-		for (std::vector<int8_t>::iterator toDelete = posToDelete.begin(); toDelete != posToDelete.end(); ++toDelete) {
+		for (std::vector<int32_t>::iterator toDelete = posToDelete.begin(); toDelete != posToDelete.end(); ++toDelete) {
 			client->second.MapAccumMovements.erase(*toDelete);
 		}
 	
