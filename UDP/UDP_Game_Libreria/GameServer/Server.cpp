@@ -144,10 +144,19 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 	}
 	else if (cmd == TRY_POSITION) {
 
-		//posarlo a dintre duna llista per més tard fer les validacions
-		//std::cout << cID << " wea!" << std::endl;
-		if (clients.find(cID) != clients.end() && clients.find(cID)->second.MapAccumMovements.find(pID) == clients.find(cID)->second.MapAccumMovements.end()) { //sino existeix el poso, sino vol dir que ja lhe rebut
+		//posarlo a dintre duna llista per més tard fer les validacions, una vegada fetes les validacions es borra la llista de moviments acumulats
+
+		if (clients.find(cID)->second.MapAccumMovements.empty()) { //es el primer paquet del client, per tant no acumulem, si no que inicialitzem el mapa
 			clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, tryaccum));
+		}
+		else { //hem d'acumular amb l'anterior paquet accum, posar el id move del ultim, sumar deltes i posicio del ultim
+			AccumMovements temp;
+			temp.delta.x =  clients.find(cID)->second.MapAccumMovements.rbegin()->second.delta.x += tryaccum.delta.x;
+			temp.delta.y  = clients.find(cID)->second.MapAccumMovements.rbegin()->second.delta.y += tryaccum.delta.y;
+			temp.absolute = tryaccum.absolute;
+			clients.find(cID)->second.MapAccumMovements.erase(clients.find(cID)->second.MapAccumMovements.rbegin()->first); //borrem anterior
+			clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, temp)); //insertem amb els nous valors actualitzats
+			
 		}
 
 	}
@@ -250,7 +259,7 @@ void PositionValidations() {
 					std::cout << "Error sending OK_POSITION to client " << std::to_string(client->second.id) << std::endl;
 				}
 				if (clients.size() > 1) {
-					NotifyOtherClients(REFRESH_POSITIONS, client->second.id); //no packet critic-> fer nomes send
+					NotifyOtherClients(REFRESH_POSITIONS, client->second.id); 
 				}
 			
 				packet.clear();
