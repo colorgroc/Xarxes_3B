@@ -27,7 +27,7 @@
 #define	LOW_LIMIT 500
 #define RIGHT_LIMIT 500
 #define LEFT_LIMIT 0
-
+#define PIXELSTOMOVE 3
 
 enum Cmds {
 	HELLO, ACK_HELLO, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, OK_POSITION, REFRESH_POSITIONS, ACK_REFRESH_POSITIONS
@@ -37,6 +37,13 @@ struct Position {
 	int16_t x;
 	int16_t y;
 };
+
+//llista de de walls en cel·les
+struct Walls
+{
+	std::vector<Position> walls = { Position{ 5,5 }, Position{ 6,5 }, Position{ 7,5 } };
+};
+
 
 struct AccumMovements {
 	Position delta;
@@ -52,8 +59,7 @@ struct Client {
 	bool connected;
 	std::map<int32_t, sf::Packet> resending;
 	sf::Clock timeElapsedLastPing;
-	std::map<int32_t, AccumMovements> MapAccumMovements; //idpacket rebut de part del client (utilitzat per despres borrarlo del resend del client), 
-																//	idmovement per controlar validacions,
+	std::map<int32_t, AccumMovements> MapAccumMovements; 		//	idmovement per controlar validacions,
 																//	moviments acumulats
 };
 
@@ -67,9 +73,10 @@ struct Player
 };
 
 
-Position PixelToCell(int8_t _x, int8_t _y);
 
-Position CellToPixel(int8_t _x, int8_t _y);
+Position PixelToCell(int16_t _x, int16_t _y);
+
+Position CellToPixel(int16_t _x, int16_t _y);
 
 sf::Packet& operator <<(sf::Packet& Packet, const Position& pos);
 

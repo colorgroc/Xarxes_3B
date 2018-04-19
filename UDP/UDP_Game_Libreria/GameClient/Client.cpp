@@ -16,8 +16,7 @@ std::map <int32_t, Position> opponents;
 sf::Clock clockPositions;
 int32_t idMovements = 1;
 int32_t idUltimMoviment = 0;
-
-
+Walls * myWalls; 
 
 void Resend() {
 	
@@ -50,9 +49,6 @@ void SendACK(int cmd, int32_t pID) {
 	else if (cmd == ACK_PING) {
 		com = "ACK_PING";
 	}
-	else if (cmd == ACK_REFRESH_POSITIONS) {
-		com = "ACK_REFRESH_POSITIONS";
-	}
 
 	packet << cmd << pID << myPlayer->ID;
 	status = socket.send(packet, "localhost", PORT);
@@ -82,7 +78,6 @@ void ReceiveData() {
 			SendACK(ACK_PING, packetIDRecived);
 		}
 		else if (cmd == ACK_HELLO) {
-			//std::cout << "ACK_HELLO recived." << std::endl;
 			if (myPlayer->ID == 0) {
 				int32_t numOfOpponents = 0;
 				packet >> myPlayer->ID >> myPlayer->position >> numOfOpponents;
@@ -103,7 +98,6 @@ void ReceiveData() {
 			}
 		}
 
-		//std::cout << std::to_string(opponentId) << std::endl;
 		else if (cmd == NEW_CONNECTION) {
 			packet >> opponentId;
 			if (opponents.find(opponentId) == opponents.end()) {
@@ -151,7 +145,6 @@ void ReceiveData() {
 				packet >> pos;
 				opponents.find(opponentId)->second = pos;
 			}
-			SendACK(ACK_REFRESH_POSITIONS, packetIDRecived);
 
 		}
 		else if (cmd == DISCONNECTION) {
@@ -170,7 +163,6 @@ void ReceiveData() {
 void GameManager() {
 
 	sf::RenderWindow window(sf::VideoMode(WINDOW_SIZE, WINDOW_SIZE), "Traffic Game - Client: " + myPlayer->nickname);
-	//c.restart();
 
 	while (window.isOpen())
 	{
@@ -207,80 +199,54 @@ void GameManager() {
 			case  sf::Event::KeyPressed: //el moviment en aquesta versio es per celes
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) //moure personatge esquerra
 				{
-						/*
-						sf::Packet packet;
-						Position trypos = Position{ myPlayer->position.x - 1,myPlayer->position.y };
-						packet << TRY_POSITION << packetID << myPlayer->ID << trypos; //poner packetID
-						myPlayer->resending.insert(std::make_pair(packetID, packet));
-						packetID++;
-						*/
 
 						if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
-							myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ -1,0 },  Position{ myPlayer->position.x - 1,myPlayer->position.y } }));
+							myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ -PIXELSTOMOVE,0 },  Position{ myPlayer->position.x - PIXELSTOMOVE,myPlayer->position.y } }));
 						}
 						else { //si ja existeix acumulo moviments, actualitzem
-							myPlayer->MapAccumMovements.find(idMovements)->second.delta.x += -1;
+							myPlayer->MapAccumMovements.find(idMovements)->second.delta.x += -PIXELSTOMOVE;
 							myPlayer->MapAccumMovements.find(idMovements)->second.delta.y += 0;
-							myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += -1;
+							myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += -PIXELSTOMOVE;
 							myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += 0;
 						}
 					
 				}
 				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) //moure personatge dreta
 				{
-						/*
-						sf::Packet packet;
-						Position trypos = Position{ myPlayer->position.x + 1,myPlayer->position.y };
-						packet << TRY_POSITION << packetID << myPlayer->ID << trypos; //poner packetID
-						myPlayer->resending.insert(std::make_pair(packetID, packet));
-						packetID++;
-						*/
+					
 					if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
-						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ +1,0 },  Position{ myPlayer->position.x + 1,myPlayer->position.y } }));
+						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ +PIXELSTOMOVE,0 },  Position{ myPlayer->position.x + PIXELSTOMOVE,myPlayer->position.y } }));
 					}
 					else { //si ja existeix acumulo moviments, actualitzem
-						myPlayer->MapAccumMovements.find(idMovements)->second.delta.x += 1;
+						myPlayer->MapAccumMovements.find(idMovements)->second.delta.x += PIXELSTOMOVE;
 						myPlayer->MapAccumMovements.find(idMovements)->second.delta.y += 0;
-						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += 1;
+						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += PIXELSTOMOVE;
 						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += 0;
 					}
 				}
 				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) //moure personatge dalt
 				{		
-						/*
-						sf::Packet packet;
-						Position trypos = Position{ myPlayer->position.x,myPlayer->position.y - 1 };
-						packet << TRY_POSITION << packetID << myPlayer->ID << trypos; //poner packetID
-						myPlayer->resending.insert(std::make_pair(packetID, packet));
-						packetID++;
-						*/
 					if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
-						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ 0,-1 },  Position{ myPlayer->position.x, myPlayer->position.y -1 } }));
+						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ 0,-PIXELSTOMOVE },  Position{ myPlayer->position.x, myPlayer->position.y - PIXELSTOMOVE } }));
 					}
 					else { //si ja existeix acumulo moviments, actualitzem
 						myPlayer->MapAccumMovements.find(idMovements)->second.delta.x += 0;
-						myPlayer->MapAccumMovements.find(idMovements)->second.delta.y += -1;
+						myPlayer->MapAccumMovements.find(idMovements)->second.delta.y += -PIXELSTOMOVE;
 						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += 0;
-						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += -1;
+						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += -PIXELSTOMOVE;
 					}
 				}
 				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) //moure personatge baix
 				{
-						/*
-						sf::Packet packet;
-						Position trypos = Position{ myPlayer->position.x,myPlayer->position.y + 1 };
-						packet << TRY_POSITION << packetID << myPlayer->ID << trypos; //poner packetID
-						myPlayer->resending.insert(std::make_pair(packetID, packet));
-						packetID++;
-						*/
+					
 					if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
-						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ 0, 1 },  Position{ myPlayer->position.x, myPlayer->position.y + 1 } }));
+						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ 0, PIXELSTOMOVE },  Position{ myPlayer->position.x, myPlayer->position.y + PIXELSTOMOVE } }));
 					}
 					else { //si ja existeix acumulo moviments, actualitzem
 						myPlayer->MapAccumMovements.find(idMovements)->second.delta.x += 0;
-						myPlayer->MapAccumMovements.find(idMovements)->second.delta.y += 1;
+						myPlayer->MapAccumMovements.find(idMovements)->second.delta.y += PIXELSTOMOVE;
 						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += 0;
-						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += 1;
+						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += PIXELSTOMOVE;
 					}
 				}
 			default:
@@ -299,8 +265,7 @@ void GameManager() {
 				sf::RectangleShape rectBlanco(sf::Vector2f(SIZE_CELL, SIZE_CELL));
 				sf::Color grey = sf::Color(49, 51, 53);
 				rectBlanco.setFillColor(grey);
-				//rectBlanco.setOutlineColor(sf::Color::Green);
-				//rectBlanco.setOutlineThickness(2.f);s
+
 				if (i % 2 == 0)
 				{
 					if (j % 2 == 0)
@@ -329,9 +294,11 @@ void GameManager() {
 
 		window.draw(shapePlayer);
 
+
 		//draw the opponents circle
 		sf::CircleShape shapeOpponent(RADIUS_SPRITE);
 		shapeOpponent.setFillColor(sf::Color::Red);
+
 
 		for (std::map<int32_t, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 			sf::Vector2f positionOpponent(it->second.x, it->second.y);
@@ -340,6 +307,14 @@ void GameManager() {
 			window.draw(shapeOpponent);
 		}
 
+		sf::RectangleShape wall(sf::Vector2f(SIZE_CELL, SIZE_CELL));
+		wall.setFillColor(sf::Color::Yellow);
+
+		for (std::vector<Position>::iterator it = myWalls->walls.begin(); it !=  myWalls->walls.end(); ++it) {
+			wall.setPosition(sf::Vector2f(it->x * SIZE_CELL, it->y * SIZE_CELL));
+			window.draw(wall);
+		}
+	
 		window.display();
 	}
 
@@ -352,7 +327,7 @@ void ConnectionWithServer() {
 	std::cout << "Type your nickname: ";
 	std::getline(std::cin, myPlayer->nickname);
 	sf::Packet packet;
-	packet << HELLO << packetID << myPlayer->nickname; //poner packetID
+	packet << HELLO << packetID << myPlayer->nickname; 
 	myPlayer->resending.insert(std::make_pair(packetID, packet));
 	packetID++;
 	packet.clear();
@@ -365,6 +340,7 @@ int main()
 	socket.setBlocking(false);
 
 	myPlayer = new Player();
+	myWalls = new Walls();
 
 	//initial connection
 	ConnectionWithServer();

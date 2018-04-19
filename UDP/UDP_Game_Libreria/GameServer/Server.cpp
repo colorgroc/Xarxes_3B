@@ -76,14 +76,14 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 		}packetID++;
 		//}
 	}
-	else if (cmd == REFRESH_POSITIONS) {
+	else if (cmd == REFRESH_POSITIONS) { 
 		if (clients.find(cID) != clients.end()) {
 			for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
 			{
 				sf::Packet packet;
 				if (it->first != cID) {
 					packet << cmd << packetID << cID << clients.find(cID)->second.pos;
-					it->second.resending.insert(std::make_pair(packetID, packet));
+					socket.send(packet, it->second.ip, it->second.port);
 				}
 			} packetID++;
 		}
@@ -128,14 +128,13 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 			NotifyOtherClients(NEW_CONNECTION, clientID);
 			clients[clientID].timeElapsedLastPing.restart();
 			clientsConnected++;
-			//clients[clientID].resending.insert(std::make_pair(packetID, packet));
 			clientID++;
 			
 		}
 		status = socket.send(packet, senderIP, senderPort);
 		if (status != sf::Socket::Done) {
 			std::cout << "Error sending ACK_HELLO to client " << std::to_string(clientID - 1) << std::endl;
-		}//else std::cout << "Sent ACK_HELLO to client " << std::to_string(clientID - 1) << std::endl;
+		}
 		packet.clear();
 	}
 	else if (cmd == ACK_NEW_CONNECTION || cmd == ACK_DISCONNECTION || cmd == ACK_REFRESH_POSITIONS) {
@@ -150,19 +149,6 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 		if (clients.find(cID) != clients.end() && clients.find(cID)->second.MapAccumMovements.find(pID) == clients.find(cID)->second.MapAccumMovements.end()) { //sino existeix el poso, sino vol dir que ja lhe rebut
 			clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, tryaccum));
 		}
-		
-		/*
-		if (trypos.x != LEFT_LIMIT && trypos.x != RIGHT_LIMIT - 1 && trypos.y != TOP_LIMIT && trypos.y != LOW_LIMIT - 1) {
-			clients.find(cID)->second.pos = trypos; //si esta dintre del mapa mou
-			sf::Packet packet;
-			packet << OK_POSITION << pID << clients.find(cID)->second.pos;
-			status = socket.send(packet, senderIP, senderPort);
-			if (status != sf::Socket::Done) {
-				std::cout << "Error sending OK_POSITION to client " << std::to_string(cID) << std::endl;
-			}
-			NotifyOtherClients(REFRESH_POSITIONS, cID);
-			packet.clear();
-		}*/
 
 	}
 
@@ -264,7 +250,7 @@ void PositionValidations() {
 					std::cout << "Error sending OK_POSITION to client " << std::to_string(client->second.id) << std::endl;
 				}
 				if (clients.size() > 1) {
-					NotifyOtherClients(REFRESH_POSITIONS, client->second.id);
+					NotifyOtherClients(REFRESH_POSITIONS, client->second.id); //no packet critic-> fer nomes send
 				}
 			
 				packet.clear();
