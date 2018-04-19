@@ -17,9 +17,10 @@ sf::Clock clockPositions;
 int32_t idMovements = 1;
 int32_t idUltimMoviment = 0;
 
-void Resend() {
-	//posar mutex??
 
+
+void Resend() {
+	
 	for (std::map<int32_t, sf::Packet>::iterator msg = myPlayer->resending.begin(); msg != myPlayer->resending.end(); ++msg) {
 		status = socket.send(msg->second, "localhost", PORT);
 		if (status == sf::Socket::Error) {
@@ -125,8 +126,8 @@ void ReceiveData() {
 			if (tempPos.x == -1 && tempPos.y == -1) {
 				//es invalida la posicio i per tant no actualitzem posicio, borrem de la llista accum
 				std::cout << "Out"; //els jugadors a vegades poden sortir ja al limit (falta arreglar, mes endavant) i no es poden moure!!!
-				if(myPlayer->MapAccumMovements.find(packetIDRecived) != myPlayer->MapAccumMovements.end()){
-					myPlayer->MapAccumMovements.erase(packetIDRecived);
+				if(myPlayer->MapAccumMovements.find(idMov) != myPlayer->MapAccumMovements.end()){
+					myPlayer->MapAccumMovements.erase(idMov);
 				}
 			}
 			else {
@@ -136,17 +137,12 @@ void ReceiveData() {
 					myPlayer->position = tempPos;
 				}
 				else { //ja s'ha acceptat un moviment posterior i per tant aquest moviment anterior no s'executa i es dona per valid, eliminem de la llista de accum
-					if (myPlayer->MapAccumMovements.find(packetIDRecived) != myPlayer->MapAccumMovements.end()) {
-						myPlayer->MapAccumMovements.erase(packetIDRecived);
+					if (myPlayer->MapAccumMovements.find(idMov) != myPlayer->MapAccumMovements.end()) {
+						myPlayer->MapAccumMovements.erase(idMov);
 					}
 				}
 				
 			}
-			
-			if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) { 	//eliminar paquet de la llista de resendings
-				myPlayer->resending.erase(packetIDRecived);
-			}
-	
 		}
 		else if (cmd == REFRESH_POSITIONS) {
 			packet >> opponentId;

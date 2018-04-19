@@ -52,7 +52,7 @@ struct Client {
 	bool connected;
 	std::map<int32_t, sf::Packet> resending;
 	sf::Clock timeElapsedLastPing;
-	std::map<int32_t, std::pair<int32_t, AccumMovements>> MapAccumMovements; //idpacket rebut de part del client (utilitzat per despres borrarlo del resend del client), 
+	std::map<int32_t, AccumMovements> MapAccumMovements; //idpacket rebut de part del client (utilitzat per despres borrarlo del resend del client), 
 																//	idmovement per controlar validacions,
 																//	moviments acumulats
 };

@@ -17,9 +17,12 @@ int32_t packetID = 1;
 int32_t clientsConnected = 0;
 
 sf::Clock clockPositions;
+std::mutex myMutex;
 
 void Resend() {
-	//posar mutex??
+	
+	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
+
 	for (std::map<int32_t, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
 		for (std::map<int32_t, sf::Packet>::iterator msg = clientes->second.resending.begin(); msg != clientes->second.resending.end(); ++msg) {
 			status = socket.send(msg->second, clientes->second.ip, clientes->second.port);
@@ -145,7 +148,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 		//posarlo a dintre duna llista per més tard fer les validacions
 		//std::cout << cID << " wea!" << std::endl;
 		if (clients.find(cID) != clients.end() && clients.find(cID)->second.MapAccumMovements.find(pID) == clients.find(cID)->second.MapAccumMovements.end()) { //sino existeix el poso, sino vol dir que ja lhe rebut
-			clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(pID, std::make_pair(idMovements, tryaccum)));
+			clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, tryaccum));
 		}
 		
 		/*
@@ -248,14 +251,14 @@ void PositionValidations() {
 
 		std::vector<int32_t> posToDelete;
 
-		for (std::map<int32_t, std::pair<int32_t, AccumMovements>>::iterator pos = client->second.MapAccumMovements.begin(); pos != client->second.MapAccumMovements.end(); ++pos) {
+		for (std::map<int32_t, AccumMovements>::iterator pos = client->second.MapAccumMovements.begin(); pos != client->second.MapAccumMovements.end(); ++pos) {
 
-			if (pos->second.second.absolute.x > LEFT_LIMIT + 10 && pos->second.second.absolute.x < RIGHT_LIMIT -10 && pos->second.second.absolute.y > TOP_LIMIT + 10 && pos->second.second.absolute.y < LOW_LIMIT -10) {
-				client->second.pos = pos->second.second.absolute; //actualitzo posicio ja que es correcta
+			if (pos->second.absolute.x > LEFT_LIMIT + 10 && pos->second.absolute.x < RIGHT_LIMIT -10 && pos->second.absolute.y > TOP_LIMIT + 10 && pos->second.absolute.y < LOW_LIMIT -10) {
+				client->second.pos = pos->second.absolute; //actualitzo posicio ja que es correcta
 
 																  //enviem i notifiquem
 				sf::Packet packet;
-				packet << OK_POSITION << pos->first << pos->second.first << client->second.pos;
+				packet << OK_POSITION << pos->first << pos->first << client->second.pos;
 				status = socket.send(packet, client->second.ip, client->second.port);
 				if (status != sf::Socket::Done) {
 					std::cout << "Error sending OK_POSITION to client " << std::to_string(client->second.id) << std::endl;
@@ -270,7 +273,7 @@ void PositionValidations() {
 			else {
 				//posem posicion -1 -1 per que el client pugui eliminarlo i que no es mogui
 				sf::Packet packet;
-				packet << OK_POSITION << pos->first << pos->second.first << Position{-1,-1};
+				packet << OK_POSITION << pos->first << pos->first << Position{-1,-1};
 				status = socket.send(packet, client->second.ip, client->second.port);
 				if (status != sf::Socket::Done) {
 					std::cout << "Error sending OK_POSITION to client " << std::to_string(client->second.id) << std::endl;
