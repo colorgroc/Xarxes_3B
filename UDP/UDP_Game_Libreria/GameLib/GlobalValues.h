@@ -92,42 +92,10 @@ public:
 		}
 	}
 
-	bool CheckCollision(AccumMovements accum) { //amb pixels
-		bool correctPosition = true;
-		
-		for (std::vector<Position>::iterator it = obstaclesMap.begin(); it != obstaclesMap.end(); ++it) {
-	
-			if (accum.delta.x > 0) { //moviment dreta
-				/*if (it->x == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y).x && (it->y == PixelToCell(accum.absolute.x, accum.absolute.y).y)) {
-					
-					correctPosition = false;
-					return correctPosition;
-				}*/
-			}
-			else if (accum.delta.x < 0) { //moviment esquerra
-				/*if (it->x == PixelToCell(accum.absolute.x - SIZE_CELL, accum.absolute.y).x && (it->y == PixelToCell(accum.absolute.x, accum.absolute.y).y)) {
+	bool CheckCollision(AccumMovements accum);
 
-					correctPosition = false;
-					return correctPosition;
-				}*/
-			}
-	
-			if (accum.delta.y > 0) { //moviment baix
-				/*if (it->y == PixelToCell(accum.absolute.x , accum.absolute.y + SIZE_CELL).y && (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x)) {
-
-					correctPosition = false;
-					return correctPosition;
-				}*/
-			}
-			else if (accum.delta.y < 0) { //moviment dalt
-				/*if (it->y == PixelToCell(accum.absolute.x , accum.absolute.y - SIZE_CELL).y && (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x)) {
-
-					correctPosition = false;
-					return correctPosition;
-				}*/
-			}
-		}
-		return correctPosition;
+	~Walls() {
+		obstaclesMap.clear();
 	}
 };
 

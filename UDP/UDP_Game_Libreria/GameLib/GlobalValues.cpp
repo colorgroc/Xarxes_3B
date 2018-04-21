@@ -12,6 +12,43 @@ Position CellToPixel(int16_t _x, int16_t _y)
 	return Position{ _x * SIZE_CELL, _y * SIZE_CELL }; //convert to pixels
 }
 
+bool Walls::CheckCollision(AccumMovements accum) { //amb pixels
+	bool correctPosition = true;
+
+	for (std::vector<Position>::iterator it = obstaclesMap.begin(); it != obstaclesMap.end(); ++it) {
+
+		if (accum.delta.x > 0) { //moviment dreta
+			if (it->x == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y).x && (it->y == PixelToCell(accum.absolute.x, accum.absolute.y).y)) {
+				//+ SIZE_CELL
+			correctPosition = false;
+			return correctPosition;
+			}
+		}
+		else if (accum.delta.x < 0) { //moviment esquerra
+			if (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x && (it->y == PixelToCell(accum.absolute.x, accum.absolute.y).y)) {
+				// - SIZE_CELL
+			correctPosition = false;
+			return correctPosition;
+			}
+		}
+
+		if (accum.delta.y > 0) { //moviment baix
+			if (it->y == PixelToCell(accum.absolute.x , accum.absolute.y + SIZE_CELL).y && (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x)) {
+				// + SIZE_CELL
+			correctPosition = false;
+			return correctPosition;
+			}
+		}
+		else if (accum.delta.y < 0) { //moviment dalt
+			if (it->y == PixelToCell(accum.absolute.x , accum.absolute.y ).y && (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x)) {
+				//- SIZE_CELL
+			correctPosition = false;
+			return correctPosition;
+			}
+		}
+	}
+	return correctPosition;
+}
 
 sf::Packet& operator <<(sf::Packet& Packet, const Position& pos)
 {
