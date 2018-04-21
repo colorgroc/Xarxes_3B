@@ -310,7 +310,7 @@ void GameManager() {
 		sf::RectangleShape wall(sf::Vector2f(SIZE_CELL, SIZE_CELL));
 		wall.setFillColor(sf::Color::Yellow);
 
-		for (std::vector<Position>::iterator it = myWalls->walls.begin(); it !=  myWalls->walls.end(); ++it) {
+		for (std::vector<Position>::iterator it = myWalls->obstaclesMap.begin(); it !=  myWalls->obstaclesMap.end(); ++it) {
 			wall.setPosition(sf::Vector2f(it->x * SIZE_CELL, it->y * SIZE_CELL));
 			window.draw(wall);
 		}

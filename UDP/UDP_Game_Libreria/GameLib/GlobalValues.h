@@ -27,7 +27,7 @@
 #define	LOW_LIMIT 500
 #define RIGHT_LIMIT 500
 #define LEFT_LIMIT 0
-#define PIXELSTOMOVE 3
+#define PIXELSTOMOVE 1
 
 enum Cmds {
 	HELLO, ACK_HELLO, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, OK_POSITION, REFRESH_POSITIONS, ACK_REFRESH_POSITIONS
@@ -37,13 +37,6 @@ struct Position {
 	int16_t x;
 	int16_t y;
 };
-
-//llista de de walls en cel·les
-struct Walls
-{
-	std::vector<Position> walls = { Position{ 5,5 }, Position{ 6,5 }, Position{ 7,5 } };
-};
-
 
 struct AccumMovements {
 	Position delta;
@@ -73,10 +66,72 @@ struct Player
 };
 
 
-
 Position PixelToCell(int16_t _x, int16_t _y);
 
 Position CellToPixel(int16_t _x, int16_t _y);
+
+
+//llista de de walls en cel·les
+class Walls
+{
+public:
+	std::vector<Position> obstaclesMap;
+
+	Walls() {
+		//obstacles
+		obstaclesMap = { Position{ 5,5 }, Position{ 6,5 }, Position{ 7,5 },  Position{ 7,6 }, Position{ 7,7 }, Position{ 7,8 },  Position{ 7,9 }, Position{ 7,10 }, Position{ 7,11 } };
+
+		for (int8_t i = 0; i < NUMBER_ROWS_COLUMNS; i++)
+		{
+			for (int8_t j = 0; j < NUMBER_ROWS_COLUMNS; j++)
+			{
+				if (i == 0 || i == NUMBER_ROWS_COLUMNS - 1 || j == 0 || j == NUMBER_ROWS_COLUMNS-1) {
+					obstaclesMap.push_back(Position{ i,j });
+				}
+			}
+		}
+	}
+
+	bool CheckCollision(AccumMovements accum) { //amb pixels
+		bool correctPosition = true;
+		
+		for (std::vector<Position>::iterator it = obstaclesMap.begin(); it != obstaclesMap.end(); ++it) {
+	
+			if (accum.delta.x > 0) { //moviment dreta
+				/*if (it->x == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y).x && (it->y == PixelToCell(accum.absolute.x, accum.absolute.y).y)) {
+					
+					correctPosition = false;
+					return correctPosition;
+				}*/
+			}
+			else if (accum.delta.x < 0) { //moviment esquerra
+				/*if (it->x == PixelToCell(accum.absolute.x - SIZE_CELL, accum.absolute.y).x && (it->y == PixelToCell(accum.absolute.x, accum.absolute.y).y)) {
+
+					correctPosition = false;
+					return correctPosition;
+				}*/
+			}
+	
+			if (accum.delta.y > 0) { //moviment baix
+				/*if (it->y == PixelToCell(accum.absolute.x , accum.absolute.y + SIZE_CELL).y && (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x)) {
+
+					correctPosition = false;
+					return correctPosition;
+				}*/
+			}
+			else if (accum.delta.y < 0) { //moviment dalt
+				/*if (it->y == PixelToCell(accum.absolute.x , accum.absolute.y - SIZE_CELL).y && (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x)) {
+
+					correctPosition = false;
+					return correctPosition;
+				}*/
+			}
+		}
+		return correctPosition;
+	}
+};
+
+
 
 sf::Packet& operator <<(sf::Packet& Packet, const Position& pos);
 

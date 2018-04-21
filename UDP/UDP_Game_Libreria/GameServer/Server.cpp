@@ -19,6 +19,8 @@ int32_t clientsConnected = 0;
 sf::Clock clockPositions;
 std::mutex myMutex;
 
+Walls * myWalls;
+
 void Resend() {
 	
 	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
@@ -248,7 +250,7 @@ void PositionValidations() {
 
 		for (std::map<int32_t, AccumMovements>::iterator pos = client->second.MapAccumMovements.begin(); pos != client->second.MapAccumMovements.end(); ++pos) {
 
-			if (pos->second.absolute.x > LEFT_LIMIT + 10 && pos->second.absolute.x < RIGHT_LIMIT -10 && pos->second.absolute.y > TOP_LIMIT + 10 && pos->second.absolute.y < LOW_LIMIT -10) {
+			if (myWalls->CheckCollision(pos->second)) {
 				client->second.pos = pos->second.absolute; //actualitzo posicio ja que es correcta
 
 																  //enviem i notifiquem
@@ -292,7 +294,9 @@ int main()
 	ControlServidor();
 	clockSend.restart();
 	clockPing.restart();
-	//SI EL Q ES VOL ES Q NO SURTIN LES PESTANYES DE JUGAR FINS Q TOTS NO ESTIGUIN CONNECTATS, ALESHORES FER EL RECEIVE DEL WELCOME I EL SEND COM ESTAVA EN ELS ANTERIORS COMMITS
+	
+	myWalls = new Walls(); //ara el server ja sap on hi ha parets
+
 	do {
 		ReceiveData();
 		ManagePing();

@@ -9,7 +9,7 @@ Position PixelToCell(int16_t _x, int16_t _y)
 
 Position CellToPixel(int16_t _x, int16_t _y)
 {
-	return Position{ _x * SIZE_CELL, _y * SIZE_CELL };; //convert to pixels
+	return Position{ _x * SIZE_CELL, _y * SIZE_CELL }; //convert to pixels
 }
 
 
