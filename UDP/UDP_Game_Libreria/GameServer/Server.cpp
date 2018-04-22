@@ -186,6 +186,7 @@ void ReceiveData() {
 	std::string nickname = "";
 	AccumMovements tryaccum = AccumMovements{ Position{0, 0},  Position{ 0, 0 } };
 	int32_t idMovements = 0;
+	//int32_t sizeMovements = 0;
 	status = socket.receive(packet, senderIP, senderPort);
 
 	if (status == sf::Socket::Done) {
@@ -197,8 +198,8 @@ void ReceiveData() {
 			packet >> IDClient;
 
 			if (cmd == TRY_POSITION) {
-				packet >> idMovements;
-				packet >> tryaccum;
+				packet >> idMovements >> tryaccum;
+				//packet >> tryaccum;
 			}
 		}
 		ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, nickname, idMovements, tryaccum);
@@ -257,12 +258,12 @@ void PositionValidations() {
 	for (std::map<int32_t, Client>::iterator client = clients.begin(); client != clients.end(); ++client) {
 
 		std::vector<int32_t> posToDelete;
-
+		Position lastPos = client->second.pos;
 		for (std::map<int32_t, AccumMovements>::iterator pos = client->second.MapAccumMovements.begin(); pos != client->second.MapAccumMovements.end(); ++pos) {
 
 			if (myWalls->CheckCollision(pos->second)) {
 				client->second.pos = pos->second.absolute; //actualitzo posicio ja que es correcta
-
+				lastPos = client->second.pos;
 																  //enviem i notifiquem
 				sf::Packet packet;
 				packet << OK_POSITION << pos->first << pos->first << client->second.pos;
@@ -280,7 +281,7 @@ void PositionValidations() {
 			else {
 				//posem posicion -1 -1 per que el client pugui eliminarlo i que no es mogui
 				sf::Packet packet;
-				packet << OK_POSITION << pos->first << pos->first << Position{ -1,-1 };
+				packet << OK_POSITION << pos->first << pos->first << Position{ -1,-1 } << Position{lastPos};
 				status = socket.send(packet, client->second.ip, client->second.port);
 				if (status != sf::Socket::Done) {
 					std::cout << "Error sending OK_POSITION to client " << std::to_string(client->second.id) << std::endl;

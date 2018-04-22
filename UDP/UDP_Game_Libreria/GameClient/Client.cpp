@@ -17,6 +17,7 @@ sf::Clock clockPositions;
 int32_t idMovements = 1;
 int32_t idUltimMoviment = 0;
 Walls * myWalls; 
+//bool notMove = false;
 
 void Resend() {
 	
@@ -118,21 +119,27 @@ void ReceiveData() {
 			packet >> idMov >> tempPos;
 
 			if (tempPos.x == -1 && tempPos.y == -1) {
+				Position lastPos;
+				packet >> lastPos;
 				//es invalida la posicio i per tant no actualitzem posicio, borrem de la llista accum
 				std::cout << "Out"; //els jugadors a vegades poden sortir ja al limit (falta arreglar, mes endavant) i no es poden moure!!!
 				if(myPlayer->MapAccumMovements.find(idMov) != myPlayer->MapAccumMovements.end()){
 					myPlayer->MapAccumMovements.erase(idMov);
 				}
+				myPlayer->position = lastPos;
 			}
 			else {
 				//valida
+				
 				if (idMov > idUltimMoviment) { //nomes si es mes gran valido , eliminem de la llista de accum
 					idUltimMoviment = idMov;
-					myPlayer->position = tempPos;
+					//notMove = false;
+					//myPlayer->position = tempPos;
 				}
 				else { //ja s'ha acceptat un moviment posterior i per tant aquest moviment anterior no s'executa i es dona per valid, eliminem de la llista de accum
 					if (myPlayer->MapAccumMovements.find(idMov) != myPlayer->MapAccumMovements.end()) {
 						myPlayer->MapAccumMovements.erase(idMov);
+						//notMove = true;
 					}
 				}
 				
@@ -183,8 +190,7 @@ void GameManager() {
 				packetID++;
 				idMovements++; //una avegada enviem ja puc incrementar, per tant nomes es posara una vegada al resending
 				clockPositions.restart();
-			}
-		
+			}	
 		}
 	
 		//inputs game
@@ -199,21 +205,26 @@ void GameManager() {
 			case  sf::Event::KeyPressed: //el moviment en aquesta versio es per celes
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) //moure personatge esquerra
 				{
-
-						if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
-							myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ -PIXELSTOMOVE,0 },  Position{ myPlayer->position.x - PIXELSTOMOVE,myPlayer->position.y } }));
-						}
-						else { //si ja existeix acumulo moviments, actualitzem
-							myPlayer->MapAccumMovements.find(idMovements)->second.delta.x += -PIXELSTOMOVE;
-							myPlayer->MapAccumMovements.find(idMovements)->second.delta.y += 0;
-							myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += -PIXELSTOMOVE;
-							myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += 0;
-						}
+					//if (!notMove)
+					myPlayer->position.x -= PIXELSTOMOVE;
+					if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
+						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ -PIXELSTOMOVE,0 },  Position{ myPlayer->position.x - PIXELSTOMOVE,myPlayer->position.y } }));
+					}
+					else { //si ja existeix acumulo moviments, actualitzem
+						myPlayer->MapAccumMovements.find(idMovements)->second.delta.x += -PIXELSTOMOVE;
+						myPlayer->MapAccumMovements.find(idMovements)->second.delta.y += 0;
+						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += -PIXELSTOMOVE;
+						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += 0;
+					}
+					//idMovements++;
 					
 				}
 				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) //moure personatge dreta
 				{
+					//if (!notMove)
+					myPlayer->position.x += PIXELSTOMOVE;
 					
+
 					if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
 						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ +PIXELSTOMOVE,0 },  Position{ myPlayer->position.x + PIXELSTOMOVE,myPlayer->position.y } }));
 					}
@@ -223,9 +234,14 @@ void GameManager() {
 						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += PIXELSTOMOVE;
 						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += 0;
 					}
+					//idMovements++;
 				}
 				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) //moure personatge dalt
 				{		
+					//if (!notMove)
+					myPlayer->position.y -= PIXELSTOMOVE;
+					
+
 					if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
 						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ 0,-PIXELSTOMOVE },  Position{ myPlayer->position.x, myPlayer->position.y - PIXELSTOMOVE } }));
 					}
@@ -235,10 +251,13 @@ void GameManager() {
 						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += 0;
 						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += -PIXELSTOMOVE;
 					}
+					//idMovements++;
 				}
 				else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) //moure personatge baix
 				{
-					
+					//if (!notMove)
+					myPlayer->position.y += PIXELSTOMOVE;
+
 					if (myPlayer->MapAccumMovements.find(idMovements) == myPlayer->MapAccumMovements.end()) {  //sino exiteix, ho sigui que encara no s'ha fet cap moviment en aquest temps, el poso a la llista
 						myPlayer->MapAccumMovements.insert(std::make_pair(idMovements, AccumMovements{ Position{ 0, PIXELSTOMOVE },  Position{ myPlayer->position.x, myPlayer->position.y + PIXELSTOMOVE } }));
 					}
@@ -248,6 +267,7 @@ void GameManager() {
 						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.x += 0;
 						myPlayer->MapAccumMovements.find(idMovements)->second.absolute.y += PIXELSTOMOVE;
 					}
+					//idMovements++;
 				}
 			default:
 				break;
