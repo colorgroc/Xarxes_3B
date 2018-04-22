@@ -120,7 +120,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 		//random range c++11 stuff
 		std::random_device rdX, rdY; 
 		std::mt19937 genX(rdX()), genY(rdY());
-		std::uniform_int_distribution<int16_t> num(1, NUMBER_ROWS_COLUMNS);
+		std::uniform_int_distribution<int16_t> num(1, NUMBER_ROWS_COLUMNS-1);
 		pos.x = num(genX);
 		pos.y = num(genY);
 		
@@ -280,7 +280,7 @@ void PositionValidations() {
 			else {
 				//posem posicion -1 -1 per que el client pugui eliminarlo i que no es mogui
 				sf::Packet packet;
-				packet << OK_POSITION << pos->first << pos->first << Position{-1,-1};
+				packet << OK_POSITION << pos->first << pos->first << Position{ -1,-1 };
 				status = socket.send(packet, client->second.ip, client->second.port);
 				if (status != sf::Socket::Done) {
 					std::cout << "Error sending OK_POSITION to client " << std::to_string(client->second.id) << std::endl;

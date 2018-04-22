@@ -18,14 +18,15 @@ bool Walls::CheckCollision(AccumMovements accum) { //amb pixels
 	for (std::vector<Position>::iterator it = obstaclesMap.begin(); it != obstaclesMap.end(); ++it) {
 
 		if (accum.delta.x > 0) { //moviment dreta
-			if (it->x == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y).x && (it->y == PixelToCell(accum.absolute.x, accum.absolute.y).y)) {
+			if ((it->x == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y).x && (it->y == PixelToCell(accum.absolute.x, accum.absolute.y).y)) || (it->x == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y + SIZE_CELL).x && (it->y == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y + SIZE_CELL).y))) {
 				//+ SIZE_CELL
 			correctPosition = false;
 			return correctPosition;
 			}
+
 		}
 		else if (accum.delta.x < 0) { //moviment esquerra
-			if (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x && (it->y == PixelToCell(accum.absolute.x, accum.absolute.y).y)) {
+			if ((it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x && (it->y == PixelToCell(accum.absolute.x, accum.absolute.y).y)) || (it->y == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y + SIZE_CELL).y && (it->x == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y + SIZE_CELL).x))) {
 				// - SIZE_CELL
 			correctPosition = false;
 			return correctPosition;
@@ -33,14 +34,14 @@ bool Walls::CheckCollision(AccumMovements accum) { //amb pixels
 		}
 
 		if (accum.delta.y > 0) { //moviment baix
-			if (it->y == PixelToCell(accum.absolute.x , accum.absolute.y + SIZE_CELL).y && (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x)) {
+			if ((it->y == PixelToCell(accum.absolute.x , accum.absolute.y + SIZE_CELL).y && (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x)) || (it->y == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y + SIZE_CELL).y && (it->x == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y + SIZE_CELL).x))) {
 				// + SIZE_CELL
 			correctPosition = false;
 			return correctPosition;
 			}
 		}
 		else if (accum.delta.y < 0) { //moviment dalt
-			if (it->y == PixelToCell(accum.absolute.x , accum.absolute.y).y && (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x)) {
+			if ((it->y == PixelToCell(accum.absolute.x , accum.absolute.y).y && (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x)) || (it->y == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y).y && (it->x == PixelToCell(accum.absolute.x + SIZE_CELL, accum.absolute.y).x))) {
 				//- SIZE_CELL
 			correctPosition = false;
 			return correctPosition;
