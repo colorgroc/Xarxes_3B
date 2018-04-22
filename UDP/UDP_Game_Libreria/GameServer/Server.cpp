@@ -112,8 +112,18 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 		Position pos;
 		int32_t numOfOpponents = clients.size();
 		srand(time(NULL));
-		pos.x = std::rand() % NUMBER_ROWS_COLUMNS;
-		pos.y = std::rand() % NUMBER_ROWS_COLUMNS;
+		//pos.x = std::rand() % NUMBER_ROWS_COLUMNS;
+		//pos.y = std::rand() % NUMBER_ROWS_COLUMNS;
+		//pos.x = (std::rand() % (NUMBER_ROWS_COLUMNS - 1)) + 1;
+		//pos.y = (std::rand() % (NUMBER_ROWS_COLUMNS - 1)) + 1;
+
+		//random range c++11 stuff
+		std::random_device rdX, rdY; 
+		std::mt19937 genX(rdX()), genY(rdY());
+		std::uniform_int_distribution<int16_t> num(1, NUMBER_ROWS_COLUMNS);
+		pos.x = num(genX);
+		pos.y = num(genY);
+		
 		pos = CellToPixel(pos.x ,pos.y);
 		sf::Packet packet;
 		packet.clear();

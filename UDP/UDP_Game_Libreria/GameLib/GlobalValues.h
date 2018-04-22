@@ -8,6 +8,7 @@
 #include <map>
 #include <mutex>
 #include <thread>
+#include <random>
 
 #define MAX_CLIENTS 4
 #define MAX_OPPONENTS 3

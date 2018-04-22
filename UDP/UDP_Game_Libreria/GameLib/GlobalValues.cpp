@@ -40,7 +40,7 @@ bool Walls::CheckCollision(AccumMovements accum) { //amb pixels
 			}
 		}
 		else if (accum.delta.y < 0) { //moviment dalt
-			if (it->y == PixelToCell(accum.absolute.x , accum.absolute.y ).y && (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x)) {
+			if (it->y == PixelToCell(accum.absolute.x , accum.absolute.y).y && (it->x == PixelToCell(accum.absolute.x, accum.absolute.y).x)) {
 				//- SIZE_CELL
 			correctPosition = false;
 			return correctPosition;
