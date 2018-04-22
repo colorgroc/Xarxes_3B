@@ -325,18 +325,35 @@ void GameManager() {
 
 			sf::Vector2f lastPositionOpponent(it->second.lastPos.x, it->second.lastPos.y);
 			sf::Vector2f positionOpponent(it->second.newPos.x, it->second.newPos.y);
-			if (positionOpponent.x != lastPositionOpponent.x) {
-				for (int i = 0; i < PIXELSTOMOVE; i++) {
-					shapeOpponent.setPosition(positionOpponent.x/PIXELSTOMOVE, positionOpponent.y / PIXELSTOMOVE);
-					window.draw(shapeOpponent);
-				}
-				it->second.lastPos.x = positionOpponent.x;
-				it->second.lastPos.y = positionOpponent.y;
-			}
-			else {
+			if (positionOpponent == lastPositionOpponent) {
 				shapeOpponent.setPosition(positionOpponent);
 
 				window.draw(shapeOpponent);
+			}
+			else {
+				if (positionOpponent.x != lastPositionOpponent.x) {
+					for (int i = 0; i < PIXELSTOMOVE; i++) {
+						shapeOpponent.setPosition(positionOpponent.x / PIXELSTOMOVE, positionOpponent.y);
+						window.draw(shapeOpponent);
+					}
+					it->second.lastPos.x = positionOpponent.x;
+				}
+				else if (positionOpponent.y != lastPositionOpponent.y) {
+					for (int i = 0; i < PIXELSTOMOVE; i++) {
+						shapeOpponent.setPosition(positionOpponent.x, positionOpponent.y / PIXELSTOMOVE);
+						window.draw(shapeOpponent);
+					}
+					it->second.lastPos.y = positionOpponent.y;
+				}
+				else if (positionOpponent.x != lastPositionOpponent.x && positionOpponent.y != lastPositionOpponent.y) {
+					for (int i = 0; i < PIXELSTOMOVE; i++) {
+						shapeOpponent.setPosition(positionOpponent.x / PIXELSTOMOVE, positionOpponent.y / PIXELSTOMOVE);
+						window.draw(shapeOpponent);
+					}
+					it->second.lastPos.x = positionOpponent.x;
+					it->second.lastPos.y = positionOpponent.y;
+				}
+
 			}
 		}
 
