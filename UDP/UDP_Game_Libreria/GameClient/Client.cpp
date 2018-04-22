@@ -11,8 +11,8 @@ int32_t packetID = 1;
 sf::Clock c;
 
 Player * myPlayer;
-std::map <int32_t, Position> opponents;
-
+//std::map <int32_t, Position> opponents;
+std::map <int32_t, Interpolation> opponents;
 sf::Clock clockPositions;
 int32_t idMovements = 1;
 int32_t idUltimMoviment = 0;
@@ -89,7 +89,7 @@ void ReceiveData() {
 						int32_t oID;
 						Position oPos;
 						packet >> oID >> oPos;
-						opponents.insert(std::make_pair(oID, oPos));
+						opponents.insert(std::make_pair(oID, Interpolation{oPos, oPos}));
 					}
 				}
 				if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
@@ -105,7 +105,7 @@ void ReceiveData() {
 				Position pos;
 				packet >> pos;
 				std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << std::endl;
-				opponents.insert(std::make_pair(opponentId, pos));
+				opponents.insert(std::make_pair(opponentId, Interpolation{ pos, pos }));
 			}
 			SendACK(ACK_NEW_CONNECTION, packetIDRecived);
 		}
@@ -150,7 +150,8 @@ void ReceiveData() {
 			if (opponents.find(opponentId) != opponents.end()) {
 				Position pos;
 				packet >> pos;
-				opponents.find(opponentId)->second = pos;
+				opponents.find(opponentId)->second.newPos = pos;
+
 			}
 
 		}
@@ -320,11 +321,23 @@ void GameManager() {
 		shapeOpponent.setFillColor(sf::Color::Red);
 
 
-		for (std::map<int32_t, Position>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
-			sf::Vector2f positionOpponent(it->second.x, it->second.y);
-			shapeOpponent.setPosition(positionOpponent);
+		for (std::map<int32_t, Interpolation>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 
-			window.draw(shapeOpponent);
+			sf::Vector2f lastPositionOpponent(it->second.lastPos.x, it->second.lastPos.y);
+			sf::Vector2f positionOpponent(it->second.newPos.x, it->second.newPos.y);
+			if (positionOpponent.x != lastPositionOpponent.x) {
+				for (int i = 0; i < PIXELSTOMOVE; i++) {
+					shapeOpponent.setPosition(positionOpponent.x/PIXELSTOMOVE, positionOpponent.y / PIXELSTOMOVE);
+					window.draw(shapeOpponent);
+				}
+				it->second.lastPos.x = positionOpponent.x;
+				it->second.lastPos.y = positionOpponent.y;
+			}
+			else {
+				shapeOpponent.setPosition(positionOpponent);
+
+				window.draw(shapeOpponent);
+			}
 		}
 
 		sf::RectangleShape wall(sf::Vector2f(SIZE_CELL, SIZE_CELL));

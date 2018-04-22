@@ -9,6 +9,7 @@
 #include <mutex>
 #include <thread>
 #include <random>
+#include <math.h>
 
 #define MAX_CLIENTS 4
 #define MAX_OPPONENTS 3
@@ -65,7 +66,10 @@ struct Player
 	std::map<int32_t, sf::Packet> resending;
 	std::map<int32_t, AccumMovements> MapAccumMovements;
 };
-
+struct Interpolation {
+	Position lastPos;
+	Position newPos;
+};
 
 Position PixelToCell(int16_t _x, int16_t _y);
 
