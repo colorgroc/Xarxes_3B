@@ -51,6 +51,17 @@ bool Walls::CheckCollision(AccumMovements accum) { //amb pixels
 	return correctPosition;
 }
 
+bool Walls::CheckCollision(Position pos) { //amb pixels
+	bool correctPosition = true;
+
+	for (std::vector<Position>::iterator it = obstaclesMap.begin(); it != obstaclesMap.end(); ++it) {
+
+		if(pos.x == it->x && pos.y == it->y)
+			correctPosition = false;
+	}
+	return correctPosition;
+}
+
 sf::Packet& operator <<(sf::Packet& Packet, const Position& pos)
 {
 return Packet << pos.x << pos.y;

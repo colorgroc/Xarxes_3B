@@ -94,6 +94,7 @@ public:
 	}
 
 	bool CheckCollision(AccumMovements accum);
+	bool Walls::CheckCollision(Position pos);
 
 	~Walls() {
 		obstaclesMap.clear();
