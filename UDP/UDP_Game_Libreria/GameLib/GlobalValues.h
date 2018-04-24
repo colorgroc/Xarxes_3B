@@ -84,7 +84,9 @@ public:
 
 	Walls() {
 		//obstacles
-		obstaclesMap = { Position{ 5,5 }, Position{ 6,5 }, Position{ 7,5 },  Position{ 7,6 }, Position{ 7,7 }, Position{ 7,8 },  Position{ 7,9 }, Position{ 7,10 }, Position{ 7,11 } };
+		obstaclesMap = { Position{ 5,5 }, Position{ 6,5 }, Position{ 7,5 },  Position{ 7,6 }, Position{ 7,7 }, Position{ 7,8 },  Position{ 7,9 }, Position{ 7,10 }, Position{ 7,11 },Position{ 7,12 }, Position{ 7,13 }, Position{ 7,14 },
+			Position{ 8,19 }, Position{ 9,19 }, Position{ 10,19},  Position{ 11,19 }, Position{ 12,19 }, Position{ 13,19 },
+			Position{ 16,8 }, Position{ 16,9 }, Position{ 16,10 },  Position{ 16,11 }, Position{ 16,12 }, Position{ 16,13 }, };
 
 		for (int8_t i = 0; i < NUMBER_ROWS_COLUMNS; i++)
 		{
