@@ -152,6 +152,33 @@ void ReceiveData() {
 				packet >> pos;
 				opponents.find(opponentId)->second.newPos = pos;
 
+				//si les posicions son diferents calculem passos interpolacio
+				if (opponents.find(opponentId)->second.newPos.x != opponents.find(opponentId)->second.lastPos.x) {
+					if (opponents.find(opponentId)->second.lastPos.x > opponents.find(opponentId)->second.newPos.x) { //direccio moviment esquerra
+						for (int16_t i = opponents.find(opponentId)->second.lastPos.x; i >= opponents.find(opponentId)->second.newPos.x; i--) {
+							opponents.find(opponentId)->second.middlePositions.push(Position{ i, opponents.find(opponentId)->second.lastPos.y });
+						}
+					}
+					else { //direccio moviment dreta
+						for (int16_t i = opponents.find(opponentId)->second.lastPos.x; i <= opponents.find(opponentId)->second.newPos.x; i++) {
+							opponents.find(opponentId)->second.middlePositions.push(Position{ i, opponents.find(opponentId)->second.lastPos.y });
+						}
+					}
+				}
+				if (opponents.find(opponentId)->second.newPos.y != opponents.find(opponentId)->second.lastPos.y) {
+					if (opponents.find(opponentId)->second.lastPos.y > opponents.find(opponentId)->second.newPos.y) { //direccio moviment dalt
+						for (int16_t i = opponents.find(opponentId)->second.lastPos.y; i >= opponents.find(opponentId)->second.newPos.y; i--) {
+							opponents.find(opponentId)->second.middlePositions.push(Position{ opponents.find(opponentId)->second.lastPos.x, i });
+						}
+					}
+					else { //direccio moviment baix
+						for (int16_t i = opponents.find(opponentId)->second.lastPos.y; i <= opponents.find(opponentId)->second.newPos.y; i++) {
+							opponents.find(opponentId)->second.middlePositions.push(Position{ opponents.find(opponentId)->second.lastPos.x, i });
+						}
+					}
+				}
+				opponents.find(opponentId)->second.lastPos = opponents.find(opponentId)->second.newPos; //ja s'han calculat i guardat passos intermitjos, per tant actualitzem lastPos
+				//si no s'ha mogut no cal fer res
 			}
 
 		}
@@ -323,39 +350,20 @@ void GameManager() {
 
 		for (std::map<int32_t, Interpolation>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 
-			sf::Vector2f lastPositionOpponent(it->second.lastPos.x, it->second.lastPos.y);
-			sf::Vector2f positionOpponent(it->second.newPos.x, it->second.newPos.y);
-			if (positionOpponent == lastPositionOpponent) {
-				shapeOpponent.setPosition(positionOpponent);
-
+			if (!it->second.middlePositions.empty()) {
+				Position temp = it->second.middlePositions.front(); //agafem valor
+				it->second.middlePositions.pop(); //borrem de la cua
+				shapeOpponent.setPosition(temp.x, temp.y);
 				window.draw(shapeOpponent);
 			}
-			else {
-				if (positionOpponent.x != lastPositionOpponent.x) {
-					for (int i = 0; i < PIXELSTOMOVE; i++) {
-						shapeOpponent.setPosition(positionOpponent.x / PIXELSTOMOVE, positionOpponent.y);
-						window.draw(shapeOpponent);
-					}
-					it->second.lastPos.x = positionOpponent.x;
-				}
-				else if (positionOpponent.y != lastPositionOpponent.y) {
-					for (int i = 0; i < PIXELSTOMOVE; i++) {
-						shapeOpponent.setPosition(positionOpponent.x, positionOpponent.y / PIXELSTOMOVE);
-						window.draw(shapeOpponent);
-					}
-					it->second.lastPos.y = positionOpponent.y;
-				}
-				else if (positionOpponent.x != lastPositionOpponent.x && positionOpponent.y != lastPositionOpponent.y) {
-					for (int i = 0; i < PIXELSTOMOVE; i++) {
-						shapeOpponent.setPosition(positionOpponent.x / PIXELSTOMOVE, positionOpponent.y / PIXELSTOMOVE);
-						window.draw(shapeOpponent);
-					}
-					it->second.lastPos.x = positionOpponent.x;
-					it->second.lastPos.y = positionOpponent.y;
-				}
-
+			else{
+				shapeOpponent.setPosition(it->second.lastPos.x, it->second.lastPos.y);
+				window.draw(shapeOpponent);
+				
 			}
+
 		}
+			
 
 		sf::RectangleShape wall(sf::Vector2f(SIZE_CELL, SIZE_CELL));
 		wall.setFillColor(sf::Color::Yellow);

@@ -10,12 +10,13 @@
 #include <thread>
 #include <random>
 #include <math.h>
+#include <queue>    
 
 #define MAX_CLIENTS 4
 #define MAX_OPPONENTS 3
 
 #define _PING 1000
-#define SENDING_PING 500
+#define SENDING_PING 250
 #define CONTROL_PING 5000
 #define SEND_ACCUMMOVEMENTS 100
 
@@ -69,6 +70,7 @@ struct Player
 struct Interpolation {
 	Position lastPos;
 	Position newPos;
+	std::queue<Position> middlePositions; //primer a entrer primer a sortir (fifo)
 };
 
 Position PixelToCell(int16_t _x, int16_t _y);
