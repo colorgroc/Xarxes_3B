@@ -73,125 +73,133 @@ void ReceiveData() {
 	status = socket.receive(packet, serverIP, serverPORT);
 
 	if (status == sf::Socket::Done) {
-		packet >> cmd >> packetIDRecived;
-
-		if (cmd == PING) {
-			SendACK(ACK_PING, packetIDRecived);
+		float rndPacketLoss = GetRandomFloat();
+		if (rndPacketLoss < PERCENT_PACKETLOSS) {
+			std::cout << "Paquet perdut" << std::endl;
 		}
-		else if (cmd == ACK_HELLO) {
-			if (myPlayer->ID == 0) {
-				int32_t numOfOpponents = 0;
-				packet >> myPlayer->ID >> myPlayer->position >> numOfOpponents;
+		else {
+			packet >> cmd >> packetIDRecived;
 
-				if (numOfOpponents > 0) {
-					//treiem del packet la ID i la pos de cada oponent
-					for (int i = 0; i < numOfOpponents; i++) {
-						int32_t oID;
-						Position oPos;
-						packet >> oID >> oPos;
-						opponents.insert(std::make_pair(oID, Interpolation{oPos, oPos}));
+			if (cmd == PING) {
+				SendACK(ACK_PING, packetIDRecived);
+			}
+			else if (cmd == ACK_HELLO) {
+				if (myPlayer->ID == 0) {
+					int32_t numOfOpponents = 0;
+					packet >> myPlayer->ID >> myPlayer->position >> numOfOpponents;
+
+					if (numOfOpponents > 0) {
+						//treiem del packet la ID i la pos de cada oponent
+						for (int i = 0; i < numOfOpponents; i++) {
+							int32_t oID;
+							Position oPos;
+							packet >> oID >> oPos;
+							opponents.insert(std::make_pair(oID, Interpolation{ oPos, oPos }));
+						}
 					}
+					if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
+						myPlayer->resending.erase(packetIDRecived);
+					}
+					std::cout << "WELCOME! " << " Client ID: " << std::to_string(myPlayer->ID) << " Initial Position: " << std::to_string(myPlayer->position.x) << ", " << std::to_string(myPlayer->position.y) << std::endl;
 				}
-				if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
-					myPlayer->resending.erase(packetIDRecived);
-				}
-				std::cout << "WELCOME! " << " Client ID: " << std::to_string(myPlayer->ID) << " Initial Position: " << std::to_string(myPlayer->position.x) << ", " << std::to_string(myPlayer->position.y) << std::endl;
 			}
-		}
 
-		else if (cmd == NEW_CONNECTION) {
-			packet >> opponentId;
-			if (opponents.find(opponentId) == opponents.end()) {
-				Position pos;
-				packet >> pos;
-				std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << std::endl;
-				opponents.insert(std::make_pair(opponentId, Interpolation{ pos, pos }));
-			}
-			SendACK(ACK_NEW_CONNECTION, packetIDRecived);
-		}
-		else if (cmd == OK_POSITION) {
-
-			//solucionar problemes d'ordre de paquets
-			//si hi han id mes petits a la llista del client es poden borrar ja que es va a la poscio més allunyada
-			//si la posicio reb un -1 -1 vol dir que la poscio es incorrecta i per tant no ens movem i borrem les altres poscions anterirors acumulades
-			int32_t idMov;
-			Position tempPos;
-			packet >> idMov >> tempPos;
-
-			if (tempPos.x == -1 && tempPos.y == -1) {
-				Position lastPos;
-				packet >> lastPos;
-				//es invalida la posicio i per tant no actualitzem posicio, borrem de la llista accum
-				std::cout << "Out"; //els jugadors a vegades poden sortir ja al limit (falta arreglar, mes endavant) i no es poden moure!!!
-				if(myPlayer->MapAccumMovements.find(idMov) != myPlayer->MapAccumMovements.end()){
-					myPlayer->MapAccumMovements.erase(idMov);
+			else if (cmd == NEW_CONNECTION) {
+				packet >> opponentId;
+				if (opponents.find(opponentId) == opponents.end()) {
+					Position pos;
+					packet >> pos;
+					std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << std::endl;
+					opponents.insert(std::make_pair(opponentId, Interpolation{ pos, pos }));
 				}
-				myPlayer->position = lastPos;
+				SendACK(ACK_NEW_CONNECTION, packetIDRecived);
 			}
-			else {
-				//valida
-				
-				if (idMov > idUltimMoviment) { //nomes si es mes gran valido , eliminem de la llista de accum
-					idUltimMoviment = idMov;
-					//notMove = false;
-					//myPlayer->position = tempPos;
-				}
-				else { //ja s'ha acceptat un moviment posterior i per tant aquest moviment anterior no s'executa i es dona per valid, eliminem de la llista de accum
+			else if (cmd == OK_POSITION) {
+
+				//solucionar problemes d'ordre de paquets
+				//si hi han id mes petits a la llista del client es poden borrar ja que es va a la poscio més allunyada
+				//si la posicio reb un -1 -1 vol dir que la poscio es incorrecta i per tant no ens movem i borrem les altres poscions anterirors acumulades
+				int32_t idMov;
+				Position tempPos;
+				packet >> idMov >> tempPos;
+
+				if (tempPos.x == -1 && tempPos.y == -1) {
+					Position lastPos;
+					packet >> lastPos;
+					//es invalida la posicio i per tant no actualitzem posicio, borrem de la llista accum
+					std::cout << "Out"; //els jugadors a vegades poden sortir ja al limit (falta arreglar, mes endavant) i no es poden moure!!!
 					if (myPlayer->MapAccumMovements.find(idMov) != myPlayer->MapAccumMovements.end()) {
 						myPlayer->MapAccumMovements.erase(idMov);
-						//notMove = true;
 					}
+					myPlayer->position = lastPos;
 				}
-				
+				else {
+					//valida
+
+					if (idMov > idUltimMoviment) { //nomes si es mes gran valido , eliminem de la llista de accum
+						idUltimMoviment = idMov;
+						//notMove = false;
+						//myPlayer->position = tempPos;
+					}
+					else { //ja s'ha acceptat un moviment posterior i per tant aquest moviment anterior no s'executa i es dona per valid, eliminem de la llista de accum
+						if (myPlayer->MapAccumMovements.find(idMov) != myPlayer->MapAccumMovements.end()) {
+							myPlayer->MapAccumMovements.erase(idMov);
+							//notMove = true;
+						}
+					}
+
+				}
+			}
+			else if (cmd == REFRESH_POSITIONS) {
+				packet >> opponentId;
+				if (opponents.find(opponentId) != opponents.end()) {
+					Position pos;
+					packet >> pos;
+					opponents.find(opponentId)->second.newPos = pos;
+
+					//si les posicions son diferents calculem passos interpolacio
+					if (opponents.find(opponentId)->second.newPos.x != opponents.find(opponentId)->second.lastPos.x) {
+						if (opponents.find(opponentId)->second.lastPos.x > opponents.find(opponentId)->second.newPos.x) { //direccio moviment esquerra
+							for (int16_t i = opponents.find(opponentId)->second.lastPos.x; i >= opponents.find(opponentId)->second.newPos.x; i--) {
+								opponents.find(opponentId)->second.middlePositions.push(Position{ i, opponents.find(opponentId)->second.lastPos.y });
+							}
+						}
+						else { //direccio moviment dreta
+							for (int16_t i = opponents.find(opponentId)->second.lastPos.x; i <= opponents.find(opponentId)->second.newPos.x; i++) {
+								opponents.find(opponentId)->second.middlePositions.push(Position{ i, opponents.find(opponentId)->second.lastPos.y });
+							}
+						}
+					}
+					if (opponents.find(opponentId)->second.newPos.y != opponents.find(opponentId)->second.lastPos.y) {
+						if (opponents.find(opponentId)->second.lastPos.y > opponents.find(opponentId)->second.newPos.y) { //direccio moviment dalt
+							for (int16_t i = opponents.find(opponentId)->second.lastPos.y; i >= opponents.find(opponentId)->second.newPos.y; i--) {
+								opponents.find(opponentId)->second.middlePositions.push(Position{ opponents.find(opponentId)->second.lastPos.x, i });
+							}
+						}
+						else { //direccio moviment baix
+							for (int16_t i = opponents.find(opponentId)->second.lastPos.y; i <= opponents.find(opponentId)->second.newPos.y; i++) {
+								opponents.find(opponentId)->second.middlePositions.push(Position{ opponents.find(opponentId)->second.lastPos.x, i });
+							}
+						}
+					}
+					opponents.find(opponentId)->second.lastPos = opponents.find(opponentId)->second.newPos; //ja s'han calculat i guardat passos intermitjos, per tant actualitzem lastPos
+																											//si no s'ha mogut no cal fer res
+				}
+
+			}
+			else if (cmd == DISCONNECTION) {
+				packet >> opponentId;
+				if (opponents.find(opponentId) != opponents.end()) {
+					std::cout << "An opponent disconnected. ID: " << std::to_string(opponentId) << std::endl;
+					opponents.erase(opponentId);
+				}
+				SendACK(ACK_DISCONNECTION, packetIDRecived);
 			}
 		}
-		else if (cmd == REFRESH_POSITIONS) {
-			packet >> opponentId;
-			if (opponents.find(opponentId) != opponents.end()) {
-				Position pos;
-				packet >> pos;
-				opponents.find(opponentId)->second.newPos = pos;
 
-				//si les posicions son diferents calculem passos interpolacio
-				if (opponents.find(opponentId)->second.newPos.x != opponents.find(opponentId)->second.lastPos.x) {
-					if (opponents.find(opponentId)->second.lastPos.x > opponents.find(opponentId)->second.newPos.x) { //direccio moviment esquerra
-						for (int16_t i = opponents.find(opponentId)->second.lastPos.x; i >= opponents.find(opponentId)->second.newPos.x; i--) {
-							opponents.find(opponentId)->second.middlePositions.push(Position{ i, opponents.find(opponentId)->second.lastPos.y });
-						}
-					}
-					else { //direccio moviment dreta
-						for (int16_t i = opponents.find(opponentId)->second.lastPos.x; i <= opponents.find(opponentId)->second.newPos.x; i++) {
-							opponents.find(opponentId)->second.middlePositions.push(Position{ i, opponents.find(opponentId)->second.lastPos.y });
-						}
-					}
-				}
-				if (opponents.find(opponentId)->second.newPos.y != opponents.find(opponentId)->second.lastPos.y) {
-					if (opponents.find(opponentId)->second.lastPos.y > opponents.find(opponentId)->second.newPos.y) { //direccio moviment dalt
-						for (int16_t i = opponents.find(opponentId)->second.lastPos.y; i >= opponents.find(opponentId)->second.newPos.y; i--) {
-							opponents.find(opponentId)->second.middlePositions.push(Position{ opponents.find(opponentId)->second.lastPos.x, i });
-						}
-					}
-					else { //direccio moviment baix
-						for (int16_t i = opponents.find(opponentId)->second.lastPos.y; i <= opponents.find(opponentId)->second.newPos.y; i++) {
-							opponents.find(opponentId)->second.middlePositions.push(Position{ opponents.find(opponentId)->second.lastPos.x, i });
-						}
-					}
-				}
-				opponents.find(opponentId)->second.lastPos = opponents.find(opponentId)->second.newPos; //ja s'han calculat i guardat passos intermitjos, per tant actualitzem lastPos
-				//si no s'ha mogut no cal fer res
-			}
-
-		}
-		else if (cmd == DISCONNECTION) {
-			packet >> opponentId;
-			if (opponents.find(opponentId) != opponents.end()) {
-				std::cout << "An opponent disconnected. ID: " << std::to_string(opponentId) << std::endl;
-				opponents.erase(opponentId);
-			}
-			SendACK(ACK_DISCONNECTION, packetIDRecived);
-		}
-
-	} packet.clear();
+	} 
+	
+	packet.clear();
 }
 
 

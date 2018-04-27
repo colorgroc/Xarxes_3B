@@ -192,19 +192,26 @@ void ReceiveData() {
 	status = socket.receive(packet, senderIP, senderPort);
 
 	if (status == sf::Socket::Done) {
-		packet >> cmd >> packetIDRecived;
-		if (cmd == HELLO) {
-			packet >> nickname;
+		float rndPacketLoss = GetRandomFloat();
+		if(rndPacketLoss < PERCENT_PACKETLOSS){
+			std::cout << "Paquet perdut" << std::endl;
 		}
 		else {
-			packet >> IDClient;
-
-			if (cmd == TRY_POSITION) {
-				packet >> idMovements >> tryaccum;
-				//packet >> tryaccum;
+			packet >> cmd >> packetIDRecived;
+			if (cmd == HELLO) {
+				packet >> nickname;
 			}
+			else {
+				packet >> IDClient;
+
+				if (cmd == TRY_POSITION) {
+					packet >> idMovements >> tryaccum;
+					//packet >> tryaccum;
+				}
+			}
+			ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, nickname, idMovements, tryaccum);
 		}
-		ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, nickname, idMovements, tryaccum);
+		
 	}
 	packet.clear();
 }

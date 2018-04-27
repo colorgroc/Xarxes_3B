@@ -32,6 +32,8 @@
 #define LEFT_LIMIT 0
 #define PIXELSTOMOVE 1
 
+#define PERCENT_PACKETLOSS 0.05
+
 enum Cmds {
 	HELLO, ACK_HELLO, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, NOT_OK_POSITION, OK_POSITION, REFRESH_POSITIONS, ACK_REFRESH_POSITIONS
 };
@@ -108,6 +110,13 @@ public:
 		obstaclesMap.clear();
 	}
 };
+
+static float GetRandomFloat() {
+	static std::random_device rd;
+	static std::mt19937 gen(rd());
+	static std::uniform_real_distribution<float>dis(0.f, 1.f);
+	return dis(gen);
+}
 
 
 
