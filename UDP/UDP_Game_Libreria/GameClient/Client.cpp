@@ -202,16 +202,6 @@ void ReceiveData() {
 	packet.clear();
 }
 
-bool CheckCollisionPlayerOpponent() {
-	bool collision = false;
-	for (std::map<int32_t, Interpolation>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
-		if (it->second.lastPos.x <= myPlayer->position.x + 15 && it->second.lastPos.x >= myPlayer->position.x - 15 && it->second.lastPos.y <= myPlayer->position.y + 15 && it->second.lastPos.y >= myPlayer->position.y - 15) {
-			std::cout << "Collision With Opponent" << std::endl;
-			collision = true;
-		}
-	}
-	return collision;
-}
 
 void GameManager() {
 
@@ -221,7 +211,6 @@ void GameManager() {
 	{
 		sf::Event event;
 		ReceiveData();
-		CheckCollisionPlayerOpponent();
 		if (c.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
 			c.restart();
@@ -237,7 +226,17 @@ void GameManager() {
 				packetID++;
 				idMovements++; //una avegada enviem ja puc incrementar, per tant nomes es posara una vegada al resending
 				clockPositions.restart();
-			}	
+			}
+
+			//comprovar collisio, si es detecta enviar al server per validacio
+			packet.clear();
+			for (std::map<int32_t, Interpolation>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
+				if (it->second.lastPos.x <= myPlayer->position.x + 15 && it->second.lastPos.x >= myPlayer->position.x - 15 && it->second.lastPos.y <= myPlayer->position.y + 15 && it->second.lastPos.y >= myPlayer->position.y - 15) {
+					packet << TRY_COLLISION_OPPONENT << packetID << myPlayer->ID << it->first;
+					status = socket.send(packet, "localhost", PORT);
+					packetID++;
+				}
+			}
 		}
 	
 		//inputs game

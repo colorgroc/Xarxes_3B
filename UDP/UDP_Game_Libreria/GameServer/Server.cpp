@@ -93,7 +93,7 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 }
 
 
-void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, int32_t idMovements, AccumMovements tryaccum) {
+void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, int32_t idMovements, AccumMovements tryaccum, int32_t idOpponentCollision) {
 
 
 	if (cmd == ACK_PING) {
@@ -174,6 +174,11 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 		}
 
 	}
+	else if(TRY_COLLISION_OPPONENT) {
+		if (clients.find(idOpponentCollision)->second.pos.x <= clients.find(cID)->second.pos.x + 15 && clients.find(idOpponentCollision)->second.pos.x >= clients.find(cID)->second.pos.x - 15 && clients.find(idOpponentCollision)->second.pos.y <= clients.find(cID)->second.pos.y + 15 && clients.find(idOpponentCollision)->second.pos.y >= clients.find(cID)->second.pos.y - 15) {
+			std::cout << "Collision With Opponent" << std::endl;
+		}
+	}
 
 }
 
@@ -190,6 +195,7 @@ void ReceiveData() {
 	int32_t idMovements = 0;
 	//int32_t sizeMovements = 0;
 	status = socket.receive(packet, senderIP, senderPort);
+	int32_t idOpponentCollision = 0;
 
 	if (status == sf::Socket::Done) {
 		float rndPacketLoss = GetRandomFloat();
@@ -208,8 +214,12 @@ void ReceiveData() {
 					packet >> idMovements >> tryaccum;
 					//packet >> tryaccum;
 				}
+
+				if(cmd == TRY_COLLISION_OPPONENT){
+					packet >> idOpponentCollision;
+				}
 			}
-			ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, nickname, idMovements, tryaccum);
+			ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, nickname, idMovements, tryaccum, idOpponentCollision);
 		}
 		
 	}
