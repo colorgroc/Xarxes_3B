@@ -124,7 +124,28 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 		//}
 	}
 }
+void PilladorRandom() {
+	std::uniform_int_distribution<int32_t> num(1, clients.size());
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	int32_t pillador = num(gen);
 
+	for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+		if (it->second.id == pillador) {
+			it->second.laPara = true;
+			std::cout << "La pilla el client amb nickname: " << it->second.nickname << " i amb ID: " << it->first << std::endl;
+			NotifyOtherClients(QUI_LA_PILLA, it->first);
+		}
+	}
+	//std::cout << pillador << std::endl;
+	/*for (int i = 1; i <= clients.size(); i++) {
+		if (clients.find(i) != clients.end() && clients[i].id == pillador) {
+			clients[i].laPara = true;
+			std::cout << "La pilla el client amb nickname: " << clients[i].nickname << " i amb ID: " << clients[i].id << std::endl;
+			NotifyOtherClients(QUI_LA_PILLA, clients[i].id);
+		}
+	}*/
+}
 bool CheckCollisionWithClientsPos(Position pos) { //amb pixels
 	bool correctPosition = true;
 
@@ -149,20 +170,21 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 		for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
 			if (it->second.nickname == nickname) {
 				alreadyConnected = true;
+				sf::Packet p;
+				p << ID_ALREADY_TAKEN;
+				socket.send(p, senderIP, senderPort);
 			}
 		}
 
 		Position pos;
 		int32_t numOfOpponents = clients.size();
 		srand(time(NULL));
-		//pos.x = (std::rand() % (NUMBER_ROWS_COLUMNS - 1)) + 1;
-		//pos.y = (std::rand() % (NUMBER_ROWS_COLUMNS - 1)) + 1;
 		
 		//random range c++11 stuff
-		std::uniform_int_distribution<int16_t> num(1, NUMBER_ROWS_COLUMNS - 1);
 		do {
 			std::random_device rdX, rdY;
 			std::mt19937 genX(rdX()), genY(rdY());
+			std::uniform_int_distribution<int16_t> num(1, NUMBER_ROWS_COLUMNS - 2);
 			pos.x = num(genX);
 			pos.y = num(genY);
 			//pos.x = GetRandomFloat(1, NUMBER_ROWS_COLUMNS - 1);
@@ -336,19 +358,27 @@ void ManagePing() {
 		if (clientes->second.timeElapsedLastPing.getElapsedTime().asMilliseconds() > CONTROL_PING) {
 			NotifyOtherClients(DISCONNECTION, clientes->first);
 			clientes->second.connected = false;
+			if (!gameStarted) {
+				clientsConnected--;
+				idsDesaprovechadas.push_back(clientes->first);
+			}
+			else {
+				if (pillados.size() == 1 && clientes->second.laPara) {
+					pillados.erase(clientes->first);
+					PilladorRandom();
+				}
+			}
 		}
 	}
 
-	for (int32_t i = 1; i <= clients.size(); i++) {
-		if (clients.find(i) != clients.end() && !clients[i].connected) {
-			std::cout << "Client " << std::to_string(clients[i].id) << " disconnected." << std::endl;
-			if (!gameStarted) {
-				clientsConnected--;
-				idsDesaprovechadas.push_back(clients[i].id);
-			}
-			clients.erase(clients[i].id);
+	for (std::map<int32_t, Client>::iterator clientes = clients.begin(); clientes != clients.end();) {
+		if (!clientes->second.connected) {
+			std::cout << "Client " << std::to_string(clientes->first) << " disconnected." << std::endl;
+			clientes = clients.erase(clientes);
 		}
+		else ++clientes;
 	}
+
 }
 
 void PositionValidations() {
@@ -411,7 +441,7 @@ void ComprovacioPillats() {
 
 }
 void Winner() {
-	if (pillados.size() >= MAX_CLIENTS - 1) {
+	if (gameStarted && pillados.size() >= (clients.size()-1)) {
 		for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
 			if (!it->second.laPara) {
 				it->second.winner = true;
@@ -447,30 +477,17 @@ int main()
 			ComprovacioPillats();
 			clockSend.restart();
 		}
-		if (clients.size() == MAX_CLIENTS){// && clientsConnected == MAX_CLIENTS) {
+		if (clients.size() >= MAX_CLIENTS){// && clientsConnected == MAX_CLIENTS) {
 			//game starts!
 			gameStarted  = true;
 		}
 		if (gameStarted && !once) {
-			//int32_t pillador = GetRandomInt(1, clients.size());
-			std::uniform_int_distribution<int32_t> num(1, clients.size());
-			std::random_device rd;
-			std::mt19937 gen(rd());
-			int32_t pillador = num(gen);
-
-			//std::cout << pillador << std::endl;
-			for (int i = 1; i <= clients.size(); i++) {
-				if (clients.find(i) != clients.end() && clients[i].id == pillador) {
-					clients[i].laPara = true;
-					std::cout << "La pilla el client amb nickname: " << clients[i].nickname << " i amb ID: " << clients[i].id << std::endl;
-					NotifyOtherClients(QUI_LA_PILLA, clients[i].id);
-				}
-			}
+			PilladorRandom();
 			once = true;
 		}
 		if (clients.size() <= 0 && gameStarted || receivedWinner >= MAX_CLIENTS) online = false;
 
-	} while (clients.size() <= MAX_CLIENTS && online);
+	} while (online);
 
 	clients.clear();
 	socket.unbind();

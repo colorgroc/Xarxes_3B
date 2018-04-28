@@ -20,6 +20,20 @@ Walls * myWalls;
 bool once = false;
 int32_t winner;
 bool alreadySaidWinner = false;
+bool GTFO = false;
+
+void ConnectionWithServer() {
+
+	std::cout << "Estableciendo conexion con server... \n";
+	std::cout << "Type your nickname: ";
+	std::getline(std::cin, myPlayer->nickname);
+	sf::Packet packet;
+	packet << HELLO << packetID << myPlayer->nickname;
+	myPlayer->resending.insert(std::make_pair(packetID, packet));
+	packetID++;
+	packet.clear();
+}
+
 
 void Resend() {
 	
@@ -90,6 +104,12 @@ void ReceiveData() {
 
 			if (cmd == PING) {
 				SendACK(ACK_PING, packetIDRecived);
+			}
+			if (cmd == ID_ALREADY_TAKEN) {
+				std::cout << "This ID it's already used." << std::endl;
+				//ConnectionWithServer();
+				GTFO = true;
+				
 			}
 			else if (cmd == GAMESTARTED) {
 				//SendACK(ACK_GAMESTARTED, packetIDRecived);
@@ -257,7 +277,17 @@ void GameManager() {
 	{
 		sf::Event event;
 		ReceiveData();
-	
+		if (alreadySaidWinner) {
+			socket.unbind();
+			system("pause");
+			//window.close();
+		}
+			
+		if (GTFO) {
+			socket.unbind();
+			window.close();
+			system("exit");
+		}
 		if (c.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
 			c.restart();
@@ -278,7 +308,7 @@ void GameManager() {
 			//comprovar collisio, si es detecta enviar al server per validacio
 			packet.clear();
 			for (std::map<int32_t, InterpolationAndStuff>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
-				if (it->second.lastPos.x <= myPlayer->position.x + 15 && it->second.lastPos.x >= myPlayer->position.x - 15 && it->second.lastPos.y <= myPlayer->position.y + 15 && it->second.lastPos.y >= myPlayer->position.y - 15) {
+				if (it->second.lastPos.x <= myPlayer->position.x + RADIUS_SPRITE && it->second.lastPos.x >= myPlayer->position.x - RADIUS_SPRITE && it->second.lastPos.y <= myPlayer->position.y + RADIUS_SPRITE && it->second.lastPos.y >= myPlayer->position.y - RADIUS_SPRITE) {
 					packet << TRY_COLLISION_OPPONENT << packetID << myPlayer->ID << it->first;
 					status = socket.send(packet, "localhost", PORT);
 					packetID++;
@@ -415,7 +445,6 @@ void GameManager() {
 		sf::CircleShape shapeOpponent(RADIUS_SPRITE);
 		
 
-
 		for (std::map<int32_t, InterpolationAndStuff>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 
 			if (!it->second.middlePositions.empty()) {
@@ -450,19 +479,6 @@ void GameManager() {
 		window.display();
 	}
 
-}
-
-
-void ConnectionWithServer() {
-
-	std::cout << "Estableciendo conexion con server... \n";
-	std::cout << "Type your nickname: ";
-	std::getline(std::cin, myPlayer->nickname);
-	sf::Packet packet;
-	packet << HELLO << packetID << myPlayer->nickname; 
-	myPlayer->resending.insert(std::make_pair(packetID, packet));
-	packetID++;
-	packet.clear();
 }
 
 
