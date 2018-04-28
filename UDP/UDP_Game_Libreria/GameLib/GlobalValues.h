@@ -72,7 +72,7 @@ struct Player
 struct Interpolation {
 	Position lastPos;
 	Position newPos;
-	std::queue<Position> middlePositions; //primer a entrer primer a sortir (fifo)
+	std::queue<Position> middlePositions; //primer a entrar primer a sortir (fifo)
 };
 
 Position PixelToCell(int16_t _x, int16_t _y);
