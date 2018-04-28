@@ -176,7 +176,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 	}
 	else if(TRY_COLLISION_OPPONENT) {
 		if (clients.find(idOpponentCollision)->second.pos.x <= clients.find(cID)->second.pos.x + 15 && clients.find(idOpponentCollision)->second.pos.x >= clients.find(cID)->second.pos.x - 15 && clients.find(idOpponentCollision)->second.pos.y <= clients.find(cID)->second.pos.y + 15 && clients.find(idOpponentCollision)->second.pos.y >= clients.find(cID)->second.pos.y - 15) {
-			std::cout << "Collision With Opponent" << std::endl;
+			std::cout << "Collision With Opponent " << idOpponentCollision << "  " << cID << std::endl;
 		}
 	}
 
