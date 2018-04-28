@@ -11,14 +11,14 @@ std::map<int32_t, Client> clients;
 sf::UdpSocket socket;
 
 sf::Clock clockPing, clockSend;
-bool once = false;
 int32_t packetID = 1;
 //variable para controlar cuando se han desconnectado todos hasta que hagamos los estados
 int32_t clientsConnected = 0;
-
+std::vector<int32_t> idsDesaprovechadas;
 sf::Clock clockPositions;
 std::mutex myMutex;
-
+bool GAMESTARTED = false;
+bool once = false;
 Walls * myWalls;
 
 void Resend() {
@@ -50,6 +50,7 @@ void SendToAllClients(int cmd) {
 			socket.send(packet, clientToSend->second.ip, clientToSend->second.port); //controlar errors
 		}
 	}
+	
 }
 
 void NotifyOtherClients(int cmd, int32_t cID) {
@@ -90,6 +91,17 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 			} packetID++;
 		}
 	}
+	else if (cmd == QUI_LA_PILLA) {
+		//if (clients.find(cID) != clients.end()) {
+		for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+		{
+			sf::Packet packet;
+			packet << cmd;
+			packet << packetID << cID;
+			it->second.resending.insert(std::make_pair(packetID, packet));
+		}packetID++;
+		//}
+	}
 }
 
 
@@ -114,7 +126,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 		srand(time(NULL));
 		//pos.x = (std::rand() % (NUMBER_ROWS_COLUMNS - 1)) + 1;
 		//pos.y = (std::rand() % (NUMBER_ROWS_COLUMNS - 1)) + 1;
-
+		
 		//random range c++11 stuff
 		std::uniform_int_distribution<int16_t> num(1, NUMBER_ROWS_COLUMNS - 1);
 		do {
@@ -122,6 +134,8 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 			std::mt19937 genX(rdX()), genY(rdY());
 			pos.x = num(genX);
 			pos.y = num(genY);
+			//pos.x = GetRandomFloat(1, NUMBER_ROWS_COLUMNS - 1);
+			//pos.y = GetRandomFloat(1, NUMBER_ROWS_COLUMNS - 1);
 			//std::cout << "yeah!" << std::endl;
 		} while (!myWalls->CheckCollision(pos));
 		
@@ -130,28 +144,54 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 		packet.clear();
 
 		if (!alreadyConnected) {
-			std::cout << "Connection with client " << std::to_string(clientID) << " from PORT " << senderPort << std::endl;
-			packet << ACK_HELLO << pID << clientID << pos << numOfOpponents;
-			if (numOfOpponents > 0) {
-				//inserim al packet la ID i la pos de cada oponent
-				for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
-					packet << it->second.id << it->second.pos;
+			
+			if (idsDesaprovechadas.empty()) {
+				std::cout << "Connection with client " << std::to_string(clientID) << " from PORT " << senderPort << std::endl;
+				packet << ACK_HELLO << pID << clientID << pos << numOfOpponents;
+				if (numOfOpponents > 0) {
+					//inserim al packet la ID i la pos de cada oponent
+					for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+						packet << it->second.id << it->second.pos;
+					}
 				}
+				clients.insert(std::make_pair(clientID, Client{ clientID, nickname, pos, senderIP, senderPort, true, false }));
+				NotifyOtherClients(NEW_CONNECTION, clientID);
+				clients[clientID].timeElapsedLastPing.restart();
+				clientsConnected++;
+				clientID++;
+
+				status = socket.send(packet, senderIP, senderPort);
+				if (status != sf::Socket::Done) {
+					std::cout << "Error sending ACK_HELLO to client " << std::to_string(clientID - 1) << std::endl;
+				}
+				packet.clear();
 			}
-			clients.insert(std::make_pair(clientID, Client{ clientID, nickname, pos, senderIP, senderPort, true }));
-			NotifyOtherClients(NEW_CONNECTION, clientID);
-			clients[clientID].timeElapsedLastPing.restart();
-			clientsConnected++;
-			clientID++;
+			else {
+				std::cout << "Connection with client " << std::to_string(idsDesaprovechadas[0]) << " from PORT " << senderPort << std::endl;
+				packet << ACK_HELLO << pID << idsDesaprovechadas[0] << pos << numOfOpponents;
+				if (numOfOpponents > 0) {
+					//inserim al packet la ID i la pos de cada oponent
+					for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+						packet << it->second.id << it->second.pos;
+					}
+				}
+				clients.insert(std::make_pair(idsDesaprovechadas[0], Client{ idsDesaprovechadas[0], nickname, pos, senderIP, senderPort, true, false }));
+				NotifyOtherClients(NEW_CONNECTION, idsDesaprovechadas[0]);
+				clients[idsDesaprovechadas[0]].timeElapsedLastPing.restart();
+				clientsConnected++;
+
+				status = socket.send(packet, senderIP, senderPort);
+				if (status != sf::Socket::Done) {
+					std::cout << "Error sending ACK_HELLO to client " << std::to_string(idsDesaprovechadas[0]) << std::endl;
+				}
+				packet.clear();
+				idsDesaprovechadas.erase(idsDesaprovechadas.begin());
+			}
 			
 		}
-		status = socket.send(packet, senderIP, senderPort);
-		if (status != sf::Socket::Done) {
-			std::cout << "Error sending ACK_HELLO to client " << std::to_string(clientID - 1) << std::endl;
-		}
-		packet.clear();
+		
 	}
-	else if (cmd == ACK_NEW_CONNECTION || cmd == ACK_DISCONNECTION || cmd == ACK_REFRESH_POSITIONS) {
+	else if (cmd == ACK_NEW_CONNECTION || cmd == ACK_DISCONNECTION || cmd == ACK_REFRESH_POSITIONS || cmd == ACK_QUI_LA_PILLA) {
 		if (clients.find(cID) != clients.end() && clients[cID].resending.find(pID) != clients[cID].resending.end()) {
 			clients[cID].resending.erase(pID);
 		}
@@ -175,8 +215,12 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 
 	}
 	else if(TRY_COLLISION_OPPONENT) {
-		if (clients.find(idOpponentCollision)->second.pos.x <= clients.find(cID)->second.pos.x + 15 && clients.find(idOpponentCollision)->second.pos.x >= clients.find(cID)->second.pos.x - 15 && clients.find(idOpponentCollision)->second.pos.y <= clients.find(cID)->second.pos.y + 15 && clients.find(idOpponentCollision)->second.pos.y >= clients.find(cID)->second.pos.y - 15) {
-			std::cout << "Collision With Opponent " << idOpponentCollision << "  " << cID << std::endl;
+		if (clients.find(idOpponentCollision) != clients.end() && clients.find(cID) != clients.end()) {
+			if (clients.find(idOpponentCollision)->second.pos.x <= clients.find(cID)->second.pos.x + 15 && clients.find(idOpponentCollision)->second.pos.x >= clients.find(cID)->second.pos.x - 15 && clients.find(idOpponentCollision)->second.pos.y <= clients.find(cID)->second.pos.y + 15 && clients.find(idOpponentCollision)->second.pos.y >= clients.find(cID)->second.pos.y - 15) {
+				std::cout << "Collision With Opponent " << idOpponentCollision << "  " << cID << std::endl;
+				clients[idOpponentCollision].laPara = true;
+				NotifyOtherClients(QUI_LA_PILLA, idOpponentCollision);
+			}
 		}
 	}
 
@@ -218,6 +262,7 @@ void ReceiveData() {
 				if(cmd == TRY_COLLISION_OPPONENT){
 					packet >> idOpponentCollision;
 				}
+
 			}
 			ManageReveivedData(cmd, IDClient, packetIDRecived, senderIP, senderPort, nickname, idMovements, tryaccum, idOpponentCollision);
 		}
@@ -261,6 +306,10 @@ void ManagePing() {
 	for (int32_t i = 1; i <= clients.size(); i++) {
 		if (clients.find(i) != clients.end() && !clients[i].connected) {
 			std::cout << "Client " << std::to_string(clients[i].id) << " disconnected." << std::endl;
+			if (!GAMESTARTED) {
+				clientsConnected--;
+				idsDesaprovechadas.push_back(clients[i].id);
+			}
 			clients.erase(clients[i].id);
 		}
 	}
@@ -342,7 +391,29 @@ int main()
 			Resend();
 			clockSend.restart();
 		}
-		if (clients.size() <= 0 && clientsConnected == MAX_CLIENTS) online = false;
+		if (clients.size() == MAX_CLIENTS){// && clientsConnected == MAX_CLIENTS) {
+			//game starts!
+			GAMESTARTED  = true;
+		}
+		if (GAMESTARTED && !once) {
+			//int32_t pillador = GetRandomInt(1, clients.size());
+			std::uniform_int_distribution<int32_t> num(1, clients.size());
+			std::random_device rd;
+			std::mt19937 gen(rd());
+			int32_t pillador = num(gen);
+
+			//std::cout << pillador << std::endl;
+			for (int i = 1; i <= clients.size(); i++) {
+				if (clients.find(i) != clients.end() && clients[i].id == pillador) {
+					clients[i].laPara = true;
+					std::cout << "La pilla el client amb nickname: " << clients[i].nickname << " i amb ID: " << clients[i].id << std::endl;
+					NotifyOtherClients(QUI_LA_PILLA, clients[i].id);
+				}
+			}
+			once = true;
+		}
+		if (clients.size() <= 0 && GAMESTARTED) online = false;
+		
 	} while (clients.size() <= MAX_CLIENTS && online);
 
 	clients.clear();

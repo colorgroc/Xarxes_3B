@@ -12,12 +12,12 @@ sf::Clock c;
 
 Player * myPlayer;
 //std::map <int32_t, Position> opponents;
-std::map <int32_t, Interpolation> opponents;
+std::map <int32_t, InterpolationAndStuff> opponents;
 sf::Clock clockPositions;
 int32_t idMovements = 1;
 int32_t idUltimMoviment = 0;
 Walls * myWalls; 
-//bool notMove = false;
+bool once = false;
 
 void Resend() {
 	
@@ -49,6 +49,9 @@ void SendACK(int cmd, int32_t pID) {
 	}
 	else if (cmd == ACK_PING) {
 		com = "ACK_PING";
+	}
+	else if (cmd == ACK_QUI_LA_PILLA) {
+		com = "ACK_QUI_LA_PILLA";
 	}
 
 	packet << cmd << pID << myPlayer->ID;
@@ -94,7 +97,7 @@ void ReceiveData() {
 							int32_t oID;
 							Position oPos;
 							packet >> oID >> oPos;
-							opponents.insert(std::make_pair(oID, Interpolation{ oPos, oPos }));
+							opponents.insert(std::make_pair(oID, InterpolationAndStuff{ oPos, oPos, false }));
 						}
 					}
 					if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
@@ -110,7 +113,7 @@ void ReceiveData() {
 					Position pos;
 					packet >> pos;
 					std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << std::endl;
-					opponents.insert(std::make_pair(opponentId, Interpolation{ pos, pos }));
+					opponents.insert(std::make_pair(opponentId, InterpolationAndStuff{ pos, pos, false }));
 				}
 				SendACK(ACK_NEW_CONNECTION, packetIDRecived);
 			}
@@ -195,6 +198,20 @@ void ReceiveData() {
 				}
 				SendACK(ACK_DISCONNECTION, packetIDRecived);
 			}
+			else if (cmd == QUI_LA_PILLA) {
+				packet >> opponentId; //no te pq ser la del oponent
+				if (opponentId == myPlayer->ID) {
+					myPlayer->laParo = true;
+					std::cout << "La paro jo." << std::endl;
+				}
+				else {
+					if (opponents.find(opponentId) != opponents.end()) {
+						std::cout << "La para l'oponent amb ID: " << std::to_string(opponentId) << std::endl;
+						opponents[opponentId].laPara = true;
+					}	
+				}
+				SendACK(ACK_QUI_LA_PILLA, packetIDRecived);
+			}
 		}
 
 	} 
@@ -230,7 +247,7 @@ void GameManager() {
 
 			//comprovar collisio, si es detecta enviar al server per validacio
 			packet.clear();
-			for (std::map<int32_t, Interpolation>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
+			for (std::map<int32_t, InterpolationAndStuff>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 				if (it->second.lastPos.x <= myPlayer->position.x + 15 && it->second.lastPos.x >= myPlayer->position.x - 15 && it->second.lastPos.y <= myPlayer->position.y + 15 && it->second.lastPos.y >= myPlayer->position.y - 15) {
 					packet << TRY_COLLISION_OPPONENT << packetID << myPlayer->ID << it->first;
 					status = socket.send(packet, "localhost", PORT);
@@ -353,7 +370,10 @@ void GameManager() {
 
 		//draw the player circle
 		sf::CircleShape shapePlayer(RADIUS_SPRITE);
-		shapePlayer.setFillColor(sf::Color::Green);
+		//std::cout << shapePlayer.getGlobalBounds().height << std::endl;
+		if(!myPlayer->laParo)
+			shapePlayer.setFillColor(sf::Color::Green);
+		else shapePlayer.setFillColor(sf::Color::Red);
 
 		sf::Vector2f positionPlayer(myPlayer->position.x, myPlayer->position.y);
 		shapePlayer.setPosition(positionPlayer);
@@ -363,19 +383,25 @@ void GameManager() {
 
 		//draw the opponents circle
 		sf::CircleShape shapeOpponent(RADIUS_SPRITE);
-		shapeOpponent.setFillColor(sf::Color::Red);
+		
 
 
-		for (std::map<int32_t, Interpolation>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
+		for (std::map<int32_t, InterpolationAndStuff>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 
 			if (!it->second.middlePositions.empty()) {
 				Position temp = it->second.middlePositions.front(); //agafem valor
 				it->second.middlePositions.pop(); //borrem de la cua
 				shapeOpponent.setPosition(temp.x, temp.y);
+				if(!it->second.laPara)
+					shapeOpponent.setFillColor(sf::Color::Blue);
+				else shapeOpponent.setFillColor(sf::Color::Red);
 				window.draw(shapeOpponent);
 			}
 			else{
 				shapeOpponent.setPosition(it->second.lastPos.x, it->second.lastPos.y);
+				if (!it->second.laPara)
+					shapeOpponent.setFillColor(sf::Color::Blue);
+				else shapeOpponent.setFillColor(sf::Color::Red);
 				window.draw(shapeOpponent);
 				
 			}

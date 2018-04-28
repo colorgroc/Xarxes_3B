@@ -34,8 +34,9 @@
 
 #define PERCENT_PACKETLOSS 0.05
 
+
 enum Cmds {
-	HELLO, ACK_HELLO, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, NOT_OK_POSITION, OK_POSITION, REFRESH_POSITIONS, ACK_REFRESH_POSITIONS, TRY_COLLISION_OPPONENT
+	HELLO, ACK_HELLO, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, NOT_OK_POSITION, OK_POSITION, REFRESH_POSITIONS, ACK_REFRESH_POSITIONS, TRY_COLLISION_OPPONENT, QUI_LA_PILLA, ACK_QUI_LA_PILLA
 };
 
 struct Position {
@@ -55,6 +56,7 @@ struct Client {
 	sf::IpAddress ip;
 	unsigned short port;
 	bool connected;
+	bool laPara;
 	std::map<int32_t, sf::Packet> resending;
 	sf::Clock timeElapsedLastPing;
 	std::map<int32_t, AccumMovements> MapAccumMovements; 		//	idmovement per controlar validacions,
@@ -65,13 +67,15 @@ struct Player
 {
 	int32_t ID = 0;
 	std::string nickname;
+	bool laParo;
 	Position position;
 	std::map<int32_t, sf::Packet> resending;
 	std::map<int32_t, AccumMovements> MapAccumMovements;
 };
-struct Interpolation {
+struct InterpolationAndStuff {
 	Position lastPos;
 	Position newPos;
+	bool laPara;
 	std::queue<Position> middlePositions; //primer a entrar primer a sortir (fifo)
 };
 
@@ -114,6 +118,7 @@ public:
 static float GetRandomFloat() {
 	static std::random_device rd;
 	static std::mt19937 gen(rd());
+	//static std::uniform_real_distribution<float>dis(since, to);
 	static std::uniform_real_distribution<float>dis(0.f, 1.f);
 	return dis(gen);
 }
