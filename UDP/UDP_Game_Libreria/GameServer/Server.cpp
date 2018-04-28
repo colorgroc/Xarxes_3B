@@ -15,11 +15,13 @@ int32_t packetID = 1;
 //variable para controlar cuando se han desconnectado todos hasta que hagamos los estados
 int32_t clientsConnected = 0;
 std::vector<int32_t> idsDesaprovechadas;
+std::set<int32_t> pillados;
 sf::Clock clockPositions;
 std::mutex myMutex;
-bool GAMESTARTED = false;
+bool gameStarted = false;
 bool once = false;
 Walls * myWalls;
+int8_t receivedWinner = 0;
 
 void Resend() {
 	
@@ -43,6 +45,14 @@ void Resend() {
 void SendToAllClients(int cmd) {
 
 	if (cmd == PING) {
+		for (std::map<int32_t, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
+		{
+			sf::Packet packet;
+			packet << cmd; //no hace falta poner packetID 
+			socket.send(packet, clientToSend->second.ip, clientToSend->second.port); //controlar errors
+		}
+	}
+	else if (cmd == GAMESTARTED) { //no es critic
 		for (std::map<int32_t, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
 		{
 			sf::Packet packet;
@@ -102,8 +112,29 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 		}packetID++;
 		//}
 	}
+	else if (cmd == WINNER) {
+		//if (clients.find(cID) != clients.end()) {
+		for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+		{
+			sf::Packet packet;
+			packet << cmd;
+			packet << packetID << cID;
+			it->second.resending.insert(std::make_pair(packetID, packet));
+		}packetID++;
+		//}
+	}
 }
 
+bool CheckCollisionWithClientsPos(Position pos) { //amb pixels
+	bool correctPosition = true;
+
+	for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+
+		if (pos.x == it->second.pos.x && pos.y == it->second.pos.y)
+			correctPosition = false;
+	}
+	return correctPosition;
+}
 
 void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, int32_t idMovements, AccumMovements tryaccum, int32_t idOpponentCollision) {
 
@@ -137,7 +168,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 			//pos.x = GetRandomFloat(1, NUMBER_ROWS_COLUMNS - 1);
 			//pos.y = GetRandomFloat(1, NUMBER_ROWS_COLUMNS - 1);
 			//std::cout << "yeah!" << std::endl;
-		} while (!myWalls->CheckCollision(pos));
+		} while (!myWalls->CheckCollision(pos) && !CheckCollisionWithClientsPos(pos));
 		
 		pos = CellToPixel(pos.x ,pos.y);
 		sf::Packet packet;
@@ -154,7 +185,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 						packet << it->second.id << it->second.pos;
 					}
 				}
-				clients.insert(std::make_pair(clientID, Client{ clientID, nickname, pos, senderIP, senderPort, true, false }));
+				clients.insert(std::make_pair(clientID, Client{ clientID, nickname, pos, senderIP, senderPort, true, false, false }));
 				NotifyOtherClients(NEW_CONNECTION, clientID);
 				clients[clientID].timeElapsedLastPing.restart();
 				clientsConnected++;
@@ -175,7 +206,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 						packet << it->second.id << it->second.pos;
 					}
 				}
-				clients.insert(std::make_pair(idsDesaprovechadas[0], Client{ idsDesaprovechadas[0], nickname, pos, senderIP, senderPort, true, false }));
+				clients.insert(std::make_pair(idsDesaprovechadas[0], Client{ idsDesaprovechadas[0], nickname, pos, senderIP, senderPort, true, false, false }));
 				NotifyOtherClients(NEW_CONNECTION, idsDesaprovechadas[0]);
 				clients[idsDesaprovechadas[0]].timeElapsedLastPing.restart();
 				clientsConnected++;
@@ -191,9 +222,12 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 		}
 		
 	}
-	else if (cmd == ACK_NEW_CONNECTION || cmd == ACK_DISCONNECTION || cmd == ACK_REFRESH_POSITIONS || cmd == ACK_QUI_LA_PILLA) {
+	else if (cmd == ACK_NEW_CONNECTION || cmd == ACK_DISCONNECTION || cmd == ACK_REFRESH_POSITIONS || cmd == ACK_QUI_LA_PILLA || cmd == ACK_WINNER) {
 		if (clients.find(cID) != clients.end() && clients[cID].resending.find(pID) != clients[cID].resending.end()) {
 			clients[cID].resending.erase(pID);
+			if (cmd == ACK_WINNER) {
+				receivedWinner++;
+			}
 		}
 	}
 	else if (cmd == TRY_POSITION) {
@@ -217,9 +251,11 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 	else if(TRY_COLLISION_OPPONENT) {
 		if (clients.find(idOpponentCollision) != clients.end() && clients.find(cID) != clients.end()) {
 			if (clients.find(idOpponentCollision)->second.pos.x <= clients.find(cID)->second.pos.x + 15 && clients.find(idOpponentCollision)->second.pos.x >= clients.find(cID)->second.pos.x - 15 && clients.find(idOpponentCollision)->second.pos.y <= clients.find(cID)->second.pos.y + 15 && clients.find(idOpponentCollision)->second.pos.y >= clients.find(cID)->second.pos.y - 15) {
-				std::cout << "Collision With Opponent " << idOpponentCollision << "  " << cID << std::endl;
-				clients[idOpponentCollision].laPara = true;
-				NotifyOtherClients(QUI_LA_PILLA, idOpponentCollision);
+				//std::cout << "Collision With Opponent " << idOpponentCollision << "  " << cID << std::endl;
+				if (!clients[idOpponentCollision].laPara && clients[cID].laPara) {
+					clients[idOpponentCollision].laPara = true;
+					NotifyOtherClients(QUI_LA_PILLA, idOpponentCollision);
+				}
 			}
 		}
 	}
@@ -306,7 +342,7 @@ void ManagePing() {
 	for (int32_t i = 1; i <= clients.size(); i++) {
 		if (clients.find(i) != clients.end() && !clients[i].connected) {
 			std::cout << "Client " << std::to_string(clients[i].id) << " disconnected." << std::endl;
-			if (!GAMESTARTED) {
+			if (!gameStarted) {
 				clientsConnected--;
 				idsDesaprovechadas.push_back(clients[i].id);
 			}
@@ -367,6 +403,25 @@ void PositionValidations() {
 	}
 }
 
+void ComprovacioPillats() {
+	for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+		if (it->second.laPara)
+			pillados.insert(it->first);
+	}
+
+}
+void Winner() {
+	if (pillados.size() >= MAX_CLIENTS - 1) {
+		for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+			if (!it->second.laPara) {
+				it->second.winner = true;
+				NotifyOtherClients(WINNER, it->first);
+			}
+		}
+		//online = false;
+	}
+}
+
 int main()
 {
 	online = true;
@@ -379,7 +434,7 @@ int main()
 	do {
 		ReceiveData();
 		ManagePing();
-
+		Winner();
 		//validem moviments jugadors
 		if(clockPositions.getElapsedTime().asMilliseconds() > SEND_ACCUMMOVEMENTS){
 			PositionValidations();
@@ -389,13 +444,14 @@ int main()
 		//cada certa quantiat de temps enviar missatges
 		if (clockSend.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
+			ComprovacioPillats();
 			clockSend.restart();
 		}
 		if (clients.size() == MAX_CLIENTS){// && clientsConnected == MAX_CLIENTS) {
 			//game starts!
-			GAMESTARTED  = true;
+			gameStarted  = true;
 		}
-		if (GAMESTARTED && !once) {
+		if (gameStarted && !once) {
 			//int32_t pillador = GetRandomInt(1, clients.size());
 			std::uniform_int_distribution<int32_t> num(1, clients.size());
 			std::random_device rd;
@@ -412,8 +468,8 @@ int main()
 			}
 			once = true;
 		}
-		if (clients.size() <= 0 && GAMESTARTED) online = false;
-		
+		if (clients.size() <= 0 && gameStarted || receivedWinner >= MAX_CLIENTS) online = false;
+
 	} while (clients.size() <= MAX_CLIENTS && online);
 
 	clients.clear();

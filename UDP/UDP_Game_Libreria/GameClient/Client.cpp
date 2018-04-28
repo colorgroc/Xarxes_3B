@@ -18,6 +18,8 @@ int32_t idMovements = 1;
 int32_t idUltimMoviment = 0;
 Walls * myWalls; 
 bool once = false;
+int32_t winner;
+bool alreadySaidWinner = false;
 
 void Resend() {
 	
@@ -53,6 +55,9 @@ void SendACK(int cmd, int32_t pID) {
 	else if (cmd == ACK_QUI_LA_PILLA) {
 		com = "ACK_QUI_LA_PILLA";
 	}
+	else if (cmd == ACK_WINNER) {
+		com = "ACK_WINNER";
+	}
 
 	packet << cmd << pID << myPlayer->ID;
 	status = socket.send(packet, "localhost", PORT);
@@ -85,6 +90,10 @@ void ReceiveData() {
 
 			if (cmd == PING) {
 				SendACK(ACK_PING, packetIDRecived);
+			}
+			else if (cmd == GAMESTARTED) {
+				//SendACK(ACK_GAMESTARTED, packetIDRecived);
+				std::cout << "The game PILLAPILLA started." << std::endl;
 			}
 			else if (cmd == ACK_HELLO) {
 				if (myPlayer->ID == 0) {
@@ -201,16 +210,36 @@ void ReceiveData() {
 			else if (cmd == QUI_LA_PILLA) {
 				packet >> opponentId; //no te pq ser la del oponent
 				if (opponentId == myPlayer->ID) {
-					myPlayer->laParo = true;
-					std::cout << "La paro jo." << std::endl;
+					if (!myPlayer->laParo) {
+						myPlayer->laParo = true;
+						std::cout << "La paro jo." << std::endl;
+					}
 				}
 				else {
 					if (opponents.find(opponentId) != opponents.end()) {
-						std::cout << "La para l'oponent amb ID: " << std::to_string(opponentId) << std::endl;
-						opponents[opponentId].laPara = true;
+						
+						if (!opponents[opponentId].laPara) {
+							opponents[opponentId].laPara = true;
+							std::cout << "La para l'oponent amb ID: " << std::to_string(opponentId) << std::endl;
+						}
 					}	
 				}
 				SendACK(ACK_QUI_LA_PILLA, packetIDRecived);
+			}
+			else if (cmd == WINNER) {
+				packet >> winner; //no te pq ser la del oponent
+				SendACK(ACK_WINNER, packetIDRecived);
+				if (!alreadySaidWinner) {
+					if (winner == myPlayer->ID) {
+						std::cout << "------ I'M THE WINNER! ------" << std::endl;
+						std::cout << "------ GAME FINISHED ------" << std::endl;
+					}
+					else {
+						std::cout << "------ OPPONENT " << winner << " IS THE WINNER! ------" << std::endl;
+						std::cout << "------ GAME FINISHED ------" << std::endl;
+					}
+					alreadySaidWinner = true;
+				}
 			}
 		}
 
@@ -222,12 +251,13 @@ void ReceiveData() {
 
 void GameManager() {
 
-	sf::RenderWindow window(sf::VideoMode(WINDOW_SIZE, WINDOW_SIZE), "Traffic Game - Client: " + myPlayer->nickname);
+	sf::RenderWindow window(sf::VideoMode(WINDOW_SIZE, WINDOW_SIZE), "PILLAPILLA GAME - Client: " + myPlayer->nickname);
 
 	while (window.isOpen())
 	{
 		sf::Event event;
 		ReceiveData();
+	
 		if (c.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
 			c.restart();
@@ -373,7 +403,7 @@ void GameManager() {
 		//std::cout << shapePlayer.getGlobalBounds().height << std::endl;
 		if(!myPlayer->laParo)
 			shapePlayer.setFillColor(sf::Color::Green);
-		else shapePlayer.setFillColor(sf::Color::Red);
+		else shapePlayer.setFillColor(sf::Color::Magenta);
 
 		sf::Vector2f positionPlayer(myPlayer->position.x, myPlayer->position.y);
 		shapePlayer.setPosition(positionPlayer);
@@ -449,7 +479,6 @@ int main()
 
 	clockPositions.restart(); //a partir daqui ja es pot acabar de moure per tant fem un reset del rellotje
 	GameManager();
-
 	opponents.clear();
 	socket.unbind();
 	system("exit");

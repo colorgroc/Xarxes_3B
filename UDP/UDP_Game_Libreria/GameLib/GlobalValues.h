@@ -11,6 +11,7 @@
 #include <random>
 #include <math.h>
 #include <queue>    
+#include <set>
 
 #define MAX_CLIENTS 4
 #define MAX_OPPONENTS 3
@@ -36,7 +37,7 @@
 
 
 enum Cmds {
-	HELLO, ACK_HELLO, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, NOT_OK_POSITION, OK_POSITION, REFRESH_POSITIONS, ACK_REFRESH_POSITIONS, TRY_COLLISION_OPPONENT, QUI_LA_PILLA, ACK_QUI_LA_PILLA
+	HELLO, ACK_HELLO, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, NOT_OK_POSITION, OK_POSITION, REFRESH_POSITIONS, ACK_REFRESH_POSITIONS, TRY_COLLISION_OPPONENT, QUI_LA_PILLA, ACK_QUI_LA_PILLA, GAMESTARTED, WINNER, ACK_WINNER
 };
 
 struct Position {
@@ -57,6 +58,7 @@ struct Client {
 	unsigned short port;
 	bool connected;
 	bool laPara;
+	bool winner;
 	std::map<int32_t, sf::Packet> resending;
 	sf::Clock timeElapsedLastPing;
 	std::map<int32_t, AccumMovements> MapAccumMovements; 		//	idmovement per controlar validacions,
