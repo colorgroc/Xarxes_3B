@@ -21,7 +21,7 @@ std::mutex myMutex;
 bool gameStarted = false;
 bool once = false;
 Walls * myWalls;
-int8_t receivedWinner = 0;
+int32_t receivedWinner = 0;
 
 void Resend() {
 	
@@ -49,7 +49,10 @@ void SendToAllClients(int cmd) {
 		{
 			sf::Packet packet;
 			packet << cmd; //no hace falta poner packetID 
-			socket.send(packet, clientToSend->second.ip, clientToSend->second.port); //controlar errors
+			status = socket.send(packet, clientToSend->second.ip, clientToSend->second.port); 
+			if (status != sf::Socket::Done) {
+				std::cout << "Error sending PING to client " << std::to_string(clientToSend->first) << std::endl;
+			}
 		}
 	}
 	else if (cmd == GAMESTARTED) { //no es critic
@@ -57,7 +60,10 @@ void SendToAllClients(int cmd) {
 		{
 			sf::Packet packet;
 			packet << cmd; //no hace falta poner packetID 
-			socket.send(packet, clientToSend->second.ip, clientToSend->second.port); //controlar errors
+			status = socket.send(packet, clientToSend->second.ip, clientToSend->second.port); 
+			if (status != sf::Socket::Done) {
+				std::cout << "Error sending GAMESTARTED to client " << std::to_string(clientToSend->first) << std::endl;
+			}
 		}
 	}
 	
@@ -96,7 +102,10 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 				sf::Packet packet;
 				if (it->first != cID) {
 					packet << cmd << packetID << cID << clients.find(cID)->second.pos;
-					socket.send(packet, it->second.ip, it->second.port);
+					status = socket.send(packet, it->second.ip, it->second.port);
+					if (status != sf::Socket::Done) {
+						std::cout << "Error sending REFRESH_POSITIONS to client " << std::to_string(cID) << std::endl;
+					}
 				}
 			} packetID++;
 		}
@@ -125,7 +134,7 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 	}
 }
 void PilladorRandom() {
-	std::uniform_int_distribution<int32_t> num(1, clients.size());
+	std::uniform_int_distribution<unsigned short> num(1, clients.size());
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	int32_t pillador = num(gen);
@@ -133,8 +142,8 @@ void PilladorRandom() {
 	for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
 		if (it->second.id == pillador) {
 			it->second.laPara = true;
-			std::cout << "La pilla el client amb nickname: " << it->second.nickname << " i amb ID: " << it->first << std::endl;
-			NotifyOtherClients(QUI_LA_PILLA, it->first);
+			std::cout << "La pilla el client amb nickname: " << it->second.nickname << " i amb ID: " << std::to_string(it->first) << std::endl;
+			NotifyOtherClients(QUI_LA_PILLA, it->second.id);
 		}
 	}
 	//std::cout << pillador << std::endl;
@@ -172,7 +181,10 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 				alreadyConnected = true;
 				sf::Packet p;
 				p << ID_ALREADY_TAKEN;
-				socket.send(p, senderIP, senderPort);
+				status = socket.send(p, senderIP, senderPort);
+				if (status != sf::Socket::Done) {
+					std::cout << "Error sending ID_ALREADY_TAKEN to unknown client " << std::endl;
+				}
 			}
 		}
 
@@ -255,18 +267,18 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 	else if (cmd == TRY_POSITION) {
 
 		//posarlo a dintre duna llista per més tard fer les validacions, una vegada fetes les validacions es borra la llista de moviments acumulats
-
-		if (clients.find(cID) != clients.end() && clients.find(cID)->second.MapAccumMovements.empty()) { //es el primer paquet del client, per tant no acumulem, si no que inicialitzem el mapa
-			clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, tryaccum));
-		}
-		else { //hem d'acumular amb l'anterior paquet accum, posar el id move del ultim, sumar deltes i posicio del ultim
-			AccumMovements temp;
-			temp.delta.x =  clients.find(cID)->second.MapAccumMovements.rbegin()->second.delta.x += tryaccum.delta.x;
-			temp.delta.y  = clients.find(cID)->second.MapAccumMovements.rbegin()->second.delta.y += tryaccum.delta.y;
-			temp.absolute = tryaccum.absolute;
-			clients.find(cID)->second.MapAccumMovements.erase(clients.find(cID)->second.MapAccumMovements.rbegin()->first); //borrem anterior
-			clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, temp)); //insertem amb els nous valors actualitzats
-			
+		if (clients.find(cID) != clients.end()) {
+			if (clients.find(cID)->second.MapAccumMovements.empty()) { //es el primer paquet del client, per tant no acumulem, si no que inicialitzem el mapa
+				clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, tryaccum));
+			}
+			else { //hem d'acumular amb l'anterior paquet accum, posar el id move del ultim, sumar deltes i posicio del ultim
+				AccumMovements temp;
+				temp.delta.x = clients.find(cID)->second.MapAccumMovements.rbegin()->second.delta.x += tryaccum.delta.x;
+				temp.delta.y = clients.find(cID)->second.MapAccumMovements.rbegin()->second.delta.y += tryaccum.delta.y;
+				temp.absolute = tryaccum.absolute;
+				clients.find(cID)->second.MapAccumMovements.erase(clients.find(cID)->second.MapAccumMovements.rbegin()->first); //borrem anterior
+				clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, temp)); //insertem amb els nous valors actualitzats
+			}
 		}
 
 	}
@@ -481,7 +493,7 @@ int main()
 			ComprovacioPillats();
 			clockSend.restart();
 		}
-		if (clients.size() >= MAX_CLIENTS){// && clientsConnected == MAX_CLIENTS) {
+		if (clients.size() >= MAX_CLIENTS && !gameStarted){// && clientsConnected == MAX_CLIENTS) {
 			//game starts!
 			gameStarted  = true;
 			SendToAllClients(GAMESTARTED);
@@ -490,7 +502,7 @@ int main()
 			PilladorRandom();
 			once = true;
 		}
-		if (clients.size() <= 0 && gameStarted || receivedWinner >= clients.size()) online = false;
+		if ((clients.size() <= 0 && gameStarted) || (receivedWinner >= clients.size() && gameStarted)) online = false;
 
 	} while (online);
 

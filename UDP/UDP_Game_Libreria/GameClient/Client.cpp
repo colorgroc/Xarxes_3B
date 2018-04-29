@@ -42,7 +42,7 @@ void Resend() {
 		if (status == sf::Socket::Error) {
 			std::string cmd;
 			msg->second >> cmd;
-std::cout << "Error sending the message. Client to Server." << "Message IP: " << std::to_string(msg->first) << "Message: " << cmd << std::endl;
+			std::cout << "Error sending the message. Client to Server." << "Message IP: " << std::to_string(msg->first) << "Message: " << cmd << std::endl;
 		}
 		else if (status == sf::Socket::Disconnected) {
 			std::cout << "Error sending the message. Server disconnected." << std::endl;
@@ -123,10 +123,10 @@ void ReceiveData() {
 					if (numOfOpponents > 0) {
 						//treiem del packet la ID i la pos de cada oponent
 						for (int i = 0; i < numOfOpponents; i++) {
-							int32_t oID;
+							//int8_t opponentId;
 							Position oPos;
-							packet >> oID >> oPos;
-							opponents.insert(std::make_pair(oID, InterpolationAndStuff{ oPos, oPos, false }));
+							packet >> opponentId >> oPos;
+							opponents.insert(std::make_pair(opponentId, InterpolationAndStuff{ oPos, oPos, false }));
 						}
 					}
 					if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
