@@ -489,7 +489,7 @@ int main()
 			PilladorRandom();
 			once = true;
 		}
-		if (clients.size() <= 0 && gameStarted || receivedWinner >= MAX_CLIENTS) online = false;
+		if (clients.size() <= 0 && gameStarted || receivedWinner >= clients.size()) online = false;
 
 	} while (online);
 
