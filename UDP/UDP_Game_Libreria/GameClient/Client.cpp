@@ -277,11 +277,6 @@ void GameManager() {
 	{
 		sf::Event event;
 		ReceiveData();
-		if (alreadySaidWinner) {
-			socket.unbind();
-			system("pause");
-			//window.close();
-		}
 			
 		if (GTFO) {
 			socket.unbind();

@@ -256,7 +256,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 
 		//posarlo a dintre duna llista per més tard fer les validacions, una vegada fetes les validacions es borra la llista de moviments acumulats
 
-		if (clients.find(cID)->second.MapAccumMovements.empty()) { //es el primer paquet del client, per tant no acumulem, si no que inicialitzem el mapa
+		if (clients.find(cID) != clients.end() && clients.find(cID)->second.MapAccumMovements.empty()) { //es el primer paquet del client, per tant no acumulem, si no que inicialitzem el mapa
 			clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, tryaccum));
 		}
 		else { //hem d'acumular amb l'anterior paquet accum, posar el id move del ultim, sumar deltes i posicio del ultim
@@ -277,6 +277,10 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 				if (!clients[idOpponentCollision].laPara && clients[cID].laPara) {
 					clients[idOpponentCollision].laPara = true;
 					NotifyOtherClients(QUI_LA_PILLA, idOpponentCollision);
+				}
+				else if (clients[idOpponentCollision].laPara && !clients[cID].laPara) {
+					clients[cID].laPara = true;
+					NotifyOtherClients(QUI_LA_PILLA, cID);
 				}
 			}
 		}
