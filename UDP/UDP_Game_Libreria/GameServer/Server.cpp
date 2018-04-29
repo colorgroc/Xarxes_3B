@@ -244,7 +244,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 		}
 		
 	}
-	else if (cmd == ACK_NEW_CONNECTION || cmd == ACK_DISCONNECTION || cmd == ACK_REFRESH_POSITIONS || cmd == ACK_QUI_LA_PILLA || cmd == ACK_WINNER) {
+	else if (cmd == ACK_NEW_CONNECTION || cmd == ACK_DISCONNECTION || cmd == ACK_QUI_LA_PILLA || cmd == ACK_WINNER) {
 		if (clients.find(cID) != clients.end() && clients[cID].resending.find(pID) != clients[cID].resending.end()) {
 			clients[cID].resending.erase(pID);
 			if (cmd == ACK_WINNER) {
@@ -484,6 +484,7 @@ int main()
 		if (clients.size() >= MAX_CLIENTS){// && clientsConnected == MAX_CLIENTS) {
 			//game starts!
 			gameStarted  = true;
+			SendToAllClients(GAMESTARTED);
 		}
 		if (gameStarted && !once) {
 			PilladorRandom();
