@@ -45,6 +45,13 @@ struct Position {
 	int16_t y;
 };
 
+struct Partida {
+	std::string name;
+	std::string password;
+	int8_t maxPlayers;
+	int8_t numPlayersConnected;
+};
+
 struct AccumMovements {
 	Position delta;
 	Position absolute;

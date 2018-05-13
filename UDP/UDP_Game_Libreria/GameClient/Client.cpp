@@ -21,17 +21,86 @@ bool once = false;
 int32_t winner;
 bool alreadySaidWinner = false;
 bool GTFO = false;
+sf::RenderWindow window;
+bool create, join, name, password, maxNum, bye;
+std::map <std::string, Partida> partidas;
 
 void ConnectionWithServer() {
 
 	std::cout << "Estableciendo conexion con server... \n";
-	std::cout << "Type your nickname: ";
-	std::getline(std::cin, myPlayer->nickname);
-	sf::Packet packet;
+	window.create(sf::VideoMode(500, 500), "Lobby", sf::Style::Default);
+
+	sf::RectangleShape inputButton(sf::Vector2f(300.f, 60.f));
+	inputButton.setPosition(window.getSize().x/2/2, window.getSize().y/2);
+	inputButton.setFillColor(sf::Color::White);
+
+	sf::Font font;
+	if (!font.loadFromFile("calibri.ttf"))
+		std::cout << "Can't find the font file" << std::endl;
+
+	sf::Text startText;
+	startText.setFont(font);
+	startText.setStyle(sf::Text::Regular);
+	startText.setString("Username: ");
+	startText.setFillColor(sf::Color::White);
+	startText.setCharacterSize(48);
+	startText.setPosition(window.getSize().x / 2/2, window.getSize().y / 2 - 100);
+
+	sf::String playerInput;
+	sf::Text playerText("", font, 48);
+	playerText.setPosition(window.getSize().x / 2/2, window.getSize().y / 2);
+	playerText.setFillColor(sf::Color::Black);
+	window.clear();
+	
+	while (window.isOpen())
+	{
+		sf::Event event;
+		while (window.pollEvent(event))
+		{
+			switch (event.type)
+			{
+				case sf::Event::Closed:
+					window.close();
+					bye = true;
+					break;
+				case sf::Event::KeyPressed:
+				{
+					if (event.key.code == sf::Keyboard::Return) {
+						sf::Packet packet;
+						myPlayer->nickname = playerText.getString();
+						packet << HELLO << packetID << myPlayer->nickname;
+						myPlayer->resending.insert(std::make_pair(packetID, packet));
+						packetID++;
+						packet.clear();	
+						window.close();
+						break;
+					}
+				}
+				break;
+				case sf::Event::TextEntered:
+				{
+					if (event.text.unicode < 128)
+					{
+						playerInput += event.text.unicode;
+						playerText.setString(playerInput);
+					}
+				}
+				break;
+			}
+				
+		}
+		window.draw(startText);
+		window.draw(inputButton);
+		window.draw(playerText);
+		window.display();
+	}
+	/*std::cout << "Type your nickname: ";
+	std::getline(std::cin, myPlayer->nickname);*/
+	/*sf::Packet packet;
 	packet << HELLO << packetID << myPlayer->nickname;
 	myPlayer->resending.insert(std::make_pair(packetID, packet));
 	packetID++;
-	packet.clear();
+	packet.clear();*/
 }
 
 
@@ -268,6 +337,275 @@ void ReceiveData() {
 	packet.clear();
 }
 
+void Lobby() {
+	window.create(sf::VideoMode::getDesktopMode(), "Lobby", sf::Style::Default);
+	window.clear();
+	sf::Font font;
+	if (!font.loadFromFile("calibri.ttf"))
+		std::cout << "Can't find the font file" << std::endl;
+	
+	//-------------- create ----------------------------
+	sf::RectangleShape createButton(sf::Vector2f(300, 50.f));
+	createButton.setPosition(window.getSize().x / 2 / 2, 200);
+	createButton.setFillColor(sf::Color::White);
+
+	sf::Text createText;
+	createText.setFont(font);
+	createText.setStyle(sf::Text::Regular);
+	createText.setString("Create Game");
+	createText.setFillColor(sf::Color::Black);
+	createText.setCharacterSize(48);
+	createText.setPosition(window.getSize().x / 2 / 2+20, 200 - 10);
+
+	//-------------- join ----------------------------
+	sf::RectangleShape joinButton(sf::Vector2f(300, 50.f));
+	joinButton.setPosition(window.getSize().x / 2 / 2, 300);
+	joinButton.setFillColor(sf::Color::White);
+
+	sf::Text joinText;
+	joinText.setFont(font);
+	joinText.setStyle(sf::Text::Regular);
+	joinText.setString("Join Game");
+	joinText.setFillColor(sf::Color::Black);
+	joinText.setCharacterSize(48);
+	joinText.setPosition(window.getSize().x / 2 / 2 + 20, 300 - 10);
+
+	//-------------- exit ----------------------------
+	sf::RectangleShape exitButton(sf::Vector2f(200.f, 50.f));
+	exitButton.setPosition(window.getSize().x / 2 / 2, 400);
+	exitButton.setFillColor(sf::Color::Red);
+
+	sf::Text exitText;
+	exitText.setFont(font);
+	exitText.setStyle(sf::Text::Regular);
+	exitText.setString("Exit");
+	exitText.setFillColor(sf::Color::White);
+	exitText.setCharacterSize(48);
+	exitText.setPosition(window.getSize().x / 2 / 2 + 50, 400-10);
+
+	//-------------- back ----------------------------
+	sf::RectangleShape backButton(sf::Vector2f(200.f, 50.f));
+	backButton.setPosition(50, window.getSize().y - 100);
+	backButton.setFillColor(sf::Color::Yellow);
+
+	sf::Text backText;
+	backText.setFont(font);
+	backText.setStyle(sf::Text::Regular);
+	backText.setString("Back");
+	backText.setFillColor(sf::Color::Black);
+	backText.setCharacterSize(48);
+	backText.setPosition(50 + 50, window.getSize().y - 100 - 10);
+
+	//-------------- ok ----------------------------
+	sf::RectangleShape okButton(sf::Vector2f(200.f, 50.f));
+	okButton.setPosition(window.getSize().x - 300, window.getSize().y - 100);
+	okButton.setFillColor(sf::Color::Green);
+
+	sf::Text okText;
+	okText.setFont(font);
+	okText.setStyle(sf::Text::Regular);
+	okText.setFillColor(sf::Color::Black);
+	okText.setCharacterSize(48);
+	okText.setPosition(window.getSize().x - 300 + 50, window.getSize().y - 100 - 10);
+
+	//-------------- Create: Name ----------------------------
+	sf::Text createNameText;
+	createNameText.setFont(font);
+	createNameText.setStyle(sf::Text::Regular);
+	createNameText.setString("Name: ");
+	createNameText.setFillColor(sf::Color::White);
+	createNameText.setCharacterSize(48);
+	createNameText.setPosition(window.getSize().x / 2 / 2, 150);
+	
+	sf::RectangleShape createNameButton(sf::Vector2f(200, 50.f));
+	createNameButton.setPosition(window.getSize().x / 2 / 2, 200);
+	createNameButton.setFillColor(sf::Color::White);
+
+	sf::String nameInput;
+	sf::Text nameText("", font, 48);
+	nameText.setPosition(window.getSize().x / 2 / 2, 200-10);
+	nameText.setFillColor(sf::Color::Black);
+
+	//-------------- Create: Password ----------------------------
+	sf::Text createPassText;
+	createPassText.setFont(font);
+	createPassText.setStyle(sf::Text::Regular);
+	createPassText.setString("Password:");
+	createPassText.setFillColor(sf::Color::White);
+	createPassText.setCharacterSize(48);
+	createPassText.setPosition(window.getSize().x / 2 / 2, 250);
+	
+	sf::RectangleShape createPassButton(sf::Vector2f(200, 50.f));
+	createPassButton.setPosition(window.getSize().x / 2 / 2, 300);
+	createPassButton.setFillColor(sf::Color::White);
+
+	sf::String passInput;
+	sf::Text passText("", font, 48);
+	passText.setPosition(window.getSize().x / 2 / 2, 300-10);
+	passText.setFillColor(sf::Color::Black);
+
+	//-------------- Create: MaxPlayers ----------------------------
+	sf::Text createMaxText;
+	createMaxText.setFont(font);
+	createMaxText.setStyle(sf::Text::Regular);
+	createMaxText.setString("Max Players:");
+	createMaxText.setFillColor(sf::Color::White);
+	createMaxText.setCharacterSize(48);
+	createMaxText.setPosition(window.getSize().x / 2 / 2, 350);
+	
+	sf::RectangleShape createMaxButton(sf::Vector2f(100, 50.f));
+	createMaxButton.setPosition(window.getSize().x / 2 / 2, 400);
+	createMaxButton.setFillColor(sf::Color::White);
+
+	sf::String numInput;
+	sf::Text numText("", font, 48);
+	numText.setPosition(window.getSize().x / 2 / 2, 400-10);
+	numText.setFillColor(sf::Color::Black);
+
+	while (window.isOpen())
+	{
+		sf::Event Event;
+		sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+		sf::Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+
+		while (window.pollEvent(Event))
+		{
+			switch (Event.type)
+			{
+			case sf::Event::Closed:
+				window.close();
+				bye = true;
+				break;
+			case sf::Event::MouseMoved:
+			{
+				//Create
+				if (createButton.getGlobalBounds().contains(mousePosF))
+					createButton.setFillColor(sf::Color(169, 169, 169)); //grey
+				else createButton.setFillColor(sf::Color::White);
+				//join
+				if (joinButton.getGlobalBounds().contains(mousePosF))
+					joinButton.setFillColor(sf::Color(169, 169, 169)); //grey
+				else joinButton.setFillColor(sf::Color::White);
+				//exit
+				if (exitButton.getGlobalBounds().contains(mousePosF))
+					exitButton.setFillColor(sf::Color(169, 169, 169)); //grey
+				else exitButton.setFillColor(sf::Color::Red);
+			}
+			break;
+			case sf::Event::MouseButtonPressed:
+			{
+				if (createButton.getGlobalBounds().contains(mousePosF))
+				{
+					create = true;
+					name = true;
+					okText.setString("Create");
+					break;
+				}
+				if (joinButton.getGlobalBounds().contains(mousePosF))
+				{
+					join = true;
+					okText.setString("Join");
+					break;
+				}
+				if (backButton.getGlobalBounds().contains(mousePosF))
+				{
+					create = join = name = password = maxNum = false;
+					break;
+				}
+				if (okButton.getGlobalBounds().contains(mousePosF))
+				{
+					window.close();
+					break;
+				}
+				if (exitButton.getGlobalBounds().contains(mousePosF))
+				{
+					window.close();
+					bye = true;
+					break;
+				}
+			}
+			break;
+			case sf::Event::TextEntered:
+			{
+				if (Event.text.unicode < 128 && name)
+				{
+					nameInput += Event.text.unicode;
+					nameText.setString(nameInput);
+				}
+				else if (Event.text.unicode < 128 && password) {
+					passInput += Event.text.unicode;
+					passText.setString(passInput);
+				}
+				else if (Event.text.unicode < 128 && maxNum) {
+					numInput += Event.text.unicode;
+					numText.setString(numInput);
+				}
+			}
+			break;
+			case sf::Event::KeyPressed:
+			{
+				if (Event.key.code == sf::Keyboard::Return) {
+					if (name) {
+						name = false;
+						password = true;
+						//enviar nameText.getString();
+					}
+					else if (password) {
+						password = false;
+						maxNum = true;
+						//enviar passText.getString();
+					}
+					else if (maxNum) {
+						maxNum = false;
+						//enviar numText.getString();
+						break;
+					}
+					break;
+				}
+			}
+			break;
+			}
+		}
+		window.clear();
+		if (!create && !join) {
+			window.draw(createButton);
+			window.draw(createText);
+			window.draw(joinButton);
+			window.draw(joinText);
+			window.draw(exitButton);
+			window.draw(exitText);
+		}
+		else if (create) {		
+			//name
+			window.draw(createNameText);
+			window.draw(createNameButton);
+			window.draw(nameText);
+			//password
+			window.draw(createPassText);
+			window.draw(createPassButton);
+			window.draw(passText);
+			//maxNum
+			window.draw(createMaxText);
+			window.draw(createMaxButton);
+			window.draw(numText);
+			//back
+			window.draw(backButton);
+			window.draw(backText);
+			//ok
+			window.draw(okButton);
+			window.draw(okText);
+		}
+		else if (join) {
+			//back
+			window.draw(backButton);
+			window.draw(backText);
+			//ok
+			window.draw(okButton);
+			window.draw(okText);
+		}
+		window.display();
+	}
+}
 
 void GameManager() {
 
@@ -484,12 +822,15 @@ int main()
 
 	myPlayer = new Player();
 	myWalls = new Walls();
-
+	partidas.insert(std::make_pair("1ra Partida Loko", Partida{ "1ra Partida Loko", "LOL", 3, 1 }));
 	//initial connection
 	ConnectionWithServer();
 
-	clockPositions.restart(); //a partir daqui ja es pot acabar de moure per tant fem un reset del rellotje
-	GameManager();
+	Lobby();
+	if (!bye) {
+		clockPositions.restart(); //a partir daqui ja es pot acabar de moure per tant fem un reset del rellotje
+		GameManager();
+	}
 	opponents.clear();
 	socket.unbind();
 	system("exit");
