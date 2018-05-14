@@ -17,13 +17,17 @@ sf::Clock clockPositions;
 int32_t idMovements = 1;
 int32_t idUltimMoviment = 0;
 Walls * myWalls; 
-bool once = false;
 int32_t winner;
-bool alreadySaidWinner = false;
-bool GTFO = false;
 sf::RenderWindow window;
-bool create, join, name, password, maxNum, bye;
-std::map <std::string, Partida> partidas;
+bool alreadySaidWinner, GTFO, once, create, join, name, password, maxNum, exitGame, writePassword, disconnected, sortByName, sortByConnected, sortByMax;
+std::map <int8_t, Partida> partidas;
+std::map<std::string, ListButtons> listadoPartidasPorNombre;
+std::map<int8_t, ListButtons> listadoPartidasPorNumConnectados;
+std::map<int8_t, ListButtons> listadoPartidasPorMaxPlayers;
+std::vector<ListButtons> vectorListaPartidas;
+
+sf::Color grey = sf::Color(169, 169, 169);
+sf::Color greyFosc = sf::Color(49, 51, 53);
 
 void ConnectionWithServer() {
 
@@ -61,7 +65,7 @@ void ConnectionWithServer() {
 			{
 				case sf::Event::Closed:
 					window.close();
-					bye = true;
+					exitGame = disconnected = true;
 					break;
 				case sf::Event::KeyPressed:
 				{
@@ -79,7 +83,12 @@ void ConnectionWithServer() {
 				break;
 				case sf::Event::TextEntered:
 				{
-					if (event.text.unicode < 128)
+					if (event.text.unicode == '\b') {
+						if (playerInput.getSize() > 0)
+							playerInput.erase(playerInput.getSize() - 1, 1);
+						playerText.setString(playerInput);
+					}
+					else if (event.text.unicode < 128)
 					{
 						playerInput += event.text.unicode;
 						playerText.setString(playerInput);
@@ -338,7 +347,7 @@ void ReceiveData() {
 }
 
 void Lobby() {
-	window.create(sf::VideoMode::getDesktopMode(), "Lobby", sf::Style::Default);
+	window.create(sf::VideoMode::getDesktopMode(), "Lobby", sf::Style::Fullscreen);
 	window.clear();
 	sf::Font font;
 	if (!font.loadFromFile("calibri.ttf"))
@@ -355,7 +364,7 @@ void Lobby() {
 	createText.setString("Create Game");
 	createText.setFillColor(sf::Color::Black);
 	createText.setCharacterSize(48);
-	createText.setPosition(window.getSize().x / 2 / 2+20, 200 - 10);
+	createText.setPosition(window.getSize().x / 2 / 2+20, createButton.getPosition().y - 10);
 
 	//-------------- join ----------------------------
 	sf::RectangleShape joinButton(sf::Vector2f(300, 50.f));
@@ -368,7 +377,7 @@ void Lobby() {
 	joinText.setString("Join Game");
 	joinText.setFillColor(sf::Color::Black);
 	joinText.setCharacterSize(48);
-	joinText.setPosition(window.getSize().x / 2 / 2 + 20, 300 - 10);
+	joinText.setPosition(window.getSize().x / 2 / 2 + 20, joinButton.getPosition().y - 10);
 
 	//-------------- exit ----------------------------
 	sf::RectangleShape exitButton(sf::Vector2f(200.f, 50.f));
@@ -381,7 +390,7 @@ void Lobby() {
 	exitText.setString("Exit");
 	exitText.setFillColor(sf::Color::White);
 	exitText.setCharacterSize(48);
-	exitText.setPosition(window.getSize().x / 2 / 2 + 50, 400-10);
+	exitText.setPosition(window.getSize().x / 2 / 2 + 50, exitButton.getPosition().y -10);
 
 	//-------------- back ----------------------------
 	sf::RectangleShape backButton(sf::Vector2f(200.f, 50.f));
@@ -394,7 +403,7 @@ void Lobby() {
 	backText.setString("Back");
 	backText.setFillColor(sf::Color::Black);
 	backText.setCharacterSize(48);
-	backText.setPosition(50 + 50, window.getSize().y - 100 - 10);
+	backText.setPosition(50 + 50, backButton.getPosition().y - 10);
 
 	//-------------- ok ----------------------------
 	sf::RectangleShape okButton(sf::Vector2f(200.f, 50.f));
@@ -406,7 +415,8 @@ void Lobby() {
 	okText.setStyle(sf::Text::Regular);
 	okText.setFillColor(sf::Color::Black);
 	okText.setCharacterSize(48);
-	okText.setPosition(window.getSize().x - 300 + 50, window.getSize().y - 100 - 10);
+	okText.setPosition(window.getSize().x - 300 + 50, okButton.getPosition().y - 10);
+
 
 	//-------------- Create: Name ----------------------------
 	sf::Text createNameText;
@@ -462,72 +472,335 @@ void Lobby() {
 	numText.setPosition(window.getSize().x / 2 / 2, 400-10);
 	numText.setFillColor(sf::Color::Black);
 
+	//-------------- Join: List ----------------------------
+	int16_t positionY = 100;
+	for (std::map<int8_t, Partida>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
+
+		//std::string str = it->second.name + "\t" + std::to_string(it->second.numPlayersConnected) + "\t" + std::to_string(it->second.maxPlayers);
+
+		sf::RectangleShape button(sf::Vector2f(1150, 50.f));
+		button.setPosition(50, positionY);
+		button.setFillColor(sf::Color::Transparent);
+
+		sf::Text name;
+		name.setFont(font);
+		name.setStyle(sf::Text::Regular);
+		name.setString(it->second.name);
+		name.setFillColor(sf::Color::White);
+		name.setCharacterSize(48);
+		name.setPosition(button.getPosition().x + 20, button.getPosition().y - 10);
+
+		sf::Text conn;
+		conn.setFont(font);
+		conn.setStyle(sf::Text::Regular);
+		conn.setString(std::to_string(it->second.numPlayersConnected));
+		conn.setFillColor(sf::Color::White);
+		conn.setCharacterSize(48);
+		conn.setPosition(button.getPosition().x + 900, button.getPosition().y - 10);
+
+		sf::Text max;
+		max.setFont(font);
+		max.setStyle(sf::Text::Regular);
+		max.setString(std::to_string(it->second.maxPlayers));
+		max.setFillColor(sf::Color::White);
+		max.setCharacterSize(48);
+		max.setPosition(conn.getPosition().x + conn.getLocalBounds().width + 150, button.getPosition().y - 10);
+
+		/*listadoPartidasPorNombre.insert(std::make_pair(it->second.name, ListButtons{ name, conn, max, button }));
+		listadoPartidasPorNumConnectados.insert(std::make_pair(it->second.numPlayersConnected, ListButtons{ name, conn, max, button }));
+		listadoPartidasPorMaxPlayers.insert(std::make_pair(it->second.maxPlayers, ListButtons{ name, conn, max, button }));*/
+
+		vectorListaPartidas.push_back(ListButtons{ name, conn, max, button });
+
+		positionY += 50;
+	}
+
+	//------------- Join: Capçalera List -------------------
+	sf::Text capName;
+	capName.setFont(font);
+	capName.setStyle(sf::Text::Italic);
+	capName.setString("Name");
+	capName.setFillColor(sf::Color::White);
+	capName.setCharacterSize(26);
+	capName.setPosition(100, 50);
+
+	sf::Text capCon;
+	capCon.setFont(font);
+	capCon.setStyle(sf::Text::Italic);
+	capCon.setString("Connected");
+	capCon.setFillColor(sf::Color::White);
+	capCon.setCharacterSize(26);
+	capCon.setPosition(900, 50);
+
+	sf::Text capMax;
+	capMax.setFont(font);
+	capMax.setStyle(sf::Text::Italic);
+	capMax.setString("Max Players");
+	capMax.setFillColor(sf::Color::White);
+	capMax.setCharacterSize(26);
+	capMax.setPosition(capCon.getPosition().x + capCon.getLocalBounds().width + 50, 50);
+
+	//-------------- Join: Sort By Name ----------------------------
+	sf::RectangleShape sortNameButton(sf::Vector2f(150, 30.f));
+	sortNameButton.setPosition(window.getSize().x - 600, 50);
+	sortNameButton.setFillColor(sf::Color::Blue);
+
+	sf::Text sortNameText;
+	sortNameText.setFont(font);
+	sortNameText.setStyle(sf::Text::Italic);
+	sortNameText.setString("by Name");
+	sortNameText.setFillColor(sf::Color::White);
+	sortNameText.setCharacterSize(26);
+	sortNameText.setPosition(sortNameButton.getPosition().x + 20, sortNameButton.getPosition().y - 5);
+
+	//-------------- Join: Sort By Connected ----------------------------
+	sf::RectangleShape sortConButton(sf::Vector2f(150, 30.f));
+	sortConButton.setPosition(window.getSize().x - 440, 50);
+	sortConButton.setFillColor(grey);
+
+	sf::Text sortConText;
+	sortConText.setFont(font);
+	sortConText.setStyle(sf::Text::Italic);
+	sortConText.setString("by nº Con");
+	sortConText.setFillColor(sf::Color::White);
+	sortConText.setCharacterSize(26);
+	sortConText.setPosition(sortConButton.getPosition().x + 20, sortConButton.getPosition().y - 5);
+
+	//-------------- Join: Sort By Max Players ----------------------------
+	sf::RectangleShape sortMaxButton(sf::Vector2f(150, 30.f));
+	sortMaxButton.setPosition(window.getSize().x - 280, 50);
+	sortMaxButton.setFillColor(grey);
+
+	sf::Text sortMaxText;
+	sortMaxText.setFont(font);
+	sortMaxText.setStyle(sf::Text::Italic);
+	sortMaxText.setString("by nº Max");
+	sortMaxText.setFillColor(sf::Color::White);
+	sortMaxText.setCharacterSize(26);
+	sortMaxText.setPosition(sortMaxButton.getPosition().x + 20, sortMaxButton.getPosition().y - 5);
+
+	/*for (int i = 0; i < listadoPartidasPorMaxPlayers.size(); i++) {
+		std::string str = listadoPartidasPorMaxPlayers[i].name.getString();
+		std::cout << str << std::endl;
+	}*/
+
 	while (window.isOpen())
 	{
 		sf::Event Event;
 		sf::Vector2i mousePos = sf::Mouse::getPosition(window);
 		sf::Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
-
+		
 		while (window.pollEvent(Event))
 		{
 			switch (Event.type)
 			{
 			case sf::Event::Closed:
 				window.close();
-				bye = true;
+				exitGame = disconnected = true;
 				break;
 			case sf::Event::MouseMoved:
 			{
 				//Create
 				if (createButton.getGlobalBounds().contains(mousePosF))
-					createButton.setFillColor(sf::Color(169, 169, 169)); //grey
+					createButton.setFillColor(grey); 
 				else createButton.setFillColor(sf::Color::White);
 				//join
 				if (joinButton.getGlobalBounds().contains(mousePosF))
-					joinButton.setFillColor(sf::Color(169, 169, 169)); //grey
+					joinButton.setFillColor(grey); 
 				else joinButton.setFillColor(sf::Color::White);
 				//exit
 				if (exitButton.getGlobalBounds().contains(mousePosF))
-					exitButton.setFillColor(sf::Color(169, 169, 169)); //grey
+					exitButton.setFillColor(grey); 
 				else exitButton.setFillColor(sf::Color::Red);
+				//back
+				if (backButton.getGlobalBounds().contains(mousePosF))
+					backButton.setFillColor(grey); 
+				else backButton.setFillColor(sf::Color::Yellow);
+				//ok
+				if (okButton.getGlobalBounds().contains(mousePosF))
+					okButton.setFillColor(grey); 
+				else okButton.setFillColor(sf::Color::Green);
+				//sortName
+				if (sortNameButton.getGlobalBounds().contains(mousePosF))
+					sortNameButton.setFillColor(sf::Color::Blue);
+				else sortNameButton.setFillColor(grey);
+				//sortConnected
+				if (sortConButton.getGlobalBounds().contains(mousePosF))
+					sortConButton.setFillColor(sf::Color::Blue);
+				else sortConButton.setFillColor(grey);
+				//sortMaxPlayers
+				if (sortMaxButton.getGlobalBounds().contains(mousePosF))
+					sortMaxButton.setFillColor(sf::Color::Blue);
+				else sortMaxButton.setFillColor(grey);
+
+				if (join) {
+					for (int8_t i = 0; i < vectorListaPartidas.size(); i++) {
+						if(vectorListaPartidas[i].rect.getGlobalBounds().contains(mousePosF))
+							vectorListaPartidas[i].rect.setFillColor(grey);
+						else vectorListaPartidas[i].rect.setFillColor(sf::Color::Transparent);
+					}
+					/*if (sortByName) {
+						for (std::map<std::string, ListButtons>::iterator it = listadoPartidasPorNombre.begin(); it != listadoPartidasPorNombre.end(); ++it) {
+							if (it->second.rect.getGlobalBounds().contains(mousePosF)) {
+								it->second.rect.setFillColor(grey);
+							}
+							else it->second.rect.setFillColor(sf::Color::Transparent);
+						}
+					}
+					else if (sortByConnected) {
+						for (std::map<int8_t, ListButtons>::iterator it = listadoPartidasPorNumConnectados.begin(); it != listadoPartidasPorNumConnectados.end(); ++it) {
+							if (it->second.rect.getGlobalBounds().contains(mousePosF)) {
+								it->second.rect.setFillColor(grey);
+							}
+							else it->second.rect.setFillColor(sf::Color::Transparent);
+						}
+					}
+					else if (sortByMax) {
+						for (std::map<int8_t, ListButtons>::iterator it = listadoPartidasPorMaxPlayers.begin(); it != listadoPartidasPorMaxPlayers.end(); ++it) {
+							if (it->second.rect.getGlobalBounds().contains(mousePosF)) {
+								it->second.rect.setFillColor(grey);
+							}
+							else it->second.rect.setFillColor(sf::Color::Transparent);
+						}
+					}*/
+				}
 			}
 			break;
 			case sf::Event::MouseButtonPressed:
 			{
-				if (createButton.getGlobalBounds().contains(mousePosF))
+				if (createButton.getGlobalBounds().contains(mousePosF) && !join && !create)
 				{
 					create = true;
 					name = true;
+					createNameButton.setFillColor(grey);
 					okText.setString("Create");
 					break;
 				}
-				if (joinButton.getGlobalBounds().contains(mousePosF))
+				else if (joinButton.getGlobalBounds().contains(mousePosF) && !join && !create)
 				{
 					join = true;
+					sortByMax = true;
 					okText.setString("Join");
 					break;
 				}
-				if (backButton.getGlobalBounds().contains(mousePosF))
+				else if (backButton.getGlobalBounds().contains(mousePosF))
 				{
-					create = join = name = password = maxNum = false;
+					create = join = name = password = maxNum = writePassword = false;
+
 					break;
 				}
-				if (okButton.getGlobalBounds().contains(mousePosF))
+				else if (okButton.getGlobalBounds().contains(mousePosF))
 				{
-					window.close();
+					if (create)
+						window.close();
+					else if (join)
+						writePassword = true;
 					break;
 				}
-				if (exitButton.getGlobalBounds().contains(mousePosF))
+				else if (exitButton.getGlobalBounds().contains(mousePosF) && !create && !join)
 				{
 					window.close();
-					bye = true;
+					exitGame = disconnected = true;
 					break;
+				}
+				else if (sortNameButton.getGlobalBounds().contains(mousePosF) && join)
+				{
+					sortByName = true;
+					sortByMax = sortByConnected = false;
+					std::sort(vectorListaPartidas.begin(), vectorListaPartidas.end(), SortByName);
+					for (int8_t i = 0; i < vectorListaPartidas.size(); i++) {
+						std::string str = vectorListaPartidas[i].name.getString();
+						std::cout << str << std::endl;
+					}
+					break;
+				}
+				else if (sortConButton.getGlobalBounds().contains(mousePosF) && join)
+				{
+					sortByConnected = true;
+					sortByName = sortByMax = false;
+					std::sort(vectorListaPartidas.begin(), vectorListaPartidas.end(), SortByConnection);
+					for (int8_t i = 0; i < vectorListaPartidas.size(); i++) {
+						std::string str = vectorListaPartidas[i].name.getString();
+						std::cout << str << std::endl;
+					}
+					break;
+				}
+				else if (sortMaxButton.getGlobalBounds().contains(mousePosF) && join)
+				{
+					sortByMax = true;
+					sortByName = sortByConnected = false;
+					std::sort(vectorListaPartidas.begin(), vectorListaPartidas.end(), SortByMaxNum);
+					for (int8_t i = 0; i < vectorListaPartidas.size(); i++) {
+						std::string str = vectorListaPartidas[i].name.getString();
+						std::cout << str << std::endl;
+					}
+					break;
+				}
+				if (join) {
+
+					for (int8_t i = 0; i < vectorListaPartidas.size(); i++) {
+						if (vectorListaPartidas[i].rect.getGlobalBounds().contains(mousePosF)) {
+							//ensenyar introduccio password
+							//unirme a aquella partida si la password es correcte
+							window.close();
+							break;
+						}
+							
+					}
+
+					//if (sortByName) {
+					//	for (std::map<std::string, ListButtons>::iterator it = listadoPartidasPorNombre.begin(); it != listadoPartidasPorNombre.end(); ++it) {
+					//		if (it->second.rect.getGlobalBounds().contains(mousePosF)) {
+					//			//ensenyar introduccio password
+					//			//unirme a aquella partida si la password es correcte
+					//			window.close();
+					//			break;
+					//		}
+					//	}
+					//}
+					//else if (sortByConnected) {
+					//	for (std::map<int8_t, ListButtons>::iterator it = listadoPartidasPorNumConnectados.begin(); it != listadoPartidasPorNumConnectados.end(); ++it) {
+					//		if (it->second.rect.getGlobalBounds().contains(mousePosF)) {
+					//			//ensenyar introduccio password
+					//			//unirme a aquella partida si la password es correcte
+					//			window.close();
+					//			break;
+					//		}
+					//	}
+					//}
+					//else if (sortByMax) {
+					//	for (std::map<int8_t, ListButtons>::iterator it = listadoPartidasPorMaxPlayers.begin(); it != listadoPartidasPorMaxPlayers.end(); ++it) {
+					//		if (it->second.rect.getGlobalBounds().contains(mousePosF)) {
+					//			//ensenyar introduccio password
+					//			//unirme a aquella partida si la password es correcte
+					//			window.close();
+					//			break;
+					//		}
+					//	}
+					//}
 				}
 			}
 			break;
 			case sf::Event::TextEntered:
-			{
-				if (Event.text.unicode < 128 && name)
+			{	
+				//si clico el backspace/borrar/retroceso
+				if (Event.text.unicode == '\b' && name) {
+					if(nameInput.getSize() > 0)
+						nameInput.erase(nameInput.getSize() - 1, 1);
+					nameText.setString(nameInput);
+				}
+				else if (Event.text.unicode == '\b' && password) {
+					if(passInput.getSize())
+						passInput.erase(nameInput.getSize() - 1, 1);
+					passText.setString(passInput);
+				}
+				else if (Event.text.unicode == '\b' && maxNum) {
+					if (numInput.getSize())
+						numInput.erase(numInput.getSize() - 1, 1);
+					numText.setString(numInput);
+				}
+				//si clico algo q no sigui borrar
+				else if (Event.text.unicode < 128 && name)
 				{
 					nameInput += Event.text.unicode;
 					nameText.setString(nameInput);
@@ -542,21 +815,27 @@ void Lobby() {
 				}
 			}
 			break;
+
 			case sf::Event::KeyPressed:
 			{
 				if (Event.key.code == sf::Keyboard::Return) {
 					if (name) {
 						name = false;
 						password = true;
+						createNameButton.setFillColor(sf::Color::White);
+						createPassButton.setFillColor(sf::Color(169, 169, 169));
 						//enviar nameText.getString();
 					}
 					else if (password) {
 						password = false;
 						maxNum = true;
+						createPassButton.setFillColor(sf::Color::White);
+						createMaxButton.setFillColor(sf::Color(169, 169, 169));
 						//enviar passText.getString();
 					}
 					else if (maxNum) {
 						maxNum = false;
+						createMaxButton.setFillColor(sf::Color::White);
 						//enviar numText.getString();
 						break;
 					}
@@ -567,7 +846,7 @@ void Lobby() {
 			}
 		}
 		window.clear();
-		if (!create && !join) {
+		if (!create && !join) { //mostro lobby principal
 			window.draw(createButton);
 			window.draw(createText);
 			window.draw(joinButton);
@@ -575,7 +854,7 @@ void Lobby() {
 			window.draw(exitButton);
 			window.draw(exitText);
 		}
-		else if (create) {		
+		else if (create) {	//mostro lobby de crear partida
 			//name
 			window.draw(createNameText);
 			window.draw(createNameButton);
@@ -595,13 +874,68 @@ void Lobby() {
 			window.draw(okButton);
 			window.draw(okText);
 		}
-		else if (join) {
+		//NO FUNCIONA CORRECTAMENT! -> IMPRIMEIX PERO NO IMPRIMEIX SEGONS L'ORDRE QUE TOCARIA...NO HO ENTENC 
+		else if (join) { //mostro lobby de unirse partida
+			//if (sortByName) {
+			//	sortNameButton.setFillColor(sf::Color::Blue);
+			//	for (std::map<std::string, ListButtons>::iterator it = listadoPartidasPorNombre.begin(); it != listadoPartidasPorNombre.end(); ++it) {
+			//		window.draw(it->second.rect);
+			//		window.draw(it->second.name);
+			//		window.draw(it->second.connected);
+			//		window.draw(it->second.numMax);
+			//	}
+			//}
+			//if (sortByConnected) {
+			//	sortConButton.setFillColor(sf::Color::Blue);
+			//	for (std::map<int8_t, ListButtons>::iterator it = listadoPartidasPorNumConnectados.begin(); it != listadoPartidasPorNumConnectados.end(); ++it) {
+			//		window.draw(it->second.rect);
+			//		window.draw(it->second.name);
+			//		window.draw(it->second.connected);
+			//		window.draw(it->second.numMax);					
+			//	}
+			//}
+			//if (sortByMax) {
+			//	sortMaxButton.setFillColor(sf::Color::Blue);
+			//	/*std::string str = listadoPartidasPorMaxPlayers.begin()->second.numMax.getString();
+			//	std::cout << str << std::endl;*/
+			//	for (std::map<int8_t, ListButtons>::iterator it = listadoPartidasPorMaxPlayers.begin(); it != listadoPartidasPorMaxPlayers.end(); it++) {
+
+			//		window.draw(it->second.rect);
+			//		window.draw(it->second.name);
+			//		window.draw(it->second.connected);
+			//		window.draw(it->second.numMax);
+			//	}
+			//}
+			if(sortByMax) sortMaxButton.setFillColor(sf::Color::Blue);
+			else if (sortByConnected) sortConButton.setFillColor(sf::Color::Blue);
+			else if (sortByName) sortNameButton.setFillColor(sf::Color::Blue);
+
+			for (int8_t i = 0; i < vectorListaPartidas.size(); i++) {
+				window.draw(vectorListaPartidas[i].rect);
+				window.draw(vectorListaPartidas[i].name);
+				window.draw(vectorListaPartidas[i].connected);
+				window.draw(vectorListaPartidas[i].numMax);
+			}
+
+			//Capçalera
+			window.draw(capName);
+			window.draw(capCon);
+			window.draw(capMax);
 			//back
 			window.draw(backButton);
 			window.draw(backText);
 			//ok
 			window.draw(okButton);
 			window.draw(okText);
+			//sortName
+			window.draw(sortNameButton);
+			window.draw(sortNameText);
+			//sortConnected
+			window.draw(sortConButton);
+			window.draw(sortConText);
+			//sortMaxPlayers
+			window.draw(sortMaxButton);
+			window.draw(sortMaxText);
 		}
 		window.display();
 	}
@@ -616,10 +950,9 @@ void GameManager() {
 		sf::Event event;
 		ReceiveData();
 			
-		if (GTFO) {
-			socket.unbind();
+		if (GTFO) {	
 			window.close();
-			system("exit");
+			disconnected = true;
 		}
 		if (c.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
@@ -655,8 +988,8 @@ void GameManager() {
 			switch (event.type)
 			{
 			case sf::Event::Closed:
-				socket.unbind();
 				window.close();
+				disconnected = true;
 				break;
 			case  sf::Event::KeyPressed: //el moviment en aquesta versio es per celes
 				if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) //moure personatge esquerra
@@ -739,8 +1072,7 @@ void GameManager() {
 			for (int8_t j = 0; j < NUMBER_ROWS_COLUMNS; j++)
 			{
 				sf::RectangleShape rectBlanco(sf::Vector2f(SIZE_CELL, SIZE_CELL));
-				sf::Color grey = sf::Color(49, 51, 53);
-				rectBlanco.setFillColor(grey);
+				rectBlanco.setFillColor(greyFosc);
 
 				if (i % 2 == 0)
 				{
@@ -822,15 +1154,17 @@ int main()
 
 	myPlayer = new Player();
 	myWalls = new Walls();
-	partidas.insert(std::make_pair("1ra Partida Loko", Partida{ "1ra Partida Loko", "LOL", 3, 1 }));
+	partidas.insert(std::make_pair(1, Partida{ "La 1ra Partida Loko", "LOL", 4, 1 }));
+	partidas.insert(std::make_pair(2, Partida{ "Brrr", "LOL", 3, 2 }));
 	//initial connection
 	ConnectionWithServer();
-
-	Lobby();
-	if (!bye) {
-		clockPositions.restart(); //a partir daqui ja es pot acabar de moure per tant fem un reset del rellotje
-		GameManager();
-	}
+	do{ //aquest bucle no se si esta be
+		Lobby();
+		if (!exitGame) {
+			clockPositions.restart(); //a partir daqui ja es pot acabar de moure per tant fem un reset del rellotje
+			GameManager();
+		}
+	} while (!disconnected);
 	opponents.clear();
 	socket.unbind();
 	system("exit");
@@ -839,7 +1173,48 @@ int main()
 }
 
 
+/*std::string nomPartida, jugadorsConnectats, maxjugadors, str, del = "\t";
+str = it->first;
+//------partim el string donat en multiples strings
+size_t pos = 0;
+pos = str.find(del);
+nomPartida = str.substr(0, pos);
+str.erase(0, pos + del.length());
+pos = str.find(del);
+jugadorsConnectats = str.substr(0, pos);
+str.erase(0, pos + del.length());
+maxjugadors = str;
+//----------------------------------------------------------
 
+sf::Text name;
+name.setFont(font);
+name.setStyle(sf::Text::Regular);
+name.setString(std::to_string(i) + ". " + nomPartida);
+name.setFillColor(sf::Color::White);
+name.setCharacterSize(48);
+name.setPosition(it->second.getPosition().x + 20, it->second.getPosition().y - 10);
+i++;
+
+sf::Text conn;
+conn.setFont(font);
+conn.setStyle(sf::Text::Regular);
+conn.setString(jugadorsConnectats);
+conn.setFillColor(sf::Color::White);
+conn.setCharacterSize(48);
+conn.setPosition(it->second.getPosition().x + 900, it->second.getPosition().y - 10);
+
+sf::Text max;
+max.setFont(font);
+max.setStyle(sf::Text::Regular);
+max.setString(maxjugadors);
+max.setFillColor(sf::Color::White);
+max.setCharacterSize(48);
+max.setPosition(conn.getPosition().x + conn.getLocalBounds().width + 150, it->second.getPosition().y - 10);
+
+window.draw(it->second);
+window.draw(name);
+window.draw(conn);
+window.draw(max);*/
 
 
 

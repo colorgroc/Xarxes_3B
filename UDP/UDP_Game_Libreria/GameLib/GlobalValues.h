@@ -71,7 +71,12 @@ struct Client {
 	std::map<int32_t, AccumMovements> MapAccumMovements; 		//	idmovement per controlar validacions,
 																//	moviments acumulats
 };
-
+struct ListButtons {
+	sf::Text name;
+	sf::Text connected;
+	sf::Text numMax;
+	sf::RectangleShape rect;
+};
 struct Player
 {
 	int32_t ID = 0;
@@ -133,6 +138,12 @@ static float GetRandomFloat() {
 }
 
 
+//std::vector<std::string> Split(std::string str, std::string del);
+//void GetSplit(std::string var1, std::string var2, std::string str, std::string del);
+
+bool SortByName(const ListButtons &a, const ListButtons &b);
+bool SortByConnection(const ListButtons &a, const ListButtons &b);
+bool SortByMaxNum(const ListButtons &a, const ListButtons &b);
 
 sf::Packet& operator <<(sf::Packet& Packet, const Position& pos);
 
