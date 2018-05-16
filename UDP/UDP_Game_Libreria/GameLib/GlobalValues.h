@@ -37,9 +37,13 @@
 
 
 enum Cmds {
-	HELLO, ACK_HELLO, WELCOME, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, OK_POSITION, REFRESH_POSITIONS, TRY_COLLISION_OPPONENT, QUI_LA_PILLA, ACK_QUI_LA_PILLA, GAMESTARTED, WINNER, ACK_WINNER, ID_ALREADY_TAKEN, NEW_GAME, JOIN_GAME, PASSWORD_INCORRECT
+	HELLO, ACK_HELLO, WELCOME, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, OK_POSITION, REFRESH_POSITIONS, TRY_COLLISION_OPPONENT, QUI_LA_PILLA, ACK_QUI_LA_PILLA, GAMESTARTED, WINNER, ACK_WINNER, ID_ALREADY_TAKEN, NEW_GAME, JOIN_GAME, PASSWORD_INCORRECT, GLOBAL_CHAT, GAME_CHAT
 };
-
+struct Chat {
+	int8_t id;
+	std::string nickname;
+	std::string mensaje;
+};
 struct Position {
 	int16_t x;
 	int16_t y;
@@ -49,14 +53,14 @@ struct AccumMovements {
 	Position delta;
 	Position absolute;
 };
-struct Client {
+struct LobbyClient {
 	int32_t id;
 	std::string nickname;
 	sf::IpAddress ip;
 	unsigned short port;
 	std::map<int32_t, sf::Packet> resending;
 };
-struct Player {
+struct GameClient {
 	int32_t id;
 	std::string nickname;
 	Position pos;
@@ -73,12 +77,12 @@ struct Player {
 
 struct Partida {
 	int8_t id;
-	Player owner;
+	GameClient owner;
 	std::string name;
 	std::string password;
 	int8_t maxPlayers;
 	//int8_t numPlayersConnected;
-	std::map<int32_t, Player> jugadors;
+	std::map<int32_t, GameClient> jugadors;
 };
 
 struct PartidaClient {

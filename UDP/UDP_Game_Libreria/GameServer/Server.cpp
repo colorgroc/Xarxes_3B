@@ -7,7 +7,7 @@ bool online = true;
 sf::Socket::Status status;
 int32_t clientID = 1;
 
-std::map<int32_t, Client> clientsOnLobby;
+std::map<int32_t, LobbyClient> clientsOnLobby;
 sf::UdpSocket socket;
 
 sf::Clock clockPing, clockSend;
@@ -24,11 +24,14 @@ Walls * myWalls;
 int32_t receivedWinner = 0;
 std::map<int8_t, Partida> partidas;
 
+
+
 void Resend() {
 	
 	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
 
-	for (std::map<int32_t, Player>::iterator clientes = clientsOnLobby.begin(); clientes != clientsOnLobby.end(); ++clientes) {
+	for (std::map<int32_t, GameClient>::iterator 
+		es = clientsOnLobby.begin(); clientes != clientsOnLobby.end(); ++clientes) {
 		for (std::map<int32_t, sf::Packet>::iterator msg = clientes->second.resending.begin(); msg != clientes->second.resending.end(); ++msg) {
 			status = socket.send(msg->second, clientes->second.ip, clientes->second.port);
 			if (status == sf::Socket::Error)
@@ -46,7 +49,7 @@ void Resend() {
 void SendToAllClients(int cmd) {
 
 	if (cmd == PING) {
-		for (std::map<int32_t, Player>::iterator clientToSend = clientsOnLobby.begin(); clientToSend != clientsOnLobby.end(); ++clientToSend)
+		for (std::map<int32_t, GameClient>::iterator clientToSend = clientsOnLobby.begin(); clientToSend != clientsOnLobby.end(); ++clientToSend)
 		{
 			sf::Packet packet;
 			packet << cmd; //no hace falta poner packetID 
@@ -57,7 +60,7 @@ void SendToAllClients(int cmd) {
 		}
 	}
 	else if (cmd == GAMESTARTED) { //no es critic
-		for (std::map<int32_t, Player>::iterator clientToSend = clientsOnLobby.begin(); clientToSend != clientsOnLobby.end(); ++clientToSend)
+		for (std::map<int32_t, GameClient>::iterator clientToSend = clientsOnLobby.begin(); clientToSend != clientsOnLobby.end(); ++clientToSend)
 		{
 			sf::Packet packet;
 			packet << cmd; //no hace falta poner packetID 
@@ -73,7 +76,7 @@ void SendToAllClients(int cmd) {
 void NotifyOtherClients(int cmd, int32_t cID) {
 	if (cmd == NEW_CONNECTION) {
 		if (clientsOnLobby.find(cID) != clientsOnLobby.end()) {
-			for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
+			for (std::map<int32_t, GameClient>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
 			{
 				sf::Packet packet;
 				if (it->first != cID) {
@@ -85,7 +88,7 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 	}
 	else if (cmd == DISCONNECTION) {
 		//if (clients.find(cID) != clients.end()) {
-		for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
+		for (std::map<int32_t, GameClient>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
 		{
 			sf::Packet packet;
 			packet << cmd;
@@ -98,7 +101,7 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 	}
 	else if (cmd == REFRESH_POSITIONS) { 
 		if (clientsOnLobby.find(cID) != clientsOnLobby.end()) {
-			for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
+			for (std::map<int32_t, GameClient>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
 			{
 				sf::Packet packet;
 				if (it->first != cID) {
@@ -113,7 +116,7 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 	}
 	else if (cmd == QUI_LA_PILLA) {
 		//if (clients.find(cID) != clients.end()) {
-		for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
+		for (std::map<int32_t, GameClient>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
 		{
 			sf::Packet packet;
 			packet << cmd;
@@ -124,7 +127,7 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 	}
 	else if (cmd == WINNER) {
 		//if (clients.find(cID) != clients.end()) {
-		for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
+		for (std::map<int32_t, GameClient>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
 		{
 			sf::Packet packet;
 			packet << cmd;
@@ -140,7 +143,7 @@ void PilladorRandom() {
 	std::mt19937 gen(rd());
 	int32_t pillador = num(gen);
 
-	for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
+	for (std::map<int32_t, GameClient>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
 		if (it->second.id == pillador) {
 			it->second.laPara = true;
 			std::cout << "La pilla el client amb nickname: " << it->second.nickname << " i amb ID: " << std::to_string(it->first) << std::endl;
@@ -159,7 +162,7 @@ void PilladorRandom() {
 bool CheckCollisionWithClientsPos(Position pos) { //amb pixels
 	bool correctPosition = true;
 
-	for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
+	for (std::map<int32_t, GameClient>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
 
 		if (pos.x == it->second.pos.x && pos.y == it->second.pos.y)
 			correctPosition = false;
@@ -177,7 +180,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 	else if (cmd == HELLO && clientsOnLobby.size() < MAX_CLIENTS) {
 		//comprobar si el client ja esta connectat. Anteriorment comprovat amb el port pero es pot donar el cas d q es repeteixi el port
 		bool alreadyConnected = false;
-		for (std::map<int32_t, Player>::iterator it = partidas.find(idPartida)->second.jugadors.begin(); it != partidas.find(idPartida)->second.jugadors.end(); ++it) {//aqui serien clients lobby --> canviarho
+		for (std::map<int32_t, GameClient>::iterator it = partidas.find(idPartida)->second.jugadors.begin(); it != partidas.find(idPartida)->second.jugadors.end(); ++it) {//aqui serien clients lobby --> canviarho
 			if (it->second.nickname == nickname || it->second.port == senderPort) {
 				alreadyConnected = true;
 				sf::Packet p;
@@ -216,11 +219,11 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 				packet << ACK_HELLO << pID << clientID << pos << numOfOpponents;
 				if (numOfOpponents > 0) {
 					//inserim al packet la ID i la pos de cada oponent
-					for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
+					for (std::map<int32_t, GameClient>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
 						packet << it->second.id << it->second.pos;
 					}
 				}
-				clientsOnLobby.insert(std::make_pair(clientID, Player{ clientID, nickname, pos, senderIP, senderPort, true, false, false }));
+				clientsOnLobby.insert(std::make_pair(clientID, GameClient{ clientID, nickname, pos, senderIP, senderPort, true, false, false }));
 				NotifyOtherClients(NEW_CONNECTION, clientID);
 				clientsOnLobby[clientID].timeElapsedLastPing.restart();
 				//clientsConnected++;
@@ -237,11 +240,11 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 				packet << ACK_HELLO << pID << idsDesaprovechadas[0] << pos << numOfOpponents;
 				if (numOfOpponents > 0) {
 					//inserim al packet la ID i la pos de cada oponent
-					for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
+					for (std::map<int32_t, GameClient>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
 						packet << it->second.id << it->second.pos;
 					}
 				}
-				clientsOnLobby.insert(std::make_pair(idsDesaprovechadas[0], Player{ idsDesaprovechadas[0], nickname, pos, senderIP, senderPort, true, false, false }));
+				clientsOnLobby.insert(std::make_pair(idsDesaprovechadas[0], GameClient{ idsDesaprovechadas[0], nickname, pos, senderIP, senderPort, true, false, false }));
 				NotifyOtherClients(NEW_CONNECTION, idsDesaprovechadas[0]);
 				clientsOnLobby[idsDesaprovechadas[0]].timeElapsedLastPing.restart();
 				//clientsConnected++;
@@ -372,7 +375,7 @@ void ManagePing() {
 	}
 	//quan enviem el missatge ping també comprovem que cap dels jugadors hagi superat el temps maxim
 	//si es supera el temps maxim vol dir que esta desconectat, notifiquem als altres jugadors, i el borrem de la llista del server
-	for (std::map<int32_t, Player>::iterator clientes = clientsOnLobby.begin(); clientes != clientsOnLobby.end(); ++clientes) {
+	for (std::map<int32_t, GameClient>::iterator clientes = clientsOnLobby.begin(); clientes != clientsOnLobby.end(); ++clientes) {
 		if (clientes->second.timeElapsedLastPing.getElapsedTime().asMilliseconds() > CONTROL_PING) {
 			NotifyOtherClients(DISCONNECTION, clientes->first);
 			clientes->second.connected = false;
@@ -389,7 +392,7 @@ void ManagePing() {
 		}
 	}
 
-	for (std::map<int32_t, Player>::iterator clientes = clientsOnLobby.begin(); clientes != clientsOnLobby.end();) {
+	for (std::map<int32_t, GameClient>::iterator clientes = clientsOnLobby.begin(); clientes != clientsOnLobby.end();) {
 		if (!clientes->second.connected) {
 			std::cout << "Client " << std::to_string(clientes->first) << " disconnected." << std::endl;
 			clientes = clientsOnLobby.erase(clientes);
@@ -407,7 +410,7 @@ void PositionValidations() {
 	//REFRESH_POSITIONS 
 	
 
-	for (std::map<int32_t, Player>::iterator client = clientsOnLobby.begin(); client != clientsOnLobby.end(); ++client) {
+	for (std::map<int32_t, GameClient>::iterator client = clientsOnLobby.begin(); client != clientsOnLobby.end(); ++client) {
 
 		std::vector<int32_t> posToDelete;
 		Position lastPos = client->second.pos;
@@ -452,7 +455,7 @@ void PositionValidations() {
 }
 
 void ComprovacioPillats() {
-	for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
+	for (std::map<int32_t, GameClient>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
 		if (it->second.laPara)
 			pillados.insert(it->first);
 	}
@@ -460,7 +463,7 @@ void ComprovacioPillats() {
 }
 void Winner() {
 	if (gameStarted && pillados.size() >= (clientsOnLobby.size()-1)) {
-		for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
+		for (std::map<int32_t, GameClient>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
 			if (!it->second.laPara) {
 				it->second.winner = true;
 				NotifyOtherClients(WINNER, it->first);
