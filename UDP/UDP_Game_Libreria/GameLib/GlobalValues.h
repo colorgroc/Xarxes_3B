@@ -37,7 +37,7 @@
 
 
 enum Cmds {
-	HELLO, ACK_HELLO, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, OK_POSITION, REFRESH_POSITIONS, TRY_COLLISION_OPPONENT, QUI_LA_PILLA, ACK_QUI_LA_PILLA, GAMESTARTED, WINNER, ACK_WINNER, ID_ALREADY_TAKEN
+	HELLO, ACK_HELLO, WELCOME, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, OK_POSITION, REFRESH_POSITIONS, TRY_COLLISION_OPPONENT, QUI_LA_PILLA, ACK_QUI_LA_PILLA, GAMESTARTED, WINNER, ACK_WINNER, ID_ALREADY_TAKEN, NEW_GAME, JOIN_GAME, PASSWORD_INCORRECT
 };
 
 struct Position {
@@ -45,19 +45,18 @@ struct Position {
 	int16_t y;
 };
 
-struct Partida {
-	std::string name;
-	std::string password;
-	int8_t maxPlayers;
-	int8_t numPlayersConnected;
-};
-
 struct AccumMovements {
 	Position delta;
 	Position absolute;
 };
-
 struct Client {
+	int32_t id;
+	std::string nickname;
+	sf::IpAddress ip;
+	unsigned short port;
+	std::map<int32_t, sf::Packet> resending;
+};
+struct Player {
 	int32_t id;
 	std::string nickname;
 	Position pos;
@@ -71,13 +70,25 @@ struct Client {
 	std::map<int32_t, AccumMovements> MapAccumMovements; 		//	idmovement per controlar validacions,
 																//	moviments acumulats
 };
-struct ListButtons {
-	sf::Text name;
-	sf::Text connected;
-	sf::Text numMax;
-	sf::RectangleShape rect;
+
+struct Partida {
+	int8_t id;
+	Player owner;
+	std::string name;
+	std::string password;
+	int8_t maxPlayers;
+	//int8_t numPlayersConnected;
+	std::map<int32_t, Player> jugadors;
 };
-struct Player
+
+struct PartidaClient {
+	int8_t id;
+	std::string name;
+	int8_t numPlayersConnected;
+	int8_t maxPlayers;
+};
+
+struct Jugador
 {
 	int32_t ID = 0;
 	std::string nickname;
@@ -107,14 +118,14 @@ public:
 	Walls() {
 		//obstacles
 		obstaclesMap = { Position{ 5,5 }, Position{ 6,5 }, Position{ 7,5 },  Position{ 7,6 }, Position{ 7,7 }, Position{ 7,8 },  Position{ 7,9 }, Position{ 7,10 }, Position{ 7,11 },Position{ 7,12 }, Position{ 7,13 }, Position{ 7,14 },
-			Position{ 8,19 }, Position{ 9,19 }, Position{ 10,19},  Position{ 11,19 }, Position{ 12,19 }, Position{ 13,19 },
+			Position{ 8,19 }, Position{ 9,19 }, Position{ 10,19 },  Position{ 11,19 }, Position{ 12,19 }, Position{ 13,19 },
 			Position{ 16,8 }, Position{ 16,9 }, Position{ 16,10 },  Position{ 16,11 }, Position{ 16,12 }, Position{ 16,13 }, };
 
 		for (int8_t i = 0; i < NUMBER_ROWS_COLUMNS; i++)
 		{
 			for (int8_t j = 0; j < NUMBER_ROWS_COLUMNS; j++)
 			{
-				if (i == 0 || i == NUMBER_ROWS_COLUMNS - 1 || j == 0 || j == NUMBER_ROWS_COLUMNS-1) {
+				if (i == 0 || i == NUMBER_ROWS_COLUMNS - 1 || j == 0 || j == NUMBER_ROWS_COLUMNS - 1) {
 					obstaclesMap.push_back(Position{ i,j });
 				}
 			}
@@ -141,9 +152,17 @@ static float GetRandomFloat() {
 //std::vector<std::string> Split(std::string str, std::string del);
 //void GetSplit(std::string var1, std::string var2, std::string str, std::string del);
 
-bool SortByName(const ListButtons &a, const ListButtons &b);
-bool SortByConnection(const ListButtons &a, const ListButtons &b);
-bool SortByMaxNum(const ListButtons &a, const ListButtons &b);
+
+bool SortByNameDown(const PartidaClient &a, const PartidaClient &b);
+bool SortByConnectionDown(const PartidaClient &a, const PartidaClient &b);
+bool SortByMaxNumDown(const PartidaClient &a, const PartidaClient &b);
+bool SortByNameUp(const PartidaClient &a, const PartidaClient &b);
+bool SortByConnectionUp(const PartidaClient &a, const PartidaClient &b);
+bool SortByMaxNumUp(const PartidaClient &a, const PartidaClient &b);
+
+//void _SortByName(std::vector <ListButtons> vec);
+//void _SortByConnection(std::vector <ListButtons> vec);
+//void _SortByMaxNum(std::vector <ListButtons> vec);
 
 sf::Packet& operator <<(sf::Packet& Packet, const Position& pos);
 

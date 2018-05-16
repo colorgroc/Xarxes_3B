@@ -7,13 +7,13 @@ bool online = true;
 sf::Socket::Status status;
 int32_t clientID = 1;
 
-std::map<int32_t, Client> clients;
+std::map<int32_t, Client> clientsOnLobby;
 sf::UdpSocket socket;
 
 sf::Clock clockPing, clockSend;
 int32_t packetID = 1;
 //variable para controlar cuando se han desconnectado todos hasta que hagamos los estados
-int32_t clientsConnected = 0;
+//int32_t clientsConnected = 0;
 std::vector<int32_t> idsDesaprovechadas;
 std::set<int32_t> pillados;
 sf::Clock clockPositions;
@@ -22,19 +22,20 @@ bool gameStarted = false;
 bool once = false;
 Walls * myWalls;
 int32_t receivedWinner = 0;
+std::map<int8_t, Partida> partidas;
 
 void Resend() {
 	
 	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
 
-	for (std::map<int32_t, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
+	for (std::map<int32_t, Player>::iterator clientes = clientsOnLobby.begin(); clientes != clientsOnLobby.end(); ++clientes) {
 		for (std::map<int32_t, sf::Packet>::iterator msg = clientes->second.resending.begin(); msg != clientes->second.resending.end(); ++msg) {
 			status = socket.send(msg->second, clientes->second.ip, clientes->second.port);
 			if (status == sf::Socket::Error)
 				std::cout << "Error sending the message.Server to Client." << std::endl;
 			else if (status == sf::Socket::Disconnected) {
 				std::cout << "Error sending the message. Client disconnected." << std::endl;
-				clients.erase(clientes);
+				clientsOnLobby.erase(clientes);
 			}
 		}
 	}
@@ -45,7 +46,7 @@ void Resend() {
 void SendToAllClients(int cmd) {
 
 	if (cmd == PING) {
-		for (std::map<int32_t, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
+		for (std::map<int32_t, Player>::iterator clientToSend = clientsOnLobby.begin(); clientToSend != clientsOnLobby.end(); ++clientToSend)
 		{
 			sf::Packet packet;
 			packet << cmd; //no hace falta poner packetID 
@@ -56,7 +57,7 @@ void SendToAllClients(int cmd) {
 		}
 	}
 	else if (cmd == GAMESTARTED) { //no es critic
-		for (std::map<int32_t, Client>::iterator clientToSend = clients.begin(); clientToSend != clients.end(); ++clientToSend)
+		for (std::map<int32_t, Player>::iterator clientToSend = clientsOnLobby.begin(); clientToSend != clientsOnLobby.end(); ++clientToSend)
 		{
 			sf::Packet packet;
 			packet << cmd; //no hace falta poner packetID 
@@ -71,12 +72,12 @@ void SendToAllClients(int cmd) {
 
 void NotifyOtherClients(int cmd, int32_t cID) {
 	if (cmd == NEW_CONNECTION) {
-		if (clients.find(cID) != clients.end()) {
-			for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+		if (clientsOnLobby.find(cID) != clientsOnLobby.end()) {
+			for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
 			{
 				sf::Packet packet;
 				if (it->first != cID) {
-					packet << cmd << packetID << cID << clients.find(cID)->second.pos;
+					packet << cmd << packetID << cID << clientsOnLobby.find(cID)->second.pos;
 					it->second.resending.insert(std::make_pair(packetID, packet));
 				}
 			} packetID++;
@@ -84,7 +85,7 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 	}
 	else if (cmd == DISCONNECTION) {
 		//if (clients.find(cID) != clients.end()) {
-		for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+		for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
 		{
 			sf::Packet packet;
 			packet << cmd;
@@ -96,12 +97,12 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 		//}
 	}
 	else if (cmd == REFRESH_POSITIONS) { 
-		if (clients.find(cID) != clients.end()) {
-			for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+		if (clientsOnLobby.find(cID) != clientsOnLobby.end()) {
+			for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
 			{
 				sf::Packet packet;
 				if (it->first != cID) {
-					packet << cmd << packetID << cID << clients.find(cID)->second.pos;
+					packet << cmd << packetID << cID << clientsOnLobby.find(cID)->second.pos;
 					status = socket.send(packet, it->second.ip, it->second.port);
 					if (status != sf::Socket::Done) {
 						std::cout << "Error sending REFRESH_POSITIONS to client " << std::to_string(cID) << std::endl;
@@ -112,7 +113,7 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 	}
 	else if (cmd == QUI_LA_PILLA) {
 		//if (clients.find(cID) != clients.end()) {
-		for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+		for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
 		{
 			sf::Packet packet;
 			packet << cmd;
@@ -123,7 +124,7 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 	}
 	else if (cmd == WINNER) {
 		//if (clients.find(cID) != clients.end()) {
-		for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+		for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
 		{
 			sf::Packet packet;
 			packet << cmd;
@@ -134,12 +135,12 @@ void NotifyOtherClients(int cmd, int32_t cID) {
 	}
 }
 void PilladorRandom() {
-	std::uniform_int_distribution<unsigned short> num(1, clients.size());
+	std::uniform_int_distribution<unsigned short> num(1, clientsOnLobby.size());
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	int32_t pillador = num(gen);
 
-	for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+	for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
 		if (it->second.id == pillador) {
 			it->second.laPara = true;
 			std::cout << "La pilla el client amb nickname: " << it->second.nickname << " i amb ID: " << std::to_string(it->first) << std::endl;
@@ -158,7 +159,7 @@ void PilladorRandom() {
 bool CheckCollisionWithClientsPos(Position pos) { //amb pixels
 	bool correctPosition = true;
 
-	for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+	for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
 
 		if (pos.x == it->second.pos.x && pos.y == it->second.pos.y)
 			correctPosition = false;
@@ -166,30 +167,30 @@ bool CheckCollisionWithClientsPos(Position pos) { //amb pixels
 	return correctPosition;
 }
 
-void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, int32_t idMovements, AccumMovements tryaccum, int32_t idOpponentCollision) {
+void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, int32_t idMovements, AccumMovements tryaccum, int32_t idOpponentCollision, int8_t idPartida) {
 
 
 	if (cmd == ACK_PING) {
-		if (clients.find(cID) != clients.end())
-			clients.find(cID)->second.timeElapsedLastPing.restart();
+		if (clientsOnLobby.find(cID) != clientsOnLobby.end())
+			clientsOnLobby.find(cID)->second.timeElapsedLastPing.restart();
 	}
-	else if (cmd == HELLO && clients.size() < MAX_CLIENTS) {
+	else if (cmd == HELLO && clientsOnLobby.size() < MAX_CLIENTS) {
 		//comprobar si el client ja esta connectat. Anteriorment comprovat amb el port pero es pot donar el cas d q es repeteixi el port
 		bool alreadyConnected = false;
-		for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
-			if (it->second.nickname == nickname) {
+		for (std::map<int32_t, Player>::iterator it = partidas.find(idPartida)->second.jugadors.begin(); it != partidas.find(idPartida)->second.jugadors.end(); ++it) {//aqui serien clients lobby --> canviarho
+			if (it->second.nickname == nickname || it->second.port == senderPort) {
 				alreadyConnected = true;
 				sf::Packet p;
 				p << ID_ALREADY_TAKEN;
 				status = socket.send(p, senderIP, senderPort);
 				if (status != sf::Socket::Done) {
-					std::cout << "Error sending ID_ALREADY_TAKEN to unknown client " << std::endl;
+					std::cout << "Error sending ID_ALREADY_TAKEN to unknown client. " << std::endl;
 				}
 			}
 		}
 
 		Position pos;
-		int32_t numOfOpponents = clients.size();
+		int32_t numOfOpponents = clientsOnLobby.size();
 		srand(time(NULL));
 		
 		//random range c++11 stuff
@@ -215,14 +216,14 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 				packet << ACK_HELLO << pID << clientID << pos << numOfOpponents;
 				if (numOfOpponents > 0) {
 					//inserim al packet la ID i la pos de cada oponent
-					for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+					for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
 						packet << it->second.id << it->second.pos;
 					}
 				}
-				clients.insert(std::make_pair(clientID, Client{ clientID, nickname, pos, senderIP, senderPort, true, false, false }));
+				clientsOnLobby.insert(std::make_pair(clientID, Player{ clientID, nickname, pos, senderIP, senderPort, true, false, false }));
 				NotifyOtherClients(NEW_CONNECTION, clientID);
-				clients[clientID].timeElapsedLastPing.restart();
-				clientsConnected++;
+				clientsOnLobby[clientID].timeElapsedLastPing.restart();
+				//clientsConnected++;
 				clientID++;
 
 				status = socket.send(packet, senderIP, senderPort);
@@ -236,14 +237,14 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 				packet << ACK_HELLO << pID << idsDesaprovechadas[0] << pos << numOfOpponents;
 				if (numOfOpponents > 0) {
 					//inserim al packet la ID i la pos de cada oponent
-					for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+					for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
 						packet << it->second.id << it->second.pos;
 					}
 				}
-				clients.insert(std::make_pair(idsDesaprovechadas[0], Client{ idsDesaprovechadas[0], nickname, pos, senderIP, senderPort, true, false, false }));
+				clientsOnLobby.insert(std::make_pair(idsDesaprovechadas[0], Player{ idsDesaprovechadas[0], nickname, pos, senderIP, senderPort, true, false, false }));
 				NotifyOtherClients(NEW_CONNECTION, idsDesaprovechadas[0]);
-				clients[idsDesaprovechadas[0]].timeElapsedLastPing.restart();
-				clientsConnected++;
+				clientsOnLobby[idsDesaprovechadas[0]].timeElapsedLastPing.restart();
+				//clientsConnected++;
 
 				status = socket.send(packet, senderIP, senderPort);
 				if (status != sf::Socket::Done) {
@@ -256,9 +257,10 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 		}
 		
 	}
+
 	else if (cmd == ACK_NEW_CONNECTION || cmd == ACK_DISCONNECTION || cmd == ACK_QUI_LA_PILLA || cmd == ACK_WINNER) {
-		if (clients.find(cID) != clients.end() && clients[cID].resending.find(pID) != clients[cID].resending.end()) {
-			clients[cID].resending.erase(pID);
+		if (clientsOnLobby.find(cID) != clientsOnLobby.end() && clientsOnLobby[cID].resending.find(pID) != clientsOnLobby[cID].resending.end()) {
+			clientsOnLobby[cID].resending.erase(pID);
 			if (cmd == ACK_WINNER) {
 				receivedWinner++;
 			}
@@ -267,31 +269,31 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, sf::IpAddress senderI
 	else if (cmd == TRY_POSITION) {
 
 		//posarlo a dintre duna llista per més tard fer les validacions, una vegada fetes les validacions es borra la llista de moviments acumulats
-		if (clients.find(cID) != clients.end()) {
-			if (clients.find(cID)->second.MapAccumMovements.empty()) { //es el primer paquet del client, per tant no acumulem, si no que inicialitzem el mapa
-				clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, tryaccum));
+		if (clientsOnLobby.find(cID) != clientsOnLobby.end()) {
+			if (clientsOnLobby.find(cID)->second.MapAccumMovements.empty()) { //es el primer paquet del client, per tant no acumulem, si no que inicialitzem el mapa
+				clientsOnLobby.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, tryaccum));
 			}
 			else { //hem d'acumular amb l'anterior paquet accum, posar el id move del ultim, sumar deltes i posicio del ultim
 				AccumMovements temp;
-				temp.delta.x = clients.find(cID)->second.MapAccumMovements.rbegin()->second.delta.x += tryaccum.delta.x;
-				temp.delta.y = clients.find(cID)->second.MapAccumMovements.rbegin()->second.delta.y += tryaccum.delta.y;
+				temp.delta.x = clientsOnLobby.find(cID)->second.MapAccumMovements.rbegin()->second.delta.x += tryaccum.delta.x;
+				temp.delta.y = clientsOnLobby.find(cID)->second.MapAccumMovements.rbegin()->second.delta.y += tryaccum.delta.y;
 				temp.absolute = tryaccum.absolute;
-				clients.find(cID)->second.MapAccumMovements.erase(clients.find(cID)->second.MapAccumMovements.rbegin()->first); //borrem anterior
-				clients.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, temp)); //insertem amb els nous valors actualitzats
+				clientsOnLobby.find(cID)->second.MapAccumMovements.erase(clientsOnLobby.find(cID)->second.MapAccumMovements.rbegin()->first); //borrem anterior
+				clientsOnLobby.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, temp)); //insertem amb els nous valors actualitzats
 			}
 		}
 
 	}
 	else if(TRY_COLLISION_OPPONENT) {
-		if (clients.find(idOpponentCollision) != clients.end() && clients.find(cID) != clients.end()) {
-			if (clients.find(idOpponentCollision)->second.pos.x <= clients.find(cID)->second.pos.x + 15 && clients.find(idOpponentCollision)->second.pos.x >= clients.find(cID)->second.pos.x - 15 && clients.find(idOpponentCollision)->second.pos.y <= clients.find(cID)->second.pos.y + 15 && clients.find(idOpponentCollision)->second.pos.y >= clients.find(cID)->second.pos.y - 15) {
+		if (clientsOnLobby.find(idOpponentCollision) != clientsOnLobby.end() && clientsOnLobby.find(cID) != clientsOnLobby.end()) {
+			if (clientsOnLobby.find(idOpponentCollision)->second.pos.x <= clientsOnLobby.find(cID)->second.pos.x + 15 && clientsOnLobby.find(idOpponentCollision)->second.pos.x >= clientsOnLobby.find(cID)->second.pos.x - 15 && clientsOnLobby.find(idOpponentCollision)->second.pos.y <= clientsOnLobby.find(cID)->second.pos.y + 15 && clientsOnLobby.find(idOpponentCollision)->second.pos.y >= clientsOnLobby.find(cID)->second.pos.y - 15) {
 				//std::cout << "Collision With Opponent " << idOpponentCollision << "  " << cID << std::endl;
-				if (!clients[idOpponentCollision].laPara && clients[cID].laPara) {
-					clients[idOpponentCollision].laPara = true;
+				if (!clientsOnLobby[idOpponentCollision].laPara && clientsOnLobby[cID].laPara) {
+					clientsOnLobby[idOpponentCollision].laPara = true;
 					NotifyOtherClients(QUI_LA_PILLA, idOpponentCollision);
 				}
-				else if (clients[idOpponentCollision].laPara && !clients[cID].laPara) {
-					clients[cID].laPara = true;
+				else if (clientsOnLobby[idOpponentCollision].laPara && !clientsOnLobby[cID].laPara) {
+					clientsOnLobby[cID].laPara = true;
 					NotifyOtherClients(QUI_LA_PILLA, cID);
 				}
 			}
@@ -370,12 +372,12 @@ void ManagePing() {
 	}
 	//quan enviem el missatge ping també comprovem que cap dels jugadors hagi superat el temps maxim
 	//si es supera el temps maxim vol dir que esta desconectat, notifiquem als altres jugadors, i el borrem de la llista del server
-	for (std::map<int32_t, Client>::iterator clientes = clients.begin(); clientes != clients.end(); ++clientes) {
+	for (std::map<int32_t, Player>::iterator clientes = clientsOnLobby.begin(); clientes != clientsOnLobby.end(); ++clientes) {
 		if (clientes->second.timeElapsedLastPing.getElapsedTime().asMilliseconds() > CONTROL_PING) {
 			NotifyOtherClients(DISCONNECTION, clientes->first);
 			clientes->second.connected = false;
 			if (!gameStarted) {
-				clientsConnected--;
+				//clientsConnected--;
 				idsDesaprovechadas.push_back(clientes->first);
 			}
 			else {
@@ -387,10 +389,10 @@ void ManagePing() {
 		}
 	}
 
-	for (std::map<int32_t, Client>::iterator clientes = clients.begin(); clientes != clients.end();) {
+	for (std::map<int32_t, Player>::iterator clientes = clientsOnLobby.begin(); clientes != clientsOnLobby.end();) {
 		if (!clientes->second.connected) {
 			std::cout << "Client " << std::to_string(clientes->first) << " disconnected." << std::endl;
-			clientes = clients.erase(clientes);
+			clientes = clientsOnLobby.erase(clientes);
 		}
 		else ++clientes;
 	}
@@ -405,7 +407,7 @@ void PositionValidations() {
 	//REFRESH_POSITIONS 
 	
 
-	for (std::map<int32_t, Client>::iterator client = clients.begin(); client != clients.end(); ++client) {
+	for (std::map<int32_t, Player>::iterator client = clientsOnLobby.begin(); client != clientsOnLobby.end(); ++client) {
 
 		std::vector<int32_t> posToDelete;
 		Position lastPos = client->second.pos;
@@ -421,7 +423,7 @@ void PositionValidations() {
 				if (status != sf::Socket::Done) {
 					std::cout << "Error sending OK_POSITION to client " << std::to_string(client->second.id) << std::endl;
 				}
-				if (clients.size() > 1) {
+				if (clientsOnLobby.size() > 1) {
 					NotifyOtherClients(REFRESH_POSITIONS, client->second.id); 
 				}
 			
@@ -450,15 +452,15 @@ void PositionValidations() {
 }
 
 void ComprovacioPillats() {
-	for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+	for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
 		if (it->second.laPara)
 			pillados.insert(it->first);
 	}
 
 }
 void Winner() {
-	if (gameStarted && pillados.size() >= (clients.size()-1)) {
-		for (std::map<int32_t, Client>::iterator it = clients.begin(); it != clients.end(); ++it) {
+	if (gameStarted && pillados.size() >= (clientsOnLobby.size()-1)) {
+		for (std::map<int32_t, Player>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
 			if (!it->second.laPara) {
 				it->second.winner = true;
 				NotifyOtherClients(WINNER, it->first);
@@ -493,7 +495,7 @@ int main()
 			ComprovacioPillats();
 			clockSend.restart();
 		}
-		if (clients.size() >= MAX_CLIENTS && !gameStarted){// && clientsConnected == MAX_CLIENTS) {
+		if (clientsOnLobby.size() >= MAX_CLIENTS && !gameStarted){// && clientsConnected == MAX_CLIENTS) {
 			//game starts!
 			gameStarted  = true;
 			SendToAllClients(GAMESTARTED);
@@ -502,11 +504,11 @@ int main()
 			PilladorRandom();
 			once = true;
 		}
-		if ((clients.size() <= 0 && gameStarted) || (receivedWinner >= clients.size() && gameStarted)) online = false;
+		if ((clientsOnLobby.size() <= 0 && gameStarted) || (receivedWinner >= clientsOnLobby.size() && gameStarted)) online = false;
 
 	} while (online);
 
-	clients.clear();
+	clientsOnLobby.clear();
 	socket.unbind();
 	system("exit");
 	return 0;
