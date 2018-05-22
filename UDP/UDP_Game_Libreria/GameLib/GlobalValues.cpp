@@ -62,6 +62,33 @@ bool Walls::CheckCollision(Position pos) { //amb pixels
 	return correctPosition;
 }
 
+Partida:: Partida(int32_t id, int32_t idOwner, std::string name, std::string password, int32_t maxPlayers) {
+	this->id = id;
+	this->idOwner = idOwner;
+	this->name = name;
+	this->password = password;
+	this->maxPlayers = maxPlayers;
+}
+
+
+bool Partida::CheckCollisionWithClientsPos(Position pos) { //amb pixels
+	bool correctPosition = true;
+
+	for (std::map<int32_t, Player>::iterator it = jugadors.begin(); it != jugadors.end(); ++it) {
+
+		if (pos.x == it->second.pos.x && pos.y == it->second.pos.y)
+			correctPosition = false;
+	}
+	return correctPosition;
+}
+
+void Partida::ComprovacioPillats() {
+	for (std::map<int32_t, Player>::iterator it = jugadors.begin(); it != jugadors.end(); ++it) {
+		if (it->second.laPara)
+			pillados.insert(it->first);
+	}
+}
+
 
 bool SortByNameDown(const PartidaClient &a, const PartidaClient &b)
 {

@@ -9,7 +9,7 @@ sf::UdpSocket socket;
 sf::Socket::Status status;
 int32_t packetID = 1;
 sf::Clock c;
-
+int32_t IDPartidaJoin = 0;
 Jugador * myPlayer;
 std::map <int32_t, InterpolationAndStuff> opponents;
 sf::Clock clockPositions;
@@ -18,98 +18,15 @@ int32_t idUltimMoviment = 0;
 Walls * myWalls;
 int32_t winner;
 sf::RenderWindow window;
-bool alreadySaidWinner, GTFO, once, create, join, name, password, maxNum, exitGame, writePassword, disconnected, sortByName, sortByNameDown, sortByConnected, sortByConnectedDown, sortByMax, sortByMaxDown;
-std::map <int8_t, PartidaClient> partidas;
+int16_t positionY = 100;
+bool alreadySaidWinner, GTFO, once, create, join, name, password, maxNum, exitGame, writePassword, disconnected, sortByName, sortByNameDown, sortByConnected, sortByConnectedDown, sortByMax, sortByMaxDown, login, sign, username, passwordConnection, mail, connected;
+std::map <int32_t, PartidaClient> partidas;
 
 std::vector<PartidaClient> vectorListaPartidas;
 std::vector<sf::RectangleShape> listButtons;
 
 sf::Color grey = sf::Color(169, 169, 169);
 sf::Color greyFosc = sf::Color(49, 51, 53);
-
-void ConnectionWithServer() {
-
-	std::cout << "Estableciendo conexion con server... \n";
-	window.create(sf::VideoMode(500, 500), "Lobby", sf::Style::Default);
-
-	sf::RectangleShape inputButton(sf::Vector2f(300.f, 60.f));
-	inputButton.setPosition(window.getSize().x / 2 / 2, window.getSize().y / 2);
-	inputButton.setFillColor(sf::Color::White);
-
-	sf::Font font;
-	if (!font.loadFromFile("calibri.ttf"))
-		std::cout << "Can't find the font file" << std::endl;
-
-	sf::Text startText;
-	startText.setFont(font);
-	startText.setStyle(sf::Text::Regular);
-	startText.setString("Username: ");
-	startText.setFillColor(sf::Color::White);
-	startText.setCharacterSize(48);
-	startText.setPosition(window.getSize().x / 2 / 2, window.getSize().y / 2 - 100);
-
-	sf::String playerInput;
-	sf::Text playerText("", font, 48);
-	playerText.setPosition(window.getSize().x / 2 / 2, window.getSize().y / 2);
-	playerText.setFillColor(sf::Color::Black);
-	window.clear();
-
-	while (window.isOpen())
-	{
-		sf::Event event;
-		while (window.pollEvent(event))
-		{
-			switch (event.type)
-			{
-			case sf::Event::Closed:
-				window.close();
-				exitGame = disconnected = true;
-				break;
-			case sf::Event::KeyPressed:
-			{
-				if (event.key.code == sf::Keyboard::Return) {
-					sf::Packet packet;
-					myPlayer->nickname = playerText.getString();
-					packet << HELLO << packetID << myPlayer->nickname;
-					myPlayer->resending.insert(std::make_pair(packetID, packet));
-					packetID++;
-					packet.clear();
-					window.close();
-					break;
-				}
-			}
-			break;
-			case sf::Event::TextEntered:
-			{
-				if (event.text.unicode == '\b') {
-					if (playerInput.getSize() > 0)
-						playerInput.erase(playerInput.getSize() - 1, 1);
-					playerText.setString(playerInput);
-				}
-				else if (event.text.unicode < 128)
-				{
-					playerInput += event.text.unicode;
-					playerText.setString(playerInput);
-				}
-			}
-			break;
-			}
-
-		}
-		window.draw(startText);
-		window.draw(inputButton);
-		window.draw(playerText);
-		window.display();
-	}
-	/*std::cout << "Type your nickname: ";
-	std::getline(std::cin, myPlayer->nickname);*/
-	/*sf::Packet packet;
-	packet << HELLO << packetID << myPlayer->nickname;
-	myPlayer->resending.insert(std::make_pair(packetID, packet));
-	packetID++;
-	packet.clear();*/
-}
-
 
 void Resend() {
 
@@ -129,6 +46,43 @@ void Resend() {
 	}
 }
 
+
+void RefreshPartidas(int32_t id, std::string name, int32_t conn, int32_t max) {
+
+	sf::RectangleShape button(sf::Vector2f(1150, 50.f));
+	button.setPosition(50, positionY);
+	button.setFillColor(sf::Color::Transparent);
+
+	vectorListaPartidas.push_back(PartidaClient{ id, name, conn, max });
+	listButtons.push_back(button);
+	positionY += 50;
+
+	if(sortByName)
+		std::sort(vectorListaPartidas.begin(), vectorListaPartidas.end(), SortByNameUp);
+	else if (sortByNameDown)
+		std::sort(vectorListaPartidas.begin(), vectorListaPartidas.end(), SortByNameDown);
+	else if(sortByConnectedDown)
+		std::sort(vectorListaPartidas.begin(), vectorListaPartidas.end(), SortByConnectionDown);
+	else if (sortByConnected)
+		std::sort(vectorListaPartidas.begin(), vectorListaPartidas.end(), SortByConnectionUp);
+	else if (sortByMaxDown)
+		std::sort(vectorListaPartidas.begin(), vectorListaPartidas.end(), SortByMaxNumDown);
+	else if (sortByMax)
+		std::sort(vectorListaPartidas.begin(), vectorListaPartidas.end(), SortByMaxNumUp);
+	else std::sort(vectorListaPartidas.begin(), vectorListaPartidas.end(), SortByNameUp);
+}
+
+void DeletePartidas(int32_t gID) {
+	
+	for (int8_t i = 0; i < partidas.size(); i++) {
+		if (vectorListaPartidas[i].id == gID) vectorListaPartidas.erase(vectorListaPartidas.begin(), vectorListaPartidas.begin() + i);
+	}
+	listButtons.pop_back();
+	partidas.erase(gID);
+}
+
+
+
 void SendACK(int cmd, int32_t pID) {
 	sf::Packet packet;
 	std::string com;
@@ -141,6 +95,9 @@ void SendACK(int cmd, int32_t pID) {
 	}
 	else if (cmd == ACK_PING) {
 		com = "ACK_PING";
+	}
+	else if (cmd == ACK_PING_LOBBY) {
+		com = "ACK_PING_LOBBY";
 	}
 	else if (cmd == ACK_QUI_LA_PILLA) {
 		com = "ACK_QUI_LA_PILLA";
@@ -166,6 +123,7 @@ void ReceiveData() {
 	sf::Packet packet;
 	int cmd = 0;
 	int32_t opponentId = 0;
+	std::string opponentNickname = "";
 	int32_t packetIDRecived = 0;
 
 	status = socket.receive(packet, serverIP, serverPORT);
@@ -181,44 +139,99 @@ void ReceiveData() {
 			if (cmd == PING) {
 				SendACK(ACK_PING, packetIDRecived);
 			}
-			if (cmd == ID_ALREADY_TAKEN) {
-				std::cout << "This ID it's already used." << std::endl;
+			if (cmd == PING_LOBBY) {
+				SendACK(ACK_PING_LOBBY, packetIDRecived);
+			}
+			if (cmd == ID_ALREADY_CONNECTED) {
+				//std::cout << "This ID it's already connected." << std::endl;
+				if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
+					myPlayer->resending.erase(packetIDRecived);
+				}
+				//login = sign = false;
+				//connected = false;
 				//ConnectionWithServer();
 				GTFO = true;
+			}
+			//else if (cmd == ID_ALREADY_EXISTS) {
 
+			//}
+			else if (cmd == ID_ALREADY_PLAYING) {
+				if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
+					myPlayer->resending.erase(packetIDRecived);
+				}
+				std::cout << "This user is already playing a game" << std::endl;
+				join = true;
+				writePassword = false;
+			}
+			else if (cmd == PASSWORD_INCORRECT) {
+				if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
+					myPlayer->resending.erase(packetIDRecived);			
+				}
+				std::cout << "Incorrect Password" << std::endl;
+			}
+			else if (cmd == ACK_LOGIN) {
+				packet >> myPlayer->ID;
+				//text en vermell error username i error password
+				std::cout << "Connection with server." << std::endl;
+				//connected = true;
+				if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
+					myPlayer->resending.erase(packetIDRecived);
+				}
+			}
+			else if (cmd == ACK_SIGNUP) {
+				packet >> myPlayer->ID;
+				//text en vermell error username, error mail i error password
+				std::cout << "Connection with server." << std::endl;
+				//connected = true;
+				if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
+					myPlayer->resending.erase(packetIDRecived);
+				}
+			}
+			else if (cmd == NEW_GAME_CREATED) {
+				int32_t gID = 0;
+				std::string gName = "";
+				int32_t gMaxP = 0;
+				packet >> gID >> gName >> gMaxP;
+				partidas.insert(std::make_pair(gID, PartidaClient{ gID,gName, 1, gMaxP }));
+				RefreshPartidas(gID, gName, 1, gMaxP);
+			}
+			else if (cmd == GAME_DELETED) {
+				int32_t gID = 0;
+				packet >> gID;
+				DeletePartidas(gID);
 			}
 			else if (cmd == GAMESTARTED) {
 				//SendACK(ACK_GAMESTARTED, packetIDRecived);
 				std::cout << "The game PILLAPILLA started." << std::endl;
 			}
-			else if (cmd == ACK_HELLO) {
-				if (myPlayer->ID == 0) {
+			else if (cmd == WELCOME) {
+				//if (myPlayer->ID == 0) {
 					int32_t numOfOpponents = 0;
-					packet >> myPlayer->ID >> myPlayer->position >> numOfOpponents;
+					packet >> myPlayer->IDPartida >> myPlayer->position >> numOfOpponents;
 
 					if (numOfOpponents > 0) {
 						//treiem del packet la ID i la pos de cada oponent
 						for (int i = 0; i < numOfOpponents; i++) {
 							//int8_t opponentId;
 							Position oPos;
-							packet >> opponentId >> oPos;
-							opponents.insert(std::make_pair(opponentId, InterpolationAndStuff{ oPos, oPos, false }));
+							packet >> opponentId >> opponentNickname >> oPos;
+							opponents.insert(std::make_pair(opponentId, InterpolationAndStuff{ oPos, oPos, false, opponentNickname }));
 						}
 					}
 					if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
 						myPlayer->resending.erase(packetIDRecived);
 					}
 					std::cout << "WELCOME! " << " Client ID: " << std::to_string(myPlayer->ID) << " Initial Position: " << std::to_string(myPlayer->position.x) << ", " << std::to_string(myPlayer->position.y) << std::endl;
-				}
+				//}
 			}
 
 			else if (cmd == NEW_CONNECTION) {
-				packet >> opponentId;
+				packet >> opponentId >> opponentNickname;
 				if (opponents.find(opponentId) == opponents.end()) {
 					Position pos;
 					packet >> pos;
-					std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << std::endl;
-					opponents.insert(std::make_pair(opponentId, InterpolationAndStuff{ pos, pos, false }));
+					std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Nickname: " << opponentNickname <<" Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << std::endl;
+					opponents.insert(std::make_pair(opponentId, InterpolationAndStuff{ pos, pos, false, opponentNickname }));
 				}
 				SendACK(ACK_NEW_CONNECTION, packetIDRecived);
 			}
@@ -476,7 +489,6 @@ void Lobby() {
 	numText.setFillColor(sf::Color::Black);
 
 	//-------------- Join: List ----------------------------
-	int16_t positionY = 100;
 
 	sf::Text nameTextButton;
 	nameTextButton.setFont(font);
@@ -497,7 +509,7 @@ void Lobby() {
 	maxTextButton.setCharacterSize(48);
 
 
-	for (std::map<int8_t, PartidaClient>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
+	for (std::map<int32_t, PartidaClient>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
 
 		sf::RectangleShape button(sf::Vector2f(1150, 50.f));
 		button.setPosition(50, positionY);
@@ -577,7 +589,12 @@ void Lobby() {
 		sf::Event Event;
 		sf::Vector2i mousePos = sf::Mouse::getPosition(window);
 		sf::Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+		ReceiveData();
 
+		if (c.getElapsedTime().asMilliseconds() > SENDING_PING) {
+			Resend();
+			c.restart();
+		}
 		while (window.pollEvent(Event))
 		{
 			switch (Event.type)
@@ -662,11 +679,22 @@ void Lobby() {
 				}
 				else if (okButton.getGlobalBounds().contains(mousePosF))
 				{
-					if (create)
-						window.close();
-					else if (join)
-						window.close();
-
+					if (create) {
+						sf::Packet packet;
+						//std::string str = passText.getString();
+						packet << NEW_GAME << packetID << myPlayer->ID << nameInput << passInput << numInput;
+						myPlayer->resending.insert(std::make_pair(myPlayer->ID, packet));
+						packetID++;
+					}
+					else if (join) {
+						sf::Packet packet;
+						//std::string str = passText.getString();
+						packet << JOIN_GAME << packetID << myPlayer->ID << IDPartidaJoin << passInput;
+						myPlayer->resending.insert(std::make_pair(myPlayer->ID, packet));
+						packetID++;
+					}
+					
+					window.close();
 					create = join = name = password = maxNum = writePassword = false;
 					nameInput.clear();
 					numInput.clear();
@@ -746,15 +774,11 @@ void Lobby() {
 
 					for (int8_t i = 0; i < vectorListaPartidas.size(); i++) {
 						if (listButtons[i].getGlobalBounds().contains(mousePosF)) {
-							writePassword = true;
-							//ensenyar introduccio password
-							//unirme a aquella partida si la password es correcte
-							//window.close();
+							writePassword = true;//ensenyar introduccio password
+							IDPartidaJoin = vectorListaPartidas[i].id;//em guardo l'id de la partida
 							break;
 						}
-
 					}
-
 				}
 			}
 			break;
@@ -811,9 +835,13 @@ void Lobby() {
 						//enviar numText.getString();
 						break;
 					}
-					else if (writePassword) {
-						//enviar info
-					}
+					//else if (writePassword) {
+					//	sf::Packet packet;
+					//	//std::string str = passText.getString();
+					//	packet << packetID << myPlayer->ID << IDPartidaJoin << passText.getString();
+					//	myPlayer->resending.insert(std::make_pair(myPlayer->ID, packet));
+					//	packetID++;
+					//}
 					break;
 				}
 			}
@@ -821,7 +849,7 @@ void Lobby() {
 			}
 		}
 
-		if(name) createNameButton.setFillColor(grey);
+		if (name) createNameButton.setFillColor(grey);
 		else createNameButton.setFillColor(sf::Color::White);
 		if (password) createPassButton.setFillColor(grey);
 		else createPassButton.setFillColor(sf::Color::White);
@@ -838,7 +866,7 @@ void Lobby() {
 			window.draw(exitText);
 		}
 		else if (create) {	//mostro lobby de crear partida
-			//name
+							//name
 			window.draw(createNameText);
 			window.draw(createNameButton);
 			window.draw(nameText);
@@ -858,7 +886,7 @@ void Lobby() {
 			window.draw(okText);
 		}
 		else if (join) { //mostro lobby de unirse partida
-						 
+
 			if (sortByMax) sortMaxButton.setFillColor(sf::Color::Blue);
 			else if (sortByConnected) sortConButton.setFillColor(sf::Color::Blue);
 			else if (sortByName) sortNameButton.setFillColor(sf::Color::Blue);
@@ -907,12 +935,356 @@ void Lobby() {
 			//ok
 			window.draw(okButton);
 			window.draw(okText);
-			
+
 
 		}
 		window.display();
 	}
 }
+
+void ConnectionWithServer() {
+
+	std::cout << "Estableciendo conexion con server... \n";
+	window.create(sf::VideoMode(500, 750), "Lobby", sf::Style::Default);
+
+	sf::Font font;
+	if (!font.loadFromFile("calibri.ttf"))
+		std::cout << "Can't find the font file" << std::endl;
+	//-------------- login ----------------------------
+	sf::RectangleShape loginButton(sf::Vector2f(300, 50.f));
+	loginButton.setPosition(window.getSize().x / 2 / 2, 200);
+	loginButton.setFillColor(sf::Color::White);
+
+	sf::Text loginText;
+	loginText.setFont(font);
+	loginText.setStyle(sf::Text::Regular);
+	loginText.setString("Login In");
+	loginText.setFillColor(sf::Color::Black);
+	loginText.setCharacterSize(48);
+	loginText.setPosition(window.getSize().x / 2 / 2 + 20, loginButton.getPosition().y - 10);
+
+	//-------------- sign up ----------------------------
+	sf::RectangleShape signButton(sf::Vector2f(300, 50.f));
+	signButton.setPosition(window.getSize().x / 2 / 2, loginButton.getPosition().y + 100);
+	signButton.setFillColor(sf::Color::White);
+
+	sf::Text signText;
+	signText.setFont(font);
+	signText.setStyle(sf::Text::Regular);
+	signText.setString("Sign Up");
+	signText.setFillColor(sf::Color::Black);
+	signText.setCharacterSize(48);
+	signText.setPosition(window.getSize().x / 2 / 2 + 20, signButton.getPosition().y - 10);
+	//------------------------------------------------------
+
+	sf::Text titleText;
+	titleText.setFont(font);
+	titleText.setString("Pilla Pilla");
+	titleText.setStyle(sf::Text::Regular);
+	titleText.setFillColor(sf::Color::Yellow);
+	titleText.setCharacterSize(48);
+	titleText.setPosition(window.getSize().x / 2 / 2 + 20, 50);
+	//--------- username ----------------------------------------
+	sf::Text userNameText;
+	userNameText.setFont(font);
+	userNameText.setStyle(sf::Text::Regular);
+	userNameText.setString("Username: ");
+	userNameText.setFillColor(sf::Color::White);
+	userNameText.setCharacterSize(48);
+	userNameText.setPosition(window.getSize().x / 2 / 2, titleText.getPosition().y + 50);
+
+	sf::RectangleShape usernameButton(sf::Vector2f(300.f, 60.f));
+	usernameButton.setPosition(window.getSize().x / 2 / 2, userNameText.getPosition().y + 50);
+	usernameButton.setFillColor(sf::Color::White);
+
+	sf::String userInput;
+	sf::Text userText("", font, 48);
+	userText.setPosition(window.getSize().x / 2 / 2 + 10, usernameButton.getPosition().y - 10);
+	userText.setFillColor(sf::Color::Black);
+
+	//--------- passwordConnection ----------------------------------------
+	sf::Text passwordConecText;
+	passwordConecText.setFont(font);
+	passwordConecText.setStyle(sf::Text::Regular);
+	passwordConecText.setString("Password: ");
+	passwordConecText.setFillColor(sf::Color::White);
+	passwordConecText.setCharacterSize(48);
+	passwordConecText.setPosition(window.getSize().x / 2 / 2, usernameButton.getPosition().y + 50);
+
+	sf::RectangleShape passConnectionButton(sf::Vector2f(300.f, 60.f));
+	passConnectionButton.setPosition(window.getSize().x / 2 / 2, passwordConecText.getPosition().y + 50);
+	passConnectionButton.setFillColor(sf::Color::White);
+
+	sf::String passInput;
+	sf::Text passText("", font, 48);
+	passText.setPosition(window.getSize().x / 2 / 2 + 10, passConnectionButton.getPosition().y - 10);
+	passText.setFillColor(sf::Color::Black);
+
+	//--------- mail ----------------------------------------
+	sf::Text mailConectText;
+	mailConectText.setFont(font);
+	mailConectText.setStyle(sf::Text::Regular);
+	mailConectText.setString("Mail: ");
+	mailConectText.setFillColor(sf::Color::White);
+	mailConectText.setCharacterSize(48);
+	mailConectText.setPosition(window.getSize().x / 2 / 2, passConnectionButton.getPosition().y + 50);
+
+	sf::RectangleShape mailButton(sf::Vector2f(300.f, 60.f));
+	mailButton.setPosition(window.getSize().x / 2 / 2, mailConectText.getPosition().y + 50);
+	mailButton.setFillColor(sf::Color::White);
+
+	sf::String mailInput;
+	sf::Text mailText("", font, 48);
+	mailText.setPosition(window.getSize().x / 2 / 2 + 10, mailButton.getPosition().y - 10);
+	mailText.setFillColor(sf::Color::Black);
+
+	//-------------- back ----------------------------
+	sf::RectangleShape backButton(sf::Vector2f(200.f, 50.f));
+	backButton.setPosition(50, window.getSize().y - 100);
+	backButton.setFillColor(sf::Color::Yellow);
+
+	sf::Text backText;
+	backText.setFont(font);
+	backText.setStyle(sf::Text::Regular);
+	backText.setString("Back");
+	backText.setFillColor(sf::Color::Black);
+	backText.setCharacterSize(48);
+	backText.setPosition(50 + 5, backButton.getPosition().y - 10);
+
+	//-------------- ok ----------------------------
+	sf::RectangleShape okButton(sf::Vector2f(200.f, 50.f));
+	okButton.setPosition(window.getSize().x - 200, window.getSize().y - 100);
+	okButton.setFillColor(sf::Color::Green);
+
+	sf::Text okText;
+	okText.setFont(font);
+	okText.setString("Connect");
+	okText.setStyle(sf::Text::Regular);
+	okText.setFillColor(sf::Color::Black);
+	okText.setCharacterSize(48);
+	okText.setPosition(window.getSize().x - 200 + 5, okButton.getPosition().y - 10);
+
+	window.clear();
+
+	while (window.isOpen())
+	{
+		sf::Event event;
+		sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+		sf::Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+		ReceiveData();
+		if (GTFO) {
+			window.close();
+			disconnected = true;
+		}
+		if (c.getElapsedTime().asMilliseconds() > SENDING_PING) {
+			Resend();
+			c.restart();
+		}
+		while (window.pollEvent(event))
+		{
+			switch (event.type)
+			{
+			case sf::Event::Closed:
+				exitGame = disconnected = true;
+				window.close();
+				break;
+			case sf::Event::MouseMoved:
+			{
+				//login
+				if (loginButton.getGlobalBounds().contains(mousePosF))
+					loginButton.setFillColor(grey);
+				else loginButton.setFillColor(sf::Color::White);
+				//sign
+				if (signButton.getGlobalBounds().contains(mousePosF))
+					signButton.setFillColor(grey);
+				else signButton.setFillColor(sf::Color::White);
+
+			}
+			break;
+			case sf::Event::MouseButtonPressed:
+			{
+				if (loginButton.getGlobalBounds().contains(mousePosF) && !login && !sign)
+				{
+					login = true;
+					username = true;
+					usernameButton.setFillColor(grey);
+					titleText.setString("Login");
+
+					break;
+				}
+				else if (signButton.getGlobalBounds().contains(mousePosF) && !sign && !login)
+				{
+					sign = true;
+					username = true;
+					titleText.setString("Sign");
+					break;
+				}
+				else if (backButton.getGlobalBounds().contains(mousePosF))
+				{
+					login = sign = username = passwordConnection = mail = false;
+					userInput.clear();
+					mailInput.clear();
+					passInput.clear();
+					userText.setString("");
+					mailText.setString("");
+					passText.setString("");
+					break;
+				}
+				else if (okButton.getGlobalBounds().contains(mousePosF))
+				{
+					sf::Packet toSend;
+					if (login || sign) {
+						if (login)
+							toSend << LOGIN << packetID << userInput << passInput;
+						else if (sign) toSend << SIGNUP << packetID << userInput << passInput << mailInput;
+
+						myPlayer->resending.insert(std::make_pair(packetID, toSend));
+
+						packetID++;
+						toSend.clear();
+						window.close();
+					}
+					break;
+				}
+
+				else if (usernameButton.getGlobalBounds().contains(mousePosF) && (login || sign))
+				{
+					username = true;
+					passwordConnection = mail = false;
+					break;
+				}
+				else if (passConnectionButton.getGlobalBounds().contains(mousePosF) && (login || sign))
+				{
+					passwordConnection = true;
+					username = mail = false;
+					break;
+				}
+				else if (mailButton.getGlobalBounds().contains(mousePosF) && sign)
+				{
+					mail = true;
+					username = passwordConnection = false;
+					break;
+				}
+
+			}
+			case sf::Event::KeyPressed:
+			{
+				if (event.key.code == sf::Keyboard::Return) {
+
+					if (username) {
+						username = false;
+						passwordConnection = true;
+						myPlayer->nickname = userInput;
+					}
+					else if (passwordConnection) {
+						passwordConnection = false;
+						if (sign)
+							mail = true;
+					}
+					else if (mail) {
+						mail = false;
+						break;
+					}
+				}
+			}
+			break;
+			case sf::Event::TextEntered:
+			{
+				if (event.text.unicode == '\b') {
+					if (username) {
+						if (userInput.getSize() > 0)
+							userInput.erase(userInput.getSize() - 1, 1);
+						userText.setString(userInput);
+					}
+					else if (passwordConnection) {
+						if (passInput.getSize() > 0)
+							passInput.erase(passInput.getSize() - 1, 1);
+						passText.setString(passInput);
+					}
+					else if (mail) {
+						if (mailInput.getSize() > 0)
+							mailInput.erase(mailInput.getSize() - 1, 1);
+						mailText.setString(mailInput);
+					}
+				}
+				else if (event.text.unicode < 128)
+				{
+					if (username) {
+						userInput += event.text.unicode;
+						userText.setString(userInput);
+					}
+					else if (passwordConnection) {
+						passInput += event.text.unicode;
+						passText.setString(passInput);
+					}
+					else if (mail) {
+						mailInput += event.text.unicode;
+						mailText.setString(mailInput);
+					}
+				}
+			}
+			break;
+			}
+		}
+		window.clear();
+
+		if (username) usernameButton.setFillColor(grey);
+		else usernameButton.setFillColor(sf::Color::White);
+		if (passwordConnection) passConnectionButton.setFillColor(grey);
+		else passConnectionButton.setFillColor(sf::Color::White);
+		if (mail) mailButton.setFillColor(grey);
+		else mailButton.setFillColor(sf::Color::White);
+
+		if (!login && !sign) {
+			username = passwordConnection = mail = false;
+			userInput.clear();
+			mailInput.clear();
+			passInput.clear();
+			userText.setString("");
+			mailText.setString("");
+			passText.setString("");
+			window.draw(titleText);
+			window.draw(loginButton);
+			window.draw(loginText);
+			window.draw(signButton);
+			window.draw(signText);
+		}
+		else if (login) {
+			window.draw(titleText);
+			window.draw(userNameText);
+			window.draw(usernameButton);
+			window.draw(userText);
+			window.draw(passwordConecText);
+			window.draw(passConnectionButton);
+			window.draw(passText);
+			window.draw(backButton);
+			window.draw(backText);
+			window.draw(okButton);
+			window.draw(okText);
+		}
+		else if (sign) {
+			window.draw(titleText);
+			window.draw(userNameText);
+			window.draw(usernameButton);
+			window.draw(userText);
+			window.draw(passwordConecText);
+			window.draw(passConnectionButton);
+			window.draw(passText);
+			window.draw(mailConectText);
+			window.draw(mailButton);
+			window.draw(mailText);
+			window.draw(backButton);
+			window.draw(backText);
+			window.draw(okButton);
+			window.draw(okText);
+		}
+
+		window.display();
+	}
+
+}
+
+
 
 void GameManager() {
 
@@ -923,10 +1295,6 @@ void GameManager() {
 		sf::Event event;
 		ReceiveData();
 
-		if (GTFO) {
-			window.close();
-			disconnected = true;
-		}
 		if (c.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
 			c.restart();
@@ -1127,17 +1495,21 @@ int main()
 
 	myPlayer = new Jugador();
 	myWalls = new Walls();
-	partidas.insert(std::make_pair(1, PartidaClient{ 1,"La 1ra Partida Loko", 4, 1 }));
-	partidas.insert(std::make_pair(2, PartidaClient{ 2,"Brrr", 3, 2 }));
+	//partidas.insert(std::make_pair(1, PartidaClient{ 1,"La 1ra Partida Loko", 4, 1 }));
+	//partidas.insert(std::make_pair(2, PartidaClient{ 2,"Brrr", 3, 2 }));
 	//initial connection
-	ConnectionWithServer();
-	do { //aquest bucle no se si esta be
-		Lobby();
-		if (!exitGame) {
-			clockPositions.restart(); //a partir daqui ja es pot acabar de moure per tant fem un reset del rellotje
-			GameManager();
-		}
-	} while (!disconnected);
+	c.restart();
+	ConnectionWithServer(); 
+
+	if (!disconnected) {
+		do {
+			Lobby();
+			if (!exitGame) {
+				clockPositions.restart(); //a partir daqui ja es pot acabar de moure per tant fem un reset del rellotje
+				GameManager();
+			}
+		} while (!disconnected);
+	}
 	opponents.clear();
 	socket.unbind();
 	system("exit");
