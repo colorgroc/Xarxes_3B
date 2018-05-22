@@ -36,16 +36,12 @@
 #define PERCENT_PACKETLOSS 0.05
 
 enum Cmds {
-<<<<<<< HEAD
 	WELCOME, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, PING_LOBBY, ACK_PING, ACK_PING_LOBBY, TRY_POSITION, OK_POSITION, REFRESH_POSITIONS, TRY_COLLISION_OPPONENT, QUI_LA_PILLA, ACK_QUI_LA_PILLA, GAMESTARTED, WINNER, ACK_WINNER, ID_ALREADY_TAKEN, NEW_GAME, JOIN_GAME, PASSWORD_INCORRECT, LOGIN, SIGNUP, ACK_LOGIN, ACK_SIGNUP, ID_ALREADY_CONNECTED, GLOBAL_CHAT, GAME_CHAT, NEW_CONNECTION_LOBBY, DISCONNECTION_LOBBY, ACK_DISCONNECTION_LOBBY, ACK_NEW_CONNECTION_LOBBY, ID_ALREADY_PLAYING, NEW_GAME_CREATED, GAME_DELETED
-=======
-	HELLO, ACK_HELLO, WELCOME, NEW_CONNECTION, ACK_NEW_CONNECTION, DISCONNECTION, ACK_DISCONNECTION, PING, ACK_PING, TRY_POSITION, OK_POSITION, REFRESH_POSITIONS, TRY_COLLISION_OPPONENT, QUI_LA_PILLA, ACK_QUI_LA_PILLA, GAMESTARTED, WINNER, ACK_WINNER, ID_ALREADY_TAKEN, NEW_GAME, JOIN_GAME, PASSWORD_INCORRECT, GLOBAL_CHAT, GAME_CHAT
 };
 struct Chat {
 	int8_t id;
 	std::string nickname;
 	std::string mensaje;
->>>>>>> 8cfb52f95ca0ed0812f7a8282d499184e991c5a9
 };
 struct Position {
 	int16_t x;
@@ -56,11 +52,8 @@ struct AccumMovements {
 	Position delta;
 	Position absolute;
 };
-<<<<<<< HEAD
+
 struct ClientLobby {
-=======
-struct LobbyClient {
->>>>>>> 8cfb52f95ca0ed0812f7a8282d499184e991c5a9
 	int32_t id;
 	std::string nickname;
 	sf::IpAddress ip;
@@ -72,7 +65,7 @@ struct LobbyClient {
 	std::map<int32_t, sf::Packet> resending;
 	sf::Clock timeElapsedLastPing;
 };
-struct GameClient {
+struct Player {
 	int32_t id;
 	std::string nickname;
 	Position pos;
@@ -87,19 +80,16 @@ struct GameClient {
 																//	moviments acumulats
 };
 
-<<<<<<< HEAD
-=======
-struct Partida {
-	int8_t id;
-	GameClient owner;
-	std::string name;
-	std::string password;
-	int8_t maxPlayers;
-	//int8_t numPlayersConnected;
-	std::map<int32_t, GameClient> jugadors;
-};
+//struct Partida {
+//	int8_t id;
+//	GameClient owner;
+//	std::string name;
+//	std::string password;
+//	int8_t maxPlayers;
+//	//int8_t numPlayersConnected;
+//	std::map<int32_t, GameClient> jugadors;
+//};
 
->>>>>>> 8cfb52f95ca0ed0812f7a8282d499184e991c5a9
 struct PartidaClient {
 	int32_t id;
 	std::string name;

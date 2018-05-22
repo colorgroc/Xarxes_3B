@@ -18,14 +18,10 @@ int32_t idUltimMoviment = 0;
 Walls * myWalls;
 int32_t winner;
 sf::RenderWindow window;
-<<<<<<< HEAD
+
 int16_t positionY = 100;
-bool alreadySaidWinner, GTFO, once, create, join, name, password, maxNum, exitGame, writePassword, disconnected, sortByName, sortByNameDown, sortByConnected, sortByConnectedDown, sortByMax, sortByMaxDown, login, sign, username, passwordConnection, mail, connected;
+bool alreadySaidWinner, GTFO, once, create, join, name, password, maxNum, exitGame, writePassword, disconnected, sortByName, sortByNameDown, sortByConnected, sortByConnectedDown, sortByMax, sortByMaxDown, login, sign, username, passwordConnection, mail, connected, globalChat;
 std::map <int32_t, PartidaClient> partidas;
-=======
-bool alreadySaidWinner, GTFO, once, create, join, name, password, maxNum, exitGame, writePassword, disconnected, sortByName, sortByNameDown, sortByConnected, sortByConnectedDown, sortByMax, sortByMaxDown, globalChat;
-std::map <int8_t, PartidaClient> partidas;
->>>>>>> 8cfb52f95ca0ed0812f7a8282d499184e991c5a9
 
 std::vector<PartidaClient> vectorListaPartidas;
 std::vector<sf::RectangleShape> listButtons;
@@ -33,8 +29,6 @@ std::vector<sf::RectangleShape> listButtons;
 sf::Color grey = sf::Color(169, 169, 169);
 sf::Color greyFosc = sf::Color(49, 51, 53);
 
-<<<<<<< HEAD
-=======
 std::string textoAEnviar = "";
 std::vector<std::string> aMensajes;
 sf::String mensaje;
@@ -158,91 +152,7 @@ void Chat() {
 		window.clear();
 	}
 }
-void ConnectionWithServer() {
 
-	std::cout << "Estableciendo conexion con server... \n";
-	window.create(sf::VideoMode(500, 500), "Lobby", sf::Style::Default);
-
-	sf::RectangleShape inputButton(sf::Vector2f(300.f, 60.f));
-	inputButton.setPosition(window.getSize().x / 2 / 2, window.getSize().y / 2);
-	inputButton.setFillColor(sf::Color::White);
-
-	sf::Font font;
-	if (!font.loadFromFile("calibri.ttf"))
-		std::cout << "Can't find the font file" << std::endl;
-
-	sf::Text startText;
-	startText.setFont(font);
-	startText.setStyle(sf::Text::Regular);
-	startText.setString("Username: ");
-	startText.setFillColor(sf::Color::White);
-	startText.setCharacterSize(48);
-	startText.setPosition(window.getSize().x / 2 / 2, window.getSize().y / 2 - 100);
-
-	sf::String playerInput;
-	sf::Text playerText("", font, 48);
-	playerText.setPosition(window.getSize().x / 2 / 2, window.getSize().y / 2);
-	playerText.setFillColor(sf::Color::Black);
-	window.clear();
-
-	while (window.isOpen())
-	{
-		sf::Event event;
-		while (window.pollEvent(event))
-		{
-			switch (event.type)
-			{
-			case sf::Event::Closed:
-				window.close();
-				exitGame = disconnected = true;
-				break;
-			case sf::Event::KeyPressed:
-			{
-				if (event.key.code == sf::Keyboard::Return) {
-					sf::Packet packet;
-					myPlayer->nickname = playerText.getString();
-					packet << HELLO << packetID << myPlayer->nickname;
-					myPlayer->resending.insert(std::make_pair(packetID, packet));
-					packetID++;
-					packet.clear();
-					window.close();
-					break;
-				}
-			}
-			break;
-			case sf::Event::TextEntered:
-			{
-				if (event.text.unicode == '\b') {
-					if (playerInput.getSize() > 0)
-						playerInput.erase(playerInput.getSize() - 1, 1);
-					playerText.setString(playerInput);
-				}
-				else if (event.text.unicode < 128)
-				{
-					playerInput += event.text.unicode;
-					playerText.setString(playerInput);
-				}
-			}
-			break;
-			}
-
-		}
-		window.draw(startText);
-		window.draw(inputButton);
-		window.draw(playerText);
-		window.display();
-	}
-	/*std::cout << "Type your nickname: ";
-	std::getline(std::cin, myPlayer->nickname);*/
-	/*sf::Packet packet;
-	packet << HELLO << packetID << myPlayer->nickname;
-	myPlayer->resending.insert(std::make_pair(packetID, packet));
-	packetID++;
-	packet.clear();*/
-}
-
-
->>>>>>> 8cfb52f95ca0ed0812f7a8282d499184e991c5a9
 void Resend() {
 
 	for (std::map<int32_t, sf::Packet>::iterator msg = myPlayer->resending.begin(); msg != myPlayer->resending.end(); ++msg) {
