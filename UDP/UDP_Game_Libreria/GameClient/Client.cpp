@@ -107,7 +107,6 @@ void Chat() {
 
 						status = socket.send(p, serverIP, serverPORT);
 					
-
 						shared_cout(mensaje, false);
 
 						if (status != sf::Socket::Done)
@@ -157,6 +156,13 @@ void Resend() {
 
 	for (std::map<int32_t, sf::Packet>::iterator msg = myPlayer->resending.begin(); msg != myPlayer->resending.end(); ++msg) {
 		status = socket.send(msg->second, "localhost", PORT);
+		int32_t cmd;
+		msg->second >> cmd;
+		//std::cout << "Enviado " << cmd << std::endl;
+		if (cmd == SIGNUP)
+			std::cout << "Enviado SIGNUP" << std::endl;
+		if (cmd == NEW_GAME)
+			std::cout << "Enviado NEW_GAME" << std::endl;
 		if (status == sf::Socket::Error) {
 			std::string cmd;
 			msg->second >> cmd;
@@ -214,24 +220,30 @@ void SendACK(int cmd, int32_t pID) {
 
 	if (cmd == ACK_DISCONNECTION) {
 		com = "DISCONNECTION";
+		packet << cmd << pID << myPlayer->ID << myPlayer->IDPartida;
 	}
 	else if (cmd == ACK_NEW_CONNECTION) {
 		com = "NEW_CONNECTION";
+		packet << cmd << pID << myPlayer->ID << myPlayer->IDPartida;
 	}
 	else if (cmd == ACK_PING) {
 		com = "ACK_PING";
+		packet << cmd << pID << myPlayer->ID << myPlayer->IDPartida;
 	}
 	else if (cmd == ACK_PING_LOBBY) {
 		com = "ACK_PING_LOBBY";
+		packet << cmd << pID << myPlayer->ID;
 	}
 	else if (cmd == ACK_QUI_LA_PILLA) {
+		packet << cmd << pID << myPlayer->ID << myPlayer->IDPartida;
 		com = "ACK_QUI_LA_PILLA";
 	}
 	else if (cmd == ACK_WINNER) {
+		packet << cmd << pID << myPlayer->ID << myPlayer->IDPartida;
 		com = "ACK_WINNER";
 	}
 
-	packet << cmd << pID << myPlayer->ID;
+	
 	status = socket.send(packet, "localhost", PORT);
 	if (status == sf::Socket::Error) std::cout << "Error. " << com << std::endl;
 	else if (status == sf::Socket::Disconnected) {
@@ -295,7 +307,17 @@ void ReceiveData() {
 				std::cout << "Incorrect Password" << std::endl;
 			}
 			else if (cmd == ACK_LOGIN) {
-				packet >> myPlayer->ID;
+				int32_t numPartidas = 0;
+				packet >> myPlayer->ID >> numPartidas;
+				for (int8_t i = 0; i < numPartidas; i++) {
+					int32_t gID = 0;
+					int32_t maxP = 0;
+					int32_t conn = 0;
+					std::string name = "";
+					packet << gID << name << conn << maxP;
+					partidas.insert(std::make_pair(gID, PartidaClient{ gID, name, maxP, conn }));
+				}
+				
 				//text en vermell error username i error password
 				std::cout << "Connection with server." << std::endl;
 				//connected = true;
@@ -304,7 +326,17 @@ void ReceiveData() {
 				}
 			}
 			else if (cmd == ACK_SIGNUP) {
-				packet >> myPlayer->ID;
+				int32_t numPartidas = 0;
+				packet >> myPlayer->ID >> numPartidas;
+
+				for (int8_t i = 0; i < numPartidas; i++) {
+					int32_t gID = 0;
+					int32_t maxP = 0;
+					int32_t conn = 0;
+					std::string name = "";
+					packet << gID << name << conn << maxP;
+					partidas.insert(std::make_pair(gID, PartidaClient{ gID, name, maxP, conn }));
+				}
 				//text en vermell error username, error mail i error password
 				std::cout << "Connection with server." << std::endl;
 				//connected = true;
@@ -318,6 +350,7 @@ void ReceiveData() {
 				int32_t gMaxP = 0;
 				packet >> gID >> gName >> gMaxP;
 				partidas.insert(std::make_pair(gID, PartidaClient{ gID,gName, 1, gMaxP }));
+				//ENVIAR ACK
 				RefreshPartidas(gID, gName, 1, gMaxP);
 			}
 			else if (cmd == GAME_DELETED) {
@@ -333,13 +366,14 @@ void ReceiveData() {
 				//if (myPlayer->ID == 0) {
 					int32_t numOfOpponents = 0;
 					packet >> myPlayer->IDPartida >> myPlayer->position >> numOfOpponents;
-
+					std::cout << "ID Partida: " << myPlayer->IDPartida << " Pos: " << myPlayer->position.x << ", " << myPlayer->position.y << " Num Opo: " << numOfOpponents;
 					if (numOfOpponents > 0) {
 						//treiem del packet la ID i la pos de cada oponent
 						for (int i = 0; i < numOfOpponents; i++) {
 							//int8_t opponentId;
 							Position oPos;
 							packet >> opponentId >> opponentNickname >> oPos;
+							std::cout << "ID Opo: " << opponentId << "Nickname: "  << opponentNickname << " Pos: " << myPlayer->position.x << ", " << myPlayer->position.y;
 							opponents.insert(std::make_pair(opponentId, InterpolationAndStuff{ oPos, oPos, false, opponentNickname }));
 						}
 					}
@@ -815,7 +849,7 @@ void Lobby() {
 						sf::Packet packet;
 						//std::string str = passText.getString();
 						packet << JOIN_GAME << packetID << myPlayer->ID << IDPartidaJoin << passInput;
-						myPlayer->resending.insert(std::make_pair(myPlayer->ID, packet));
+						myPlayer->resending.insert(std::make_pair(IDPartidaJoin, packet));
 						packetID++;
 					}
 					
@@ -1410,7 +1444,6 @@ void ConnectionWithServer() {
 }
 
 
-
 void GameManager() {
 
 	sf::RenderWindow window(sf::VideoMode(WINDOW_SIZE, WINDOW_SIZE), "PILLAPILLA GAME - Client: " + myPlayer->nickname);
@@ -1429,7 +1462,7 @@ void GameManager() {
 
 			sf::Packet packet;
 			if (myPlayer->MapAccumMovements.find(idMovements) != myPlayer->MapAccumMovements.end()) {
-				packet << TRY_POSITION << packetID << myPlayer->ID << myPlayer->MapAccumMovements.find(idMovements)->first << myPlayer->MapAccumMovements.find(idMovements)->second; //montar un paquet amb totes les posicions acumulades
+				packet << TRY_POSITION << packetID << myPlayer->ID << myPlayer->IDPartida << myPlayer->MapAccumMovements.find(idMovements)->first << myPlayer->MapAccumMovements.find(idMovements)->second; //montar un paquet amb totes les posicions acumulades
 
 				status = socket.send(packet, "localhost", PORT);
 				packetID++;
@@ -1441,7 +1474,7 @@ void GameManager() {
 			packet.clear();
 			for (std::map<int32_t, InterpolationAndStuff>::iterator it = opponents.begin(); it != opponents.end(); ++it) {
 				if (it->second.lastPos.x <= myPlayer->position.x + RADIUS_SPRITE && it->second.lastPos.x >= myPlayer->position.x - RADIUS_SPRITE && it->second.lastPos.y <= myPlayer->position.y + RADIUS_SPRITE && it->second.lastPos.y >= myPlayer->position.y - RADIUS_SPRITE) {
-					packet << TRY_COLLISION_OPPONENT << packetID << myPlayer->ID << it->first;
+					packet << TRY_COLLISION_OPPONENT << packetID <<  myPlayer->ID << myPlayer->IDPartida << it->first;
 					status = socket.send(packet, "localhost", PORT);
 					packetID++;
 				}
