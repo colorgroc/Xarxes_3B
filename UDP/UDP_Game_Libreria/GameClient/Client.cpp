@@ -168,12 +168,12 @@ void Resend() {
 			msg->second >> cmd;
 			std::cout << "Error sending the message. Client to Server." << "Message IP: " << std::to_string(msg->first) << "Message: " << cmd << std::endl;
 		}
-		else if (status == sf::Socket::Disconnected) {
-			std::cout << "Error sending the message. Server disconnected." << std::endl;
-			//connected = false;
-			socket.unbind();
-			system("exit");
-		}
+		//else if (status == sf::Socket::Disconnected) {
+		//	std::cout << "Error sending the message. Server disconnected." << std::endl;
+		//	//connected = false;
+		//	socket.unbind();
+		//	system("exit");
+		//}
 	}
 }
 
@@ -246,12 +246,12 @@ void SendACK(int cmd, int32_t pID) {
 	
 	status = socket.send(packet, "localhost", PORT);
 	if (status == sf::Socket::Error) std::cout << "Error. " << com << std::endl;
-	else if (status == sf::Socket::Disconnected) {
+	/*else if (status == sf::Socket::Disconnected) {
 		std::cout << "Server disconnected. " << com << std::endl;
 		opponents.clear();
 		socket.unbind();
 		system("exit");
-	}
+	}*/
 	packet.clear();
 }
 
@@ -842,14 +842,14 @@ void Lobby() {
 						sf::Packet packet;
 						//std::string str = passText.getString();
 						packet << NEW_GAME << packetID << myPlayer->ID << nameInput << passInput << numInput;
-						myPlayer->resending.insert(std::make_pair(myPlayer->ID, packet));
+						myPlayer->resending.insert(std::make_pair(packetID, packet));
 						packetID++;
 					}
 					else if (join) {
 						sf::Packet packet;
 						//std::string str = passText.getString();
 						packet << JOIN_GAME << packetID << myPlayer->ID << IDPartidaJoin << passInput;
-						myPlayer->resending.insert(std::make_pair(IDPartidaJoin, packet));
+						myPlayer->resending.insert(std::make_pair(packetID, packet));
 						packetID++;
 					}
 					
