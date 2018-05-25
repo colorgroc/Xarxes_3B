@@ -17,8 +17,10 @@
 #define MAX_OPPONENTS 3
 
 #define _PING 1000
+#define _PING_LOBBY 5000
 #define SENDING_PING 250
 #define CONTROL_PING 5000
+#define CONTROL_PING_LOBBY 20000
 #define SEND_ACCUMMOVEMENTS 100
 
 #define PORT 50000
@@ -135,6 +137,8 @@ public:
 	std::set<int32_t> pillados;
 	std::map<int32_t, Player> jugadors;
 
+	Partida() {};
+	~Partida() { jugadors.clear(); pillados.clear(); };
 	Partida(int32_t id, int32_t idOwner, std::string name, std::string password, int32_t maxPlayers);
 	bool CheckCollisionWithClientsPos(Position pos);
 	void ComprovacioPillats();

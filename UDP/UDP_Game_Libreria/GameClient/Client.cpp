@@ -168,12 +168,12 @@ void Resend() {
 			msg->second >> cmd;
 			std::cout << "Error sending the message. Client to Server." << "Message IP: " << std::to_string(msg->first) << "Message: " << cmd << std::endl;
 		}
-		//else if (status == sf::Socket::Disconnected) {
-		//	std::cout << "Error sending the message. Server disconnected." << std::endl;
-		//	//connected = false;
-		//	socket.unbind();
-		//	system("exit");
-		//}
+		else if (status == sf::Socket::Disconnected) {
+			std::cout << "Error sending the message. Server disconnected." << std::endl;
+			//connected = false;
+			socket.unbind();
+			system("exit");
+		}
 	}
 }
 
@@ -204,12 +204,19 @@ void RefreshPartidas(int32_t id, std::string name, int32_t conn, int32_t max) {
 }
 
 void DeletePartidas(int32_t gID) {
-	
-	for (int8_t i = 0; i < partidas.size(); i++) {
-		if (vectorListaPartidas[i].id == gID) vectorListaPartidas.erase(vectorListaPartidas.begin(), vectorListaPartidas.begin() + i);
+	for (std::vector<PartidaClient>::iterator it = vectorListaPartidas.begin(); it != vectorListaPartidas.end();) {
+		if (it->id == gID)
+			vectorListaPartidas.erase(it);
+		else ++it;
 	}
-	listButtons.pop_back();
-	partidas.erase(gID);
+
+	//for (int8_t i = 0; i < partidas.size(); i++) {
+	//	if (vectorListaPartidas[i].id == gID) vectorListaPartidas.erase(vectorListaPartidas.begin(), vectorListaPartidas.begin() + i);
+	//}
+	if(listButtons.size() > 0)
+		listButtons.pop_back();
+	if(partidas.find(gID) != partidas.end())
+		partidas.erase(gID);
 }
 
 
@@ -231,6 +238,7 @@ void SendACK(int cmd, int32_t pID) {
 		packet << cmd << pID << myPlayer->ID << myPlayer->IDPartida;
 	}
 	else if (cmd == ACK_PING_LOBBY) {
+		std::cout << "lobby" << std::endl;
 		com = "ACK_PING_LOBBY";
 		packet << cmd << pID << myPlayer->ID;
 	}
@@ -246,12 +254,12 @@ void SendACK(int cmd, int32_t pID) {
 	
 	status = socket.send(packet, "localhost", PORT);
 	if (status == sf::Socket::Error) std::cout << "Error. " << com << std::endl;
-	/*else if (status == sf::Socket::Disconnected) {
+	else if (status == sf::Socket::Disconnected) {
 		std::cout << "Server disconnected. " << com << std::endl;
 		opponents.clear();
 		socket.unbind();
 		system("exit");
-	}*/
+	}
 	packet.clear();
 }
 
@@ -314,7 +322,10 @@ void ReceiveData() {
 					int32_t maxP = 0;
 					int32_t conn = 0;
 					std::string name = "";
-					packet << gID << name << conn << maxP;
+					//std::string maxi = "";
+					packet >> gID >> name >> conn >> maxP;
+					//maxP = std::atoi(maxi.c_str());
+					//std::cout << maxi << ", " << maxP << std::endl;
 					partidas.insert(std::make_pair(gID, PartidaClient{ gID, name, maxP, conn }));
 				}
 				
@@ -334,7 +345,10 @@ void ReceiveData() {
 					int32_t maxP = 0;
 					int32_t conn = 0;
 					std::string name = "";
-					packet << gID << name << conn << maxP;
+					//std::string maxi = "";
+					packet >> gID >> name >> conn >> maxP;
+					//maxP = std::atoi(maxi.c_str());
+					//std::cout << maxi << ", " << maxP << std::endl;
 					partidas.insert(std::make_pair(gID, PartidaClient{ gID, name, maxP, conn }));
 				}
 				//text en vermell error username, error mail i error password
@@ -601,7 +615,7 @@ void Lobby() {
 	createNameButton.setPosition(window.getSize().x / 2 / 2, 200);
 	createNameButton.setFillColor(sf::Color::White);
 
-	sf::String nameInput;
+	std::string nameInput;
 	sf::Text nameText("", font, 48);
 	nameText.setPosition(window.getSize().x / 2 / 2, 200 - 10);
 	nameText.setFillColor(sf::Color::Black);
@@ -619,7 +633,7 @@ void Lobby() {
 	createPassButton.setPosition(window.getSize().x / 2 / 2, 300);
 	createPassButton.setFillColor(sf::Color::White);
 
-	sf::String passInput;
+	std::string passInput;
 	sf::Text passText("", font, 48);
 	passText.setPosition(window.getSize().x / 2 / 2, 300 - 10);
 	passText.setFillColor(sf::Color::Black);
@@ -642,7 +656,7 @@ void Lobby() {
 	createMaxButton.setPosition(window.getSize().x / 2 / 2, 400);
 	createMaxButton.setFillColor(sf::Color::White);
 
-	sf::String numInput;
+	std::string numInput;
 	sf::Text numText("", font, 48);
 	numText.setPosition(window.getSize().x / 2 / 2, 400 - 10);
 	numText.setFillColor(sf::Color::Black);
@@ -841,7 +855,8 @@ void Lobby() {
 					if (create) {
 						sf::Packet packet;
 						//std::string str = passText.getString();
-						packet << NEW_GAME << packetID << myPlayer->ID << nameInput << passInput << numInput;
+						int32_t max = std::stoi(numInput);
+						packet << NEW_GAME << packetID << myPlayer->ID << nameInput << passInput << max;
 						myPlayer->resending.insert(std::make_pair(packetID, packet));
 						packetID++;
 					}
@@ -945,18 +960,18 @@ void Lobby() {
 			{
 				//si clico el backspace/borrar/retroceso
 				if (Event.text.unicode == '\b' && name) {
-					if (nameInput.getSize() > 0)
-						nameInput.erase(nameInput.getSize() - 1, 1);
+					if (nameInput.size() > 0)
+						nameInput.erase(nameInput.size() - 1, 1);
 					nameText.setString(nameInput);
 				}
 				else if (Event.text.unicode == '\b' && (password || writePassword)) {
-					if (passInput.getSize() > 0)
-						passInput.erase(passInput.getSize() - 1, 1);
+					if (passInput.size() > 0)
+						passInput.erase(passInput.size() - 1, 1);
 					passText.setString(passInput);
 				}
 				else if (Event.text.unicode == '\b' && maxNum) {
-					if (numInput.getSize() > 0)
-						numInput.erase(numInput.getSize() - 1, 1);
+					if (numInput.size() > 0)
+						numInput.erase(numInput.size() - 1, 1);
 					numText.setString(numInput);
 				}
 				//si clico algo q no sigui borrar
@@ -1662,6 +1677,7 @@ int main()
 	if (!disconnected) {
 		do {
 			Lobby();
+			//ReceiveData();
 			if (!exitGame) {
 				clockPositions.restart(); //a partir daqui ja es pot acabar de moure per tant fem un reset del rellotje
 				GameManager();
