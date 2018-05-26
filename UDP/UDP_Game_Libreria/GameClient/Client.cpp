@@ -270,6 +270,7 @@ void ReceiveData() {
 	int32_t opponentId = 0;
 	std::string opponentNickname = "";
 	int32_t packetIDRecived = 0;
+	int32_t numPartidas = 0;
 
 	status = socket.receive(packet, serverIP, serverPORT);
 
@@ -284,10 +285,10 @@ void ReceiveData() {
 			if (cmd == PING) {
 				SendACK(ACK_PING, packetIDRecived);
 			}
-			if (cmd == PING_LOBBY) {
+			else if (cmd == PING_LOBBY) {
 				SendACK(ACK_PING_LOBBY, packetIDRecived);
 			}
-			if (cmd == ID_ALREADY_CONNECTED) {
+			else if (cmd == ID_ALREADY_CONNECTED) {
 				//std::cout << "This ID it's already connected." << std::endl;
 				if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
 					myPlayer->resending.erase(packetIDRecived);
@@ -315,8 +316,9 @@ void ReceiveData() {
 				std::cout << "Incorrect Password" << std::endl;
 			}
 			else if (cmd == ACK_LOGIN) {
-				int32_t numPartidas = 0;
+
 				packet >> myPlayer->ID >> numPartidas;
+				std::cout << "size" << numPartidas << std::endl;
 				for (int8_t i = 0; i < numPartidas; i++) {
 					int32_t gID = 0;
 					int32_t maxP = 0;
@@ -327,6 +329,7 @@ void ReceiveData() {
 					//maxP = std::atoi(maxi.c_str());
 					//std::cout << maxi << ", " << maxP << std::endl;
 					partidas.insert(std::make_pair(gID, PartidaClient{ gID, name, maxP, conn }));
+
 				}
 				
 				//text en vermell error username i error password
@@ -337,9 +340,10 @@ void ReceiveData() {
 				}
 			}
 			else if (cmd == ACK_SIGNUP) {
-				int32_t numPartidas = 0;
+				
+				
 				packet >> myPlayer->ID >> numPartidas;
-
+				std::cout << numPartidas << std::endl;
 				for (int8_t i = 0; i < numPartidas; i++) {
 					int32_t gID = 0;
 					int32_t maxP = 0;
@@ -350,11 +354,13 @@ void ReceiveData() {
 					//maxP = std::atoi(maxi.c_str());
 					//std::cout << maxi << ", " << maxP << std::endl;
 					partidas.insert(std::make_pair(gID, PartidaClient{ gID, name, maxP, conn }));
+					RefreshPartidas(gID, name, conn, maxP);
 				}
 				//text en vermell error username, error mail i error password
 				std::cout << "Connection with server." << std::endl;
 				//connected = true;
 				if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
+					std::cout << "bro" << std::endl;
 					myPlayer->resending.erase(packetIDRecived);
 				}
 			}
@@ -1311,8 +1317,9 @@ void ConnectionWithServer() {
 						if (login)
 							toSend << LOGIN << packetID << userInput << passInput;
 						else if (sign) toSend << SIGNUP << packetID << userInput << passInput << mailInput;
-
+						std::cout << "packet id: " << packetID << std::endl;
 						myPlayer->resending.insert(std::make_pair(packetID, toSend));
+						login = sign = false;
 
 						packetID++;
 						toSend.clear();

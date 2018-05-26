@@ -11,7 +11,7 @@ int32_t idPartida = 1;
 bool online = true;
 
 std::mutex myMutex;
-std::map<int32_t, Partida*> partidas;
+std::map<int32_t, Partida> partidas;
 sf::UdpSocket socketServer;
 sf::Socket::Status statusServer;
 int32_t clientID = 1;
@@ -22,7 +22,7 @@ void Resend(int32_t gID) {
 
 	std::lock_guard<std::mutex>guard(myMutex); //impedeix acces alhora
 	if (partidas.find(gID) != partidas.end()) {
-		for (std::map<int32_t, Player>::iterator clientes = partidas[gID]->jugadors.begin(); clientes != partidas[gID]->jugadors.end(); ++clientes) {
+		for (std::map<int32_t, Player>::iterator clientes = partidas[gID].jugadors.begin(); clientes != partidas[gID].jugadors.end(); ++clientes) {
 			for (std::map<int32_t, sf::Packet>::iterator msg = clientes->second.resending.begin(); msg != clientes->second.resending.end(); ++msg) {
 				statusServer = socketServer.send(msg->second, clientes->second.ip, clientes->second.port);
 				if (statusServer == sf::Socket::Error)
@@ -68,7 +68,7 @@ void SendToAllClients(int cmd, int32_t gID) {
 	}
 	if (cmd == PING) {
 		if (partidas.find(gID) != partidas.end()) {
-			for (std::map<int32_t, Player>::iterator clientToSend = partidas[gID]->jugadors.begin(); clientToSend != partidas[gID]->jugadors.end(); ++clientToSend)
+			for (std::map<int32_t, Player>::iterator clientToSend = partidas[gID].jugadors.begin(); clientToSend != partidas[gID].jugadors.end(); ++clientToSend)
 			{
 				sf::Packet packet;
 				packet << cmd; //no hace falta poner packetID 
@@ -81,7 +81,7 @@ void SendToAllClients(int cmd, int32_t gID) {
 	}
 	else if (cmd == GAMESTARTED) { //no es critic
 		if (partidas.find(gID) != partidas.end()) {
-			for (std::map<int32_t, Player>::iterator clientToSend = partidas[gID]->jugadors.begin(); clientToSend != partidas[gID]->jugadors.end(); ++clientToSend)
+			for (std::map<int32_t, Player>::iterator clientToSend = partidas[gID].jugadors.begin(); clientToSend != partidas[gID].jugadors.end(); ++clientToSend)
 			{
 				sf::Packet packet;
 				packet << cmd; //no hace falta poner packetID 
@@ -129,7 +129,7 @@ void NotifyOtherClients(int cmd, int32_t cID, std::string msg, int32_t gID, int3
 	//	}packetIDLobby++;
 	//}
 	if (cmd == NEW_GAME_CREATED) { 
-		if (clientsOnLobby.find(cID) != clientsOnLobby.end()) {
+		//if (clientsOnLobby.find(cID) != clientsOnLobby.end()) {
 			for (std::map<int32_t, ClientLobby>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
 			{
 				sf::Packet packet;
@@ -138,32 +138,32 @@ void NotifyOtherClients(int cmd, int32_t cID, std::string msg, int32_t gID, int3
 					it->second.resending.insert(std::make_pair(packetIDLobby, packet));
 				}
 			} packetIDLobby++;
-		}
+		//}
 	}
 	
 	if (cmd == NEW_CONNECTION) {
-		if (partidas.find(gID) != partidas.end() && partidas[gID]->jugadors.find(cID) != partidas[gID]->jugadors.end()) {
-			for (std::map<int32_t, Player>::iterator it = partidas[gID]->jugadors.begin(); it != partidas[gID]->jugadors.end(); ++it)
+		if (partidas.find(gID) != partidas.end() && partidas[gID].jugadors.find(cID) != partidas[gID].jugadors.end()) {
+			for (std::map<int32_t, Player>::iterator it = partidas[gID].jugadors.begin(); it != partidas[gID].jugadors.end(); ++it)
 			{
 				sf::Packet packet;
 				if (it->first != cID) {
-					packet << cmd << partidas[gID]->packetID << cID << partidas[gID]->jugadors.find(cID)->second.nickname << partidas[gID]->jugadors.find(cID)->second.pos;
-					it->second.resending.insert(std::make_pair(partidas[gID]->packetID, packet));
+					packet << cmd << partidas[gID].packetID << cID << partidas[gID].jugadors.find(cID)->second.nickname << partidas[gID].jugadors.find(cID)->second.pos;
+					it->second.resending.insert(std::make_pair(partidas[gID].packetID, packet));
 				}
-			} partidas[gID]->packetID++;
+			} partidas[gID].packetID++;
 		}
 	}
 	else if (cmd == DISCONNECTION) {
 		if (partidas.find(gID) != partidas.end()) {
-			for (std::map<int32_t, Player>::iterator it = partidas[gID]->jugadors.begin(); it != partidas[gID]->jugadors.end(); ++it)
+			for (std::map<int32_t, Player>::iterator it = partidas[gID].jugadors.begin(); it != partidas[gID].jugadors.end(); ++it)
 			{
 				sf::Packet packet;
 				packet << cmd;
 				if (it->first != cID) {
-					packet << partidas[gID]->packetID << cID;
-					it->second.resending.insert(std::make_pair(partidas[gID]->packetID, packet));
+					packet << partidas[gID].packetID << cID;
+					it->second.resending.insert(std::make_pair(partidas[gID].packetID, packet));
 				}
-			}partidas[gID]->packetID++;
+			}partidas[gID].packetID++;
 		}
 
 	}
@@ -182,7 +182,7 @@ void NotifyOtherClients(int cmd, int32_t cID, std::string msg, int32_t gID, int3
 	}
 	else if (cmd == GAME_CHAT) { //no es critic
 		if (partidas.find(gID) != partidas.end()) {
-			for (std::map<int32_t, Player>::iterator clientToSend = partidas[gID]->jugadors.begin(); clientToSend != partidas[gID]->jugadors.end(); ++clientToSend)
+			for (std::map<int32_t, Player>::iterator clientToSend = partidas[gID].jugadors.begin(); clientToSend != partidas[gID].jugadors.end(); ++clientToSend)
 			{
 				if (clientToSend->first != cID) {
 					sf::Packet packet;
@@ -196,52 +196,52 @@ void NotifyOtherClients(int cmd, int32_t cID, std::string msg, int32_t gID, int3
 		}
 	}
 	else if (cmd == REFRESH_POSITIONS) {
-		if (partidas.find(gID) != partidas.end() && partidas[gID]->jugadors.find(cID) != partidas[gID]->jugadors.end()) {
-			for (std::map<int32_t, Player>::iterator it = partidas[gID]->jugadors.begin(); it != partidas[gID]->jugadors.end(); ++it)
+		if (partidas.find(gID) != partidas.end() && partidas[gID].jugadors.find(cID) != partidas[gID].jugadors.end()) {
+			for (std::map<int32_t, Player>::iterator it = partidas[gID].jugadors.begin(); it != partidas[gID].jugadors.end(); ++it)
 			{
 				sf::Packet packet;
 				if (it->first != cID) {
-					packet << cmd << partidas[gID]->packetID << cID << partidas[gID]->jugadors.find(cID)->second.pos;
+					packet << cmd << partidas[gID].packetID << cID << partidas[gID].jugadors.find(cID)->second.pos;
 					statusServer = socketServer.send(packet, it->second.ip, it->second.port);
 					if (statusServer != sf::Socket::Done) {
 						std::cout << "Error sending REFRESH_POSITIONS to client " << std::to_string(cID) << std::endl;
 					}
 				}
-			} partidas[gID]->packetID++;
+			} partidas[gID].packetID++;
 		}
 	}
 	else if (cmd == QUI_LA_PILLA) {
 		if (partidas.find(gID) != partidas.end()) {
-			for (std::map<int32_t, Player>::iterator it = partidas[gID]->jugadors.begin(); it != partidas[gID]->jugadors.end(); ++it)
+			for (std::map<int32_t, Player>::iterator it = partidas[gID].jugadors.begin(); it != partidas[gID].jugadors.end(); ++it)
 			{
 				sf::Packet packet;
 				packet << cmd;
-				packet << partidas[gID]->packetID << cID;
-				it->second.resending.insert(std::make_pair(partidas[gID]->packetID, packet));
-			}partidas[gID]->packetID++;
+				packet << partidas[gID].packetID << cID;
+				it->second.resending.insert(std::make_pair(partidas[gID].packetID, packet));
+			}partidas[gID].packetID++;
 		}
 	}
 	else if (cmd == WINNER) {
 		if (partidas.find(gID) != partidas.end()) {
-			for (std::map<int32_t, Player>::iterator it = partidas[gID]->jugadors.begin(); it != partidas[gID]->jugadors.end(); ++it)
+			for (std::map<int32_t, Player>::iterator it = partidas[gID].jugadors.begin(); it != partidas[gID].jugadors.end(); ++it)
 			{
 				sf::Packet packet;
 				packet << cmd;
-				packet << partidas[gID]->packetID << cID;
-				it->second.resending.insert(std::make_pair(partidas[gID]->packetID, packet));
-			}partidas[gID]->packetID++;
+				packet << partidas[gID].packetID << cID;
+				it->second.resending.insert(std::make_pair(partidas[gID].packetID, packet));
+			}partidas[gID].packetID++;
 		}
 	}
 }
 
 void PilladorRandom(int32_t gID) {
 	if (partidas.find(gID) != partidas.end()) {
-		std::uniform_int_distribution<int32_t> num(1, partidas[gID]->jugadors.size());
+		std::uniform_int_distribution<int32_t> num(1, partidas[gID].jugadors.size());
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		int32_t pillador = num(gen);
 
-		for (std::map<int32_t, Player>::iterator it = partidas[gID]->jugadors.begin(); it != partidas[gID]->jugadors.end(); ++it) {
+		for (std::map<int32_t, Player>::iterator it = partidas[gID].jugadors.begin(); it != partidas[gID].jugadors.end(); ++it) {
 			if (it->second.id == pillador) {
 				it->second.laPara = true;
 				std::cout << "La pilla el client amb nickname: " << it->second.nickname << " i amb ID: " << std::to_string(it->first) << std::endl;
@@ -258,7 +258,7 @@ void PositionValidations(int32_t gID) {
 	//reenviar a tots els altres jugadors
 	//REFRESH_POSITIONS 
 	if (partidas.find(gID) != partidas.end()) {
-		for (std::map<int32_t, Player>::iterator client = partidas[gID]->jugadors.begin(); client != partidas[gID]->jugadors.end(); ++client) {
+		for (std::map<int32_t, Player>::iterator client = partidas[gID].jugadors.begin(); client != partidas[gID].jugadors.end(); ++client) {
 
 			std::vector<int32_t> posToDelete;
 			Position lastPos = client->second.pos;
@@ -274,7 +274,7 @@ void PositionValidations(int32_t gID) {
 					if (statusServer != sf::Socket::Done) {
 						std::cout << "Error sending OK_POSITION to client " << std::to_string(client->second.id) << std::endl;
 					}
-					if (partidas[gID]->jugadors.size() > 1) {
+					if (partidas[gID].jugadors.size() > 1) {
 						NotifyOtherClients(REFRESH_POSITIONS, client->second.id, "", gID, 0);
 					}
 
@@ -302,8 +302,8 @@ void PositionValidations(int32_t gID) {
 }
 
 void Winner(int32_t gID) {
-	if (partidas.find(gID) != partidas.end() && partidas[gID]->gameStarted && partidas[gID]->pillados.size() >= (partidas[gID]->jugadors.size() - 1)) {
-		for (std::map<int32_t, Player>::iterator it = partidas[gID]->jugadors.begin(); it != partidas[gID]->jugadors.end(); ++it) {
+	if (partidas.find(gID) != partidas.end() && partidas[gID].gameStarted && partidas[gID].pillados.size() >= (partidas[gID].jugadors.size() - 1)) {
+		for (std::map<int32_t, Player>::iterator it = partidas[gID].jugadors.begin(); it != partidas[gID].jugadors.end(); ++it) {
 			if (!it->second.laPara) {
 				it->second.winner = true;
 				NotifyOtherClients(WINNER, it->first, "", gID, 0);
@@ -312,15 +312,15 @@ void Winner(int32_t gID) {
 	}
 }
 
-void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, std::string mail, std::string password, std::string msg, std::string namePartida, std::string passwordPartida, int32_t maxPlayers, int32_t idMovements, AccumMovements tryaccum, int32_t idOpponentCollision) {
+void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAddress senderIP, unsigned short senderPort, std::string nickname, std::string mail, std::string password, std::string msg, std::string namePartida, std::string passwordPartida, int32_t maxPlayers, int32_t idMovements, AccumMovements tryaccum, int32_t idOpponentCollision) {
 
 	if (cmd == ACK_PING_LOBBY) {
 		if (clientsOnLobby.find(cID) != clientsOnLobby.end())
 			clientsOnLobby.find(cID)->second.timeElapsedLastPing.restart();
 	}
 	else if (cmd == ACK_PING) {
-		if (partidas[gID]->jugadors.find(cID) != partidas[gID]->jugadors.end())
-			partidas[gID]->jugadors.find(cID)->second.timeElapsedLastPing.restart();
+		if (partidas[gID].jugadors.find(cID) != partidas[gID].jugadors.end())
+			partidas[gID].jugadors.find(cID)->second.timeElapsedLastPing.restart();
 	}
 	else if (cmd == LOGIN) { 
 		//comprobar si el client ja esta connectat. 
@@ -328,17 +328,17 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAd
 		bool notExists = false;
 		//fer un if(find(nickname) de la base de dades) --> si no existeix el nickname o la password no concorda, noExists = true;
 		//std::cout << "Login" << std::endl;
-		for (std::map<int32_t, ClientLobby>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
-			if ((it->second.nickname == nickname || it->second.port == senderPort) && it->second.connected) {
-				alreadyConnected = true;
-				sf::Packet p;
-				p << ID_ALREADY_CONNECTED << pID; // posar lu d q retorni -1,-2 o -3
-				statusServer = socketServer.send(p, senderIP, senderPort);
-				if (statusServer != sf::Socket::Done) {
-					std::cout << "Error sending ID_ALREADY_CONNECTED to unknown client. " << std::endl;
-				}
-			}
-		}
+		//for (std::map<int32_t, ClientLobby>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
+		//	if ((it->second.nickname == nickname || it->second.port == senderPort) && it->second.connected) {
+		//		alreadyConnected = true;
+		//		sf::Packet p;
+		//		p << ID_ALREADY_CONNECTED << pID; // posar lu d q retorni -1,-2 o -3
+		//		statusServer = socketServer.send(p, senderIP, senderPort);
+		//		if (statusServer != sf::Socket::Done) {
+		//			std::cout << "Error sending ID_ALREADY_CONNECTED to unknown client. " << std::endl;
+		//		}
+		//	}
+		//}
 
 		sf::Packet packet;
 		packet.clear();
@@ -350,11 +350,11 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAd
 			std::cout << "Connection with client " << std::to_string(clientID) << " from PORT " << senderPort << std::endl;
 			packet << ACK_LOGIN << pID << clientID << partidas.size();
 			if (partidas.size() > 0) {
-				for (std::map<int32_t, Partida*>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
+				for (std::map<int32_t, Partida>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
 					packet << it->first;
-					packet << it->second->name;
-					packet << it->second->jugadors.size();
-					packet << it->second->maxPlayers;
+					packet << it->second.name;
+					packet << it->second.jugadors.size();
+					packet << it->second.maxPlayers;
 				}
 			}
 			clientsOnLobby.insert(std::make_pair(clientID, ClientLobby{ clientID, nickname, senderIP, senderPort, 1, 0, 0, true }));
@@ -379,17 +379,17 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAd
 		//fer un if(find(nickname) de la base de dades) --> si ja existeix el nickname i el mail --> alreadyExists = true; 
 		//enviar al client ID_ALREADY_EXISTS (MAIL O NICKNAME)
 		//aixo es temporal
-		for (std::map<int32_t, ClientLobby>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
-			if ((it->second.nickname == nickname || it->second.port == senderPort) && it->second.connected) {
-				alreadyExists = true;
-				sf::Packet p;
-				p << ID_ALREADY_CONNECTED; // posar lu d q retorni -1,-2 o -3
-				statusServer = socketServer.send(p, senderIP, senderPort);
-				if (statusServer != sf::Socket::Done) {
-					std::cout << "Error sending ID_ALREADY_CONNECTED to unknown client. " << std::endl;
-				}
-			}
-		}
+		//for (std::map<int32_t, ClientLobby>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it) {
+		//	if ((it->second.nickname == nickname || it->second.port == senderPort)) {
+		//		alreadyExists = true;
+		//		sf::Packet p;
+		//		p << ID_ALREADY_CONNECTED; // posar lu d q retorni -1,-2 o -3
+		//		statusServer = socketServer.send(p, senderIP, senderPort);
+		//		if (statusServer != sf::Socket::Done) {
+		//			std::cout << "Error sending ID_ALREADY_CONNECTED to unknown client. " << std::endl;
+		//		}
+		//	}
+		//}
 
 		sf::Packet packet;
 		packet.clear();
@@ -398,13 +398,21 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAd
 
 			
 			//pillar la  base ID del client a la base d dades;
-			packet << ACK_SIGNUP << pID <<  clientID << partidas.size();
+			std::cout << "packet id: " << pID << std::endl;
+			int32_t woa = partidas.size();
+			std::cout << "size: " << woa << std::endl;
+			packet << ACK_SIGNUP << pID <<  clientID << woa;
 			if (partidas.size() > 0) {
-				for (std::map<int32_t, Partida*>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
-					packet << it->first;
-					packet << it->second->name;
-					packet << it->second->jugadors.size();
-					packet << it->second->maxPlayers;
+				for (std::map<int32_t, Partida>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
+					int32_t idi = it->second.id;
+					//packet << it->first;
+					//packet << it->second.name;
+					int32_t c = it->second.jugadors.size();
+					std::string n = it->second.name;
+					int32_t m = it->second.maxPlayers;
+					packet << idi << n << c << m;
+					/*
+					packet << it->second.maxPlayers;*/
 				}
 				/*for (int8_t i = 0; i < partidas.size(); i++) {
 					packet << partidas[i];
@@ -420,8 +428,9 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAd
 			std::cout << "Connection with client " << std::to_string(clientID) << " from PORT " << senderPort << std::endl;
 			//NotifyOtherClients(NEW_CONNECTION, clientID);
 			clientsOnLobby[clientID].timeElapsedLastPing.restart();
+			std::cout << "client id" << clientID << std::endl;
 			clientID++;
-
+			
 			statusServer = socketServer.send(packet, senderIP, senderPort);
 			if (statusServer != sf::Socket::Done) {
 				std::cout << "Error sending ACK_SIGNUP to client " << std::to_string(clientID - 1) << std::endl;
@@ -434,8 +443,8 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAd
 	}
 	else if (cmd == NEW_GAME) {
 		bool create = false;
-		for (std::map<int32_t, Partida*>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
-			if (it->second->name == namePartida) create = true;
+		for (std::map<int32_t, Partida>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
+			if (it->second.name == namePartida) create = true;
 		}
 		if (!create) {
 			Position pos;
@@ -456,22 +465,25 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAd
 
 			
 			packet << WELCOME << pID << gID << pos << numOfOpponents;
-			partidas.insert(std::make_pair(idPartida, new Partida(idPartida, cID, namePartida, passwordPartida, maxPlayers)));
+			partidas.insert(std::make_pair(idPartida, Partida(idPartida, cID, namePartida, passwordPartida, maxPlayers)));
 
-			partidas[idPartida]->jugadors.insert(std::make_pair(clientID, Player{ cID, nickname, pos, senderIP, senderPort, true, false, false }));
+			partidas[idPartida].jugadors.insert(std::make_pair(cID, Player{ cID, nickname, pos, senderIP, senderPort, true, false, false }));
 			statusServer = socketServer.send(packet, senderIP, senderPort);
 			if (statusServer != sf::Socket::Done) {
 				std::cout << "Error sending WELCOME to client " << std::to_string(clientID - 1) << std::endl;
 			}
+			partidas.find(idPartida)->second.clockSend.restart();
+			partidas.find(idPartida)->second.clockPing.restart();
+			partidas.find(idPartida)->second.jugadors.find(cID)->second.timeElapsedLastPing.restart();
 			packet.clear();
-			NotifyOtherClients(NEW_GAME_CREATED, cID, "", idPartida, maxPlayers);
+			NotifyOtherClients(NEW_GAME_CREATED, cID, namePartida, idPartida, maxPlayers);
 			idPartida++;
 			packet.clear();
 		}
 
 	}
 
-	else if (cmd == JOIN_GAME && partidas.find(gID) != partidas.end() && partidas[gID]->jugadors.size() < partidas[gID]->maxPlayers) {
+	else if (cmd == JOIN_GAME && partidas.find(gID) != partidas.end() && partidas[gID].jugadors.size() < partidas[gID].maxPlayers) {
 																 
 		bool alreadyConnected = false;
 		bool correctPassword = true; //per ara deixarla a true
@@ -479,20 +491,20 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAd
 		std::cout << "JOIN" << std::endl;
 		//si aquest usuari ja esta jugant
 		if (partidas.find(gID) != partidas.end()) {
-			for (std::map<int32_t, Player>::iterator it = partidas[gID]->jugadors.begin(); it != partidas[gID]->jugadors.end(); ++it) {
-				/*if (it->second.nickname == nickname || it->second.port == senderPort) {
-					alreadyConnected = true;
-					sf::Packet p;
-					p << ID_ALREADY_PLAYING << pID;
-					statusServer = socketServer.send(p, senderIP, senderPort);
-					if (statusServer != sf::Socket::Done) {
-						std::cout << "Error sending ID_ALREADY_PLAYING to unknown client. " << std::endl;
-					}
-				}*/
-			}
+			//for (std::map<int32_t, Player>::iterator it = partidas[gID].jugadors.begin(); it != partidas[gID].jugadors.end(); ++it) {
+			//	/*if (it->second.nickname == nickname || it->second.port == senderPort) {
+			//		alreadyConnected = true;
+			//		sf::Packet p;
+			//		p << ID_ALREADY_PLAYING << pID;
+			//		statusServer = socketServer.send(p, senderIP, senderPort);
+			//		if (statusServer != sf::Socket::Done) {
+			//			std::cout << "Error sending ID_ALREADY_PLAYING to unknown client. " << std::endl;
+			//		}
+			//	}*/
+			//}
 			if (!alreadyConnected && correctPassword) {
 				Position pos;
-				int32_t numOfOpponents = partidas[gID]->jugadors.size();
+				int32_t numOfOpponents = partidas.find(gID)->second.jugadors.size();
 				srand(time(NULL));
 
 				//random range c++11 stuff
@@ -503,7 +515,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAd
 					pos.x = num(genX);
 					pos.y = num(genY);
 
-				} while (!myWalls->CheckCollision(pos) && !partidas[gID]->CheckCollisionWithClientsPos(pos));
+				} while (!myWalls->CheckCollision(pos) && !partidas.find(gID)->second.CheckCollisionWithClientsPos(pos));
 
 				pos = CellToPixel(pos.x, pos.y);
 				sf::Packet packet;
@@ -511,15 +523,19 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAd
 				packet << WELCOME << pID << gID << pos << numOfOpponents;
 				if (numOfOpponents > 0) {
 					//inserim al packet la ID i la pos de cada oponent
-					for (std::map<int32_t, Player>::iterator it = partidas[gID]->jugadors.begin(); it != partidas[gID]->jugadors.end(); ++it) {
-						packet << it->second.id << it->second.nickname << it->second.pos;
+					for (std::map<int32_t, Player>::iterator it = partidas.find(gID)->second.jugadors.begin(); it != partidas.find(gID)->second.jugadors.end(); ++it) { //FALLA AQUI
+						int32_t id = it->second.id;
+						std::string nick = it->second.nickname;
+						Position posu = it->second.pos;
+						packet << id << nick << posu;
 					}
 				}
-				partidas[gID]->jugadors.insert(std::make_pair(clientID, Player{ cID, nickname, pos, senderIP, senderPort, true, false, false }));
+				partidas.find(gID)->second.jugadors.insert(std::make_pair(cID, Player{ cID, nickname, pos, senderIP, senderPort, true, false, false }));
 				//ACTUALITZAR BASE DE DADES del jugador --> partides jugades
 
 				NotifyOtherClients(NEW_CONNECTION, cID, "", gID, 0);
-				partidas[gID]->jugadors[clientID].timeElapsedLastPing.restart();
+
+				partidas.find(gID)->second.jugadors.find(cID)->second.timeElapsedLastPing.restart();
 
 				statusServer = socketServer.send(packet, senderIP, senderPort);
 				if (statusServer != sf::Socket::Done) {
@@ -537,10 +553,10 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAd
 	}
 
 	else if (cmd == ACK_NEW_CONNECTION || cmd == ACK_DISCONNECTION || cmd == ACK_QUI_LA_PILLA || cmd == ACK_WINNER) {
-		if (partidas.find(gID)!= partidas.end() && partidas[gID]->jugadors.find(cID) != partidas[gID]->jugadors.end() && partidas[gID]->jugadors[cID].resending.find(pID) != partidas[gID]->jugadors[cID].resending.end()) {
-			partidas[gID]->jugadors[cID].resending.erase(pID);
+		if (partidas.find(gID)!= partidas.end() && partidas[gID].jugadors.find(cID) != partidas[gID].jugadors.end() && partidas[gID].jugadors[cID].resending.find(pID) != partidas[gID].jugadors[cID].resending.end()) {
+			partidas[gID].jugadors[cID].resending.erase(pID);
 			if (cmd == ACK_WINNER) {
-				partidas[gID]->receivedWinner++;
+				partidas[gID].receivedWinner++;
 			}
 		}
 	}	
@@ -548,31 +564,31 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t pID, int32_t gID, sf::IpAd
 	else if (cmd == TRY_POSITION) {
 
 		//posarlo a dintre duna llista per més tard fer les validacions, una vegada fetes les validacions es borra la llista de moviments acumulats
-		if (partidas.find(gID) != partidas.end() && partidas[gID]->jugadors.find(cID) != partidas[gID]->jugadors.end()) {
-			if (partidas[gID]->jugadors.find(cID)->second.MapAccumMovements.empty()) { //es el primer paquet del client, per tant no acumulem, si no que inicialitzem el mapa
-				partidas[gID]->jugadors.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, tryaccum));
+		if (partidas.find(gID) != partidas.end() && partidas[gID].jugadors.find(cID) != partidas[gID].jugadors.end()) {
+			if (partidas[gID].jugadors.find(cID)->second.MapAccumMovements.empty()) { //es el primer paquet del client, per tant no acumulem, si no que inicialitzem el mapa
+				partidas[gID].jugadors.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, tryaccum));
 			}
 			else { //hem d'acumular amb l'anterior paquet accum, posar el id move del ultim, sumar deltes i posicio del ultim
 				AccumMovements temp;
-				temp.delta.x = partidas[gID]->jugadors.find(cID)->second.MapAccumMovements.rbegin()->second.delta.x += tryaccum.delta.x;
-				temp.delta.y = partidas[gID]->jugadors.find(cID)->second.MapAccumMovements.rbegin()->second.delta.y += tryaccum.delta.y;
+				temp.delta.x = partidas[gID].jugadors.find(cID)->second.MapAccumMovements.rbegin()->second.delta.x += tryaccum.delta.x;
+				temp.delta.y = partidas[gID].jugadors.find(cID)->second.MapAccumMovements.rbegin()->second.delta.y += tryaccum.delta.y;
 				temp.absolute = tryaccum.absolute;
-				partidas[gID]->jugadors.find(cID)->second.MapAccumMovements.erase(partidas[gID]->jugadors.find(cID)->second.MapAccumMovements.rbegin()->first); //borrem anterior
-				partidas[gID]->jugadors.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, temp)); //insertem amb els nous valors actualitzats
+				partidas[gID].jugadors.find(cID)->second.MapAccumMovements.erase(partidas[gID].jugadors.find(cID)->second.MapAccumMovements.rbegin()->first); //borrem anterior
+				partidas[gID].jugadors.find(cID)->second.MapAccumMovements.insert(std::make_pair(idMovements, temp)); //insertem amb els nous valors actualitzats
 			}
 		}
 
 	}
 	else if (TRY_COLLISION_OPPONENT) {
-		if (partidas.find(gID) != partidas.end() && partidas[gID]->jugadors.find(idOpponentCollision) != partidas[gID]->jugadors.end() && partidas[gID]->jugadors.find(cID) != partidas[gID]->jugadors.end()) {
-			if (partidas[gID]->jugadors.find(idOpponentCollision)->second.pos.x <= partidas[gID]->jugadors.find(cID)->second.pos.x + 15 && partidas[gID]->jugadors.find(idOpponentCollision)->second.pos.x >= partidas[gID]->jugadors.find(cID)->second.pos.x - 15 && partidas[gID]->jugadors.find(idOpponentCollision)->second.pos.y <= partidas[gID]->jugadors.find(cID)->second.pos.y + 15 && partidas[gID]->jugadors.find(idOpponentCollision)->second.pos.y >= partidas[gID]->jugadors.find(cID)->second.pos.y - 15) {
+		if (partidas.find(gID) != partidas.end() && partidas[gID].jugadors.find(idOpponentCollision) != partidas[gID].jugadors.end() && partidas[gID].jugadors.find(cID) != partidas[gID].jugadors.end()) {
+			if (partidas[gID].jugadors.find(idOpponentCollision)->second.pos.x <= partidas[gID].jugadors.find(cID)->second.pos.x + 15 && partidas[gID].jugadors.find(idOpponentCollision)->second.pos.x >= partidas[gID].jugadors.find(cID)->second.pos.x - 15 && partidas[gID].jugadors.find(idOpponentCollision)->second.pos.y <= partidas[gID].jugadors.find(cID)->second.pos.y + 15 && partidas[gID].jugadors.find(idOpponentCollision)->second.pos.y >= partidas[gID].jugadors.find(cID)->second.pos.y - 15) {
 				//std::cout << "Collision With Opponent " << idOpponentCollision << "  " << cID << std::endl;
-				if (!partidas[gID]->jugadors[idOpponentCollision].laPara && partidas[gID]->jugadors[cID].laPara) {
-					partidas[gID]->jugadors[idOpponentCollision].laPara = true;
+				if (!partidas[gID].jugadors[idOpponentCollision].laPara && partidas[gID].jugadors[cID].laPara) {
+					partidas[gID].jugadors[idOpponentCollision].laPara = true;
 					NotifyOtherClients(QUI_LA_PILLA, idOpponentCollision, "", gID, 0);
 				}
-				else if (partidas[gID]->jugadors[idOpponentCollision].laPara && !partidas[gID]->jugadors[cID].laPara) {
-					partidas[gID]->jugadors[cID].laPara = true;
+				else if (partidas[gID].jugadors[idOpponentCollision].laPara && !partidas[gID].jugadors[cID].laPara) {
+					partidas[gID].jugadors[cID].laPara = true;
 					NotifyOtherClients(QUI_LA_PILLA, cID, "", gID, 0);
 				}
 			}
@@ -613,6 +629,7 @@ void ReceiveData() {
 				packet >> nickname >> password;
 			}
 			else if (cmd == SIGNUP) {
+				std::cout << "packet id:" << packetIDRecived << std::endl;
 				packet >> mail >> nickname >> password;
 			}
 			else {
@@ -679,10 +696,10 @@ void ManagePing() {
 	}
 	//cada certa quantiat de temps enviar missatge ping
 	//PARTIDA
-	for (std::map<int32_t, Partida*>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
-		if(it->second->clockPing.getElapsedTime().asMilliseconds() > _PING){
+	for (std::map<int32_t, Partida>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
+		if(it->second.clockPing.getElapsedTime().asMilliseconds() > _PING){
 			SendToAllClients(PING, it->first);
-			it->second->clockPing.restart();
+			it->second.clockPing.restart();
 		}
 	}
 	//quan enviem el missatge ping també comprovem que cap dels jugadors hagi superat el temps maxim
@@ -707,28 +724,28 @@ void ManagePing() {
 	//quan enviem el missatge ping també comprovem que cap dels jugadors hagi superat el temps maxim
 	//si es supera el temps maxim vol dir que esta desconectat, notifiquem als altres jugadors, i el borrem de la llista del server
 	//PARTIDA
-	for (std::map<int32_t, Partida*>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
-		for (std::map<int32_t, Player>::iterator clientes = it->second->jugadors.begin(); clientes != it->second->jugadors.end(); ++clientes) {
+	for (std::map<int32_t, Partida>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
+		for (std::map<int32_t, Player>::iterator clientes = it->second.jugadors.begin(); clientes != it->second.jugadors.end(); ++clientes) {
 			if (clientes->second.timeElapsedLastPing.getElapsedTime().asMilliseconds() > CONTROL_PING) {
 				NotifyOtherClients(DISCONNECTION, clientes->first, "", it->first, 0);
 				clientes->second.connected = false;
-				if (it->second->pillados.size() == 1 && clientes->second.laPara) {
-					it->second->pillados.erase(clientes->first);
+				if (it->second.pillados.size() == 1 && clientes->second.laPara) {
+					it->second.pillados.erase(clientes->first);
 					PilladorRandom(it->first);
 				}
 			}
 		}
 
 	}
-	for (std::map<int32_t, Partida*>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
-		for (std::map<int32_t, Player>::iterator clientes = it->second->jugadors.begin(); clientes != it->second->jugadors.end();) {
+	/*for (std::map<int32_t, Partida>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
+		for (std::map<int32_t, Player>::iterator clientes = it->second.jugadors.begin(); clientes != it->second.jugadors.end();) {
 			if (!clientes->second.connected) {
 				std::cout << "Client " << std::to_string(clientes->first) << " disconnected." << std::endl;
-				clientes = it->second->jugadors.erase(clientes);
+				clientes = it->second.jugadors.erase(clientes);
 			}
 			else ++clientes;
 		}
-	}
+	}*/
 }
 
 int main()
@@ -749,33 +766,33 @@ int main()
 			clockSendLobby.restart();
 		}
 		////PARTIDES
-		//for (std::map<int32_t, Partida*>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
-		//	//if (it->second->jugadors.size() >= it->second->maxPlayers) SendToAllClients(GAME_DELETED, it->first);
-		//	Winner(it->first);
-		//	if (it->second->clockPositions.getElapsedTime().asMilliseconds() > SEND_ACCUMMOVEMENTS) {
-		//		PositionValidations(it->first);
-		//		it->second->clockPositions.restart();
-		//	}
+		for (std::map<int32_t, Partida>::iterator it = partidas.begin(); it != partidas.end(); ++it) {
+			//if (it->second.jugadors.size() >= it->second.maxPlayers) SendToAllClients(GAME_DELETED, it->first);
+			Winner(it->first);
+			if (it->second.clockPositions.getElapsedTime().asMilliseconds() > SEND_ACCUMMOVEMENTS) {
+				PositionValidations(it->first);
+				it->second.clockPositions.restart();
+			}
 
-		//	//cada certa quantiat de temps enviar missatges
-		//	if (it->second->clockSend.getElapsedTime().asMilliseconds() > SENDING_PING) {
-		//		Resend(it->first);
-		//		it->second->ComprovacioPillats();
-		//		it->second->clockSend.restart();
-		//	}
-		//	if (it->second->jugadors.size() >= it->second->maxPlayers && !it->second->gameStarted) {
-		//		//game starts!
-		//		std::cout << it->second->jugadors.size() << std::endl;
-		//		std::cout << it->second->maxPlayers << std::endl;
-		//		it->second->gameStarted = true;
-		//		SendToAllClients(GAMESTARTED, it->first);
-		//	}
-		//	if (it->second->gameStarted && !it->second->once) {
-		//		PilladorRandom(it->first);
-		//		it->second->once = true;
-		//	}
+			//cada certa quantiat de temps enviar missatges
+			if (it->second.clockSend.getElapsedTime().asMilliseconds() > SENDING_PING) {
+				Resend(it->first);
+				it->second.ComprovacioPillats();
+				it->second.clockSend.restart();
+			}
+			if (it->second.jugadors.size() >= it->second.maxPlayers && !it->second.gameStarted) {
+				//game starts!
+				std::cout << it->second.jugadors.size() << std::endl;
+				std::cout << it->second.maxPlayers << std::endl;
+				it->second.gameStarted = true;
+				SendToAllClients(GAMESTARTED, it->first);
+			}
+			if (it->second.gameStarted && !it->second.once) {
+				PilladorRandom(it->first);
+				it->second.once = true;
+			}
 
-		//}
+		}
 	}
 
 	socketServer.unbind();
