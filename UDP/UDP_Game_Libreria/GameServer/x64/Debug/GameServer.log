@@ -1,4 +1,9 @@
 ﻿  Server.cpp
-d:\projects\c++\xarxes_3b\udp\udp_game_libreria\gameserver\server.cpp(113): warning C4267: 'inicializando': conversión de 'size_t' a 'int32_t'; posible pérdida de datos
-d:\projects\c++\xarxes_3b\udp\udp_game_libreria\gameserver\server.cpp(114): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
-  GameServer.vcxproj -> D:\Projects\C++\Xarxes_3B\UDP\UDP_Game_Libreria\x64\Debug\GameServer.exe
+  Unknown compiler version - please run the configure tests and report the results
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameserver\server.cpp(337): warning C4267: 'argument': conversion from 'size_t' to 'int32_t', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameserver\server.cpp(459): warning C4267: 'initializing': conversion from 'size_t' to 'int32_t', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameserver\server.cpp(467): warning C4267: 'initializing': conversion from 'size_t' to 'int32_t', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameserver\server.cpp(511): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameserver\server.cpp(566): warning C4267: 'initializing': conversion from 'size_t' to 'int32_t', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameserver\server.cpp(567): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  GameServer.vcxproj -> E:\APUNTS ANNA\ENTI\Xarxes_3B\UDP\UDP_Game_Libreria\x64\Debug\GameServer.exe

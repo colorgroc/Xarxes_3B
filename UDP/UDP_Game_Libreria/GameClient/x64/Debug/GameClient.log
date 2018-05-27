@@ -1,5 +1,43 @@
 ﻿  Client.cpp
-d:\projects\c++\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(329): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-d:\projects\c++\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(337): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-d:\projects\c++\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(380): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
-  GameClient.vcxproj -> D:\Projects\C++\Xarxes_3B\UDP\UDP_Game_Libreria\x64\Debug\GameClient.exe
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(471): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(480): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(484): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(493): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(497): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(506): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(510): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(523): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(531): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(541): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(544): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(549): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(559): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(562): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(567): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(582): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(585): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(590): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(652): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(665): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(678): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1093): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1102): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1106): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1115): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1124): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1132): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1135): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1140): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1150): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1153): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1158): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1168): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1171): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1176): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1181): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1194): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1203): warning C4244: 'argument': conversion from 'unsigned int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1622): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1630): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+e:\apunts anna\enti\xarxes_3b\udp\udp_game_libreria\gameclient\client.cpp(1681): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+  GameClient.vcxproj -> E:\APUNTS ANNA\ENTI\Xarxes_3B\UDP\UDP_Game_Libreria\x64\Debug\GameClient.exe
