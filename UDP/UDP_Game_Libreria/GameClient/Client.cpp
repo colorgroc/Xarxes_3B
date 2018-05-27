@@ -74,10 +74,6 @@ void Resend() {
 		int32_t cmd;
 		msg->second >> cmd;
 		//std::cout << "Enviado " << cmd << std::endl;
-		if (cmd == SIGNUP)
-			std::cout << "Enviado SIGNUP" << std::endl;
-		if (cmd == NEW_GAME)
-			std::cout << "Enviado NEW_GAME" << std::endl;
 		if (status == sf::Socket::Error) {
 			std::string cmd;
 			msg->second >> cmd;
@@ -198,7 +194,7 @@ void ReceiveData() {
 		else {
 			packet >> cmd;
 			if (cmd == GAME_CHAT) {
-				std::cout << "recibo chat" << std::endl;
+				//std::cout << "recibo chat" << std::endl;
 				packet >> opponentNickname >> msg;
 				shared_cout(msg, opponentNickname, cmd);
 			}
@@ -211,37 +207,18 @@ void ReceiveData() {
 				else if (cmd == PING_LOBBY) {
 					SendACK(ACK_PING_LOBBY, packetIDRecived);
 				}
-				else if (cmd == ID_ALREADY_CONNECTED) {
+				else if (cmd == OUT) {
 					//std::cout << "This ID it's already connected." << std::endl;
 					if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
 						myPlayer->resending.erase(packetIDRecived);
 					}
-					//login = sign = false;
-					//connected = false;
-					//ConnectionWithServer();
-					GTFO = true;
-				}
-				//else if (cmd == ID_ALREADY_EXISTS) {
 
-				//}
-				else if (cmd == ID_ALREADY_PLAYING) {
-					if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
-						myPlayer->resending.erase(packetIDRecived);
-					}
-					std::cout << "This user is already playing a game" << std::endl;
-					join = true;
-					writePassword = false;
-				}
-				else if (cmd == PASSWORD_INCORRECT) {
-					if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
-						myPlayer->resending.erase(packetIDRecived);
-					}
-					std::cout << "Incorrect Password" << std::endl;
+					GTFO = true;
 				}
 				else if (cmd == ACK_LOGIN) {
 					//partidas.clear();
 					packet >> myPlayer->ID >> numPartidas;
-					std::cout << "size" << numPartidas << std::endl;
+					//std::cout << "size" << numPartidas << std::endl;
 					for (int8_t i = 0; i < numPartidas; i++) {
 						int32_t gID = 0;
 						int32_t maxP = 0;
@@ -252,7 +229,7 @@ void ReceiveData() {
 						//maxP = std::atoi(maxi.c_str());
 						//std::cout << maxi << ", " << maxP << std::endl;
 						partidas.insert(std::make_pair(gID, PartidaClient{ gID, name, maxP, conn }));
-
+						RefreshPartidas(gID, name, conn, maxP);
 					}
 
 					//text en vermell error username i error password
@@ -309,7 +286,7 @@ void ReceiveData() {
 					//if (myPlayer->ID == 0) {
 					int32_t numOfOpponents = 0;
 					packet >> myPlayer->IDPartida >> myPlayer->position >> numOfOpponents;
-					std::cout << "ID Partida: " << myPlayer->IDPartida << " Pos: " << myPlayer->position.x << ", " << myPlayer->position.y << " Num Opo: " << numOfOpponents;
+					std::cout << "ID Partida: " << myPlayer->IDPartida << " Pos: " << myPlayer->position.x << ", " << myPlayer->position.y << " Num Opo: " << numOfOpponents << std::endl;
 					if (numOfOpponents > 0) {
 						//treiem del packet la ID i la pos de cada oponent
 						for (int i = 0; i < numOfOpponents; i++) {
@@ -323,7 +300,7 @@ void ReceiveData() {
 					if (myPlayer->resending.find(packetIDRecived) != myPlayer->resending.end()) {
 						myPlayer->resending.erase(packetIDRecived);
 					}
-					std::cout << "WELCOME! " << " Client ID: " << std::to_string(myPlayer->ID) << " Initial Position: " << std::to_string(myPlayer->position.x) << ", " << std::to_string(myPlayer->position.y) << std::endl;
+					std::cout << "WELCOME " << myPlayer->nickname << " Initial Position: " << std::to_string(myPlayer->position.x) << ", " << std::to_string(myPlayer->position.y) << std::endl;
 					//}
 				}
 
@@ -332,7 +309,7 @@ void ReceiveData() {
 					if (opponents.find(opponentId) == opponents.end()) {
 						Position pos;
 						packet >> pos;
-						std::cout << "A new opponent connected. ID: " << std::to_string(opponentId) << " Nickname: " << opponentNickname << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << std::endl;
+						std::cout << "A new opponent connected." << " Nickname: " << opponentNickname << " Position: " << std::to_string(pos.x) << ", " << std::to_string(pos.y) << std::endl;
 						opponents.insert(std::make_pair(opponentId, InterpolationAndStuff{ pos, pos, false, opponentNickname }));
 					}
 					SendACK(ACK_NEW_CONNECTION, packetIDRecived);
@@ -692,14 +669,14 @@ void Lobby() {
 	//chattingText.setStyle(sf::Text::Bold);
 
 
-	//sf::Text text(mensaje, font, 14);
-	//text.setFillColor(sf::Color(0, 191, 255));
-	//text.setStyle(sf::Text::Italic);
-	//text.setPosition(0, 560);
+	sf::Text text(mensaje, font, 14);
+	text.setFillColor(sf::Color(0, 191, 255));
+	text.setStyle(sf::Text::Italic);
+	text.setPosition(0, 560);
 
-	//sf::RectangleShape separator(sf::Vector2f(800, 5));
-	//separator.setFillColor(sf::Color(255, 0, 0, 255));
-	//separator.setPosition(0, 550);
+	sf::RectangleShape separator(sf::Vector2f(800, 5));
+	separator.setFillColor(sf::Color(255, 0, 0, 255));
+	separator.setPosition(0, 550);
 
 	//sf::RectangleShape globalButton(sf::Vector2f(150, 30.f));
 	//globalButton.setPosition(windowChat.getSize().x - 30, 50);

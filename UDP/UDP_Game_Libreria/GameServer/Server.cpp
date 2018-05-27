@@ -203,39 +203,16 @@ void SendToAllClients(int cmd, int32_t gID) {
 }
 
 void NotifyOtherClients(int cmd, int32_t cID, std::string msg, int32_t gID, int32_t maxPlayers) {
-	//if (cmd == NEW_CONNECTION_LOBBY) { //si sou amics XD
-	//	if (clientsOnLobby.find(cID) != clientsOnLobby.end()) {
-	//		for (std::map<int32_t, ClientLobby>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
-	//		{
-	//			sf::Packet packet;
-	//			if (it->first != cID) {
-	//				packet << cmd << packetIDLobby << cID;// << clientsOnLobby.find(cID)->second.nickname;
-	//				it->second.resending.insert(std::make_pair(packetIDLobby, packet));
-	//			}
-	//		} packetIDLobby++;
-	//	}
-	//}
-	//else if (cmd == DISCONNECTION_LOBBY) { //si sou amics XD
 
-	//	for (std::map<int32_t, ClientLobby>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
-	//	{
-	//		sf::Packet packet;
-	//		packet << cmd;
-	//		if (it->first != cID) {
-	//			packet << packetIDLobby << cID;
-	//			it->second.resending.insert(std::make_pair(packetIDLobby, packet));
-	//		}
-	//	}packetIDLobby++;
-	//}
 	if (cmd == NEW_GAME_CREATED) { 
 		//if (clientsOnLobby.find(cID) != clientsOnLobby.end()) {
 			for (std::map<int32_t, ClientLobby>::iterator it = clientsOnLobby.begin(); it != clientsOnLobby.end(); ++it)
 			{
 				sf::Packet packet;
-				if (it->first != cID) {
+				//if (it->first != cID) {
 					packet << cmd << packetIDLobby << gID << msg << maxPlayers;// << clientsOnLobby.find(cID)->second.nickname;
 					it->second.resending.insert(std::make_pair(packetIDLobby, packet));
-				}
+				//}
 			} packetIDLobby++;
 		//}
 	}
@@ -266,19 +243,7 @@ void NotifyOtherClients(int cmd, int32_t cID, std::string msg, int32_t gID, int3
 		}
 
 	}
-	else if (cmd == GLOBAL_CHAT) { //no es critic
-		for (std::map<int32_t, ClientLobby>::iterator clientToSend = clientsOnLobby.begin(); clientToSend != clientsOnLobby.end(); ++clientToSend)
-		{
-			if (clientToSend->first != cID) {
-				sf::Packet packet;
-				packet << cmd << clientToSend->second.nickname << msg; //no hace falta poner packetID 
-				statusServer = socketServer.send(packet, clientToSend->second.ip, clientToSend->second.port);
-				if (statusServer != sf::Socket::Done) {
-					std::cout << "Error sending GLOBAL_CHAT to client " << std::to_string(clientToSend->first) << std::endl;
-				}
-			}
-		}
-	}
+
 	else if (cmd == GAME_CHAT) { //no es critic
 		if (partidas.find(gID) != partidas.end()) {
 			for (std::map<int32_t, Player>::iterator clientToSend = partidas[gID].jugadors.begin(); clientToSend != partidas[gID].jugadors.end(); ++clientToSend)
@@ -438,8 +403,9 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAd
 				}
 			}
 			clientsOnLobby.insert(std::make_pair(clientID, ClientLobby{ clientID, nickname, senderIP, senderPort, 1, 0, 0, true }));
-
 			clientsOnLobby[clientID].timeElapsedLastPing.restart();
+			clientsOnLobby[clientID].timeElapsedLastPing.restart();
+
 			clientID++;
 
 			statusServer = socketServer.send(packet, senderIP, senderPort);
@@ -450,7 +416,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAd
 		}
 		else {
 			sf::Packet packet;
-			packet << ID_ALREADY_CONNECTED << pID;
+			packet << OUT << pID;
 			statusServer = socketServer.send(packet, senderIP, senderPort);
 			if (statusServer != sf::Socket::Done) {
 				std::cout << "Error sending ACK_LOGIN to client " << std::to_string(clientID - 1) << std::endl;
@@ -491,8 +457,8 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAd
 			//NotifyOtherClients(NEW_CONNECTION, clientID);
 			clientsOnLobby[clientID].timeElapsedLastPing.restart();
 			std::cout << "client id" << clientID << std::endl;
-			clientID++;
 			
+			clientID++;
 			statusServer = socketServer.send(packet, senderIP, senderPort);
 			if (statusServer != sf::Socket::Done) {
 				std::cout << "Error sending ACK_SIGNUP to client " << std::to_string(clientID - 1) << std::endl;
@@ -501,7 +467,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAd
 		}
 		else {
 			sf::Packet packet;
-			packet << ID_ALREADY_CONNECTED << pID;
+			packet << OUT << pID;
 			statusServer = socketServer.send(packet, senderIP, senderPort);
 			if (statusServer != sf::Socket::Done) {
 				std::cout << "Error sending ACK_LOGIN to client " << std::to_string(clientID - 1) << std::endl;
@@ -522,7 +488,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAd
 			Position pos;
 			int32_t numOfOpponents = 0;
 			srand(time(NULL));
-			std::cout << "CREATE" << std::endl;
+			//std::cout << "CREATE" << std::endl;
 			//random range c++11 stuff
 			do {
 				std::random_device rdX, rdY;
@@ -535,8 +501,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAd
 			pos = CellToPixel(pos.x, pos.y);
 			sf::Packet packet;
 
-			
-			packet << WELCOME << pID << gID << pos << numOfOpponents;
+			packet << WELCOME << pID << idPartida << pos << numOfOpponents;
 			partidas.insert(std::make_pair(idPartida, Partida(idPartida, cID, namePartida, passwordPartida, maxPlayers)));
 
 			partidas[idPartida].jugadors.insert(std::make_pair(cID, Player{ cID, nickname, pos, senderIP, senderPort, true, false, false }));
@@ -547,7 +512,6 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAd
 			partidas.find(idPartida)->second.clockSend.restart();
 			partidas.find(idPartida)->second.clockPing.restart();
 			partidas.find(idPartida)->second.jugadors.find(cID)->second.timeElapsedLastPing.restart();
-			packet.clear();
 			NotifyOtherClients(NEW_GAME_CREATED, cID, namePartida, idPartida, maxPlayers);
 			idPartida++;
 			packet.clear();
@@ -557,24 +521,13 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAd
 
 	else if (cmd == JOIN_GAME && partidas.find(gID) != partidas.end() && partidas[gID].jugadors.size() < partidas[gID].maxPlayers) {
 																 
-		bool alreadyConnected = false;
 		bool correctPassword = true; //per ara deixarla a true
 		//COMPROVAR SI LA PASSWORD ES CORRECTE SI NO HO ÉS, ENVIAR AL JUGADOR PASSWORD_INCORRECT --> BASE DE DADES <-- si es correcte, correctPassword = true
 		std::cout << "JOIN" << std::endl;
 		//si aquest usuari ja esta jugant
-		if (partidas.find(gID) != partidas.end()) {
-			//for (std::map<int32_t, Player>::iterator it = partidas[gID].jugadors.begin(); it != partidas[gID].jugadors.end(); ++it) {
-			//	/*if (it->second.nickname == nickname || it->second.port == senderPort) {
-			//		alreadyConnected = true;
-			//		sf::Packet p;
-			//		p << ID_ALREADY_PLAYING << pID;
-			//		statusServer = socketServer.send(p, senderIP, senderPort);
-			//		if (statusServer != sf::Socket::Done) {
-			//			std::cout << "Error sending ID_ALREADY_PLAYING to unknown client. " << std::endl;
-			//		}
-			//	}*/
-			//}
-			if (!alreadyConnected && correctPassword) {
+		//if (partidas.find(gID) != partidas.end()) {
+
+			if (correctPassword) {
 				Position pos;
 				int32_t numOfOpponents = partidas.find(gID)->second.jugadors.size();
 				srand(time(NULL));
@@ -614,7 +567,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAd
 				}
 				//packet.clear();
 			}
-		}
+		//}
 	}
 
 	//else if (cmd == ACK_NEW_CONNECTION_LOBBY || cmd == ACK_DISCONNECTION_LOBBY) {
