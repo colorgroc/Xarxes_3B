@@ -733,7 +733,10 @@ void Lobby() {
 		sf::Vector2i mousePos = sf::Mouse::getPosition(window);
 		sf::Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
 		ReceiveData();
-
+		if (GTFO) {
+			window.close();
+			disconnected = exitGame = true;
+		}
 		if (c.getElapsedTime().asMilliseconds() > SENDING_PING) {
 			Resend();
 			c.restart();
@@ -1135,7 +1138,7 @@ void ConnectionWithServer() {
 	usernameButton.setPosition(window.getSize().x / 2 / 2, userNameText.getPosition().y + 50);
 	usernameButton.setFillColor(sf::Color::White);
 
-	sf::String userInput;
+	std::string userInput;
 	sf::Text userText("", font, 48);
 	userText.setPosition(window.getSize().x / 2 / 2 + 10, usernameButton.getPosition().y - 10);
 	userText.setFillColor(sf::Color::Black);
@@ -1153,7 +1156,7 @@ void ConnectionWithServer() {
 	passConnectionButton.setPosition(window.getSize().x / 2 / 2, passwordConecText.getPosition().y + 50);
 	passConnectionButton.setFillColor(sf::Color::White);
 
-	sf::String passInput;
+	std::string passInput;
 	sf::Text passText("", font, 48);
 	passText.setPosition(window.getSize().x / 2 / 2 + 10, passConnectionButton.getPosition().y - 10);
 	passText.setFillColor(sf::Color::Black);
@@ -1171,7 +1174,7 @@ void ConnectionWithServer() {
 	mailButton.setPosition(window.getSize().x / 2 / 2, mailConectText.getPosition().y + 50);
 	mailButton.setFillColor(sf::Color::White);
 
-	sf::String mailInput;
+	std::string mailInput;
 	sf::Text mailText("", font, 48);
 	mailText.setPosition(window.getSize().x / 2 / 2 + 10, mailButton.getPosition().y - 10);
 	mailText.setFillColor(sf::Color::Black);
@@ -1334,18 +1337,18 @@ void ConnectionWithServer() {
 			{
 				if (event.text.unicode == '\b') {
 					if (username) {
-						if (userInput.getSize() > 0)
-							userInput.erase(userInput.getSize() - 1, 1);
+						if (userInput.size() > 0)
+							userInput.erase(userInput.size() - 1, 1);
 						userText.setString(userInput);
 					}
 					else if (passwordConnection) {
-						if (passInput.getSize() > 0)
-							passInput.erase(passInput.getSize() - 1, 1);
+						if (passInput.size() > 0)
+							passInput.erase(passInput.size() - 1, 1);
 						passText.setString(passInput);
 					}
 					else if (mail) {
-						if (mailInput.getSize() > 0)
-							mailInput.erase(mailInput.getSize() - 1, 1);
+						if (mailInput.size() > 0)
+							mailInput.erase(mailInput.size() - 1, 1);
 						mailText.setString(mailInput);
 					}
 				}

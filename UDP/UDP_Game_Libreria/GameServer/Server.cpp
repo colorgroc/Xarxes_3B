@@ -58,10 +58,12 @@ public:
 			int num = resultSet->getInt(1);
 			delete resultSet;
 			if (num == 0) {
+				cmd.clear();
 				std::cout << "signed in" << std::endl;
-				std::string exe = "INSERT INTO Players(UserName, UserPassword, UserMail) VALUES(";
-				exe += "'" + param1 + "'," + "'" + param2 + "'," + "'" + param3 + "')";
-				stmt->execute(exe.c_str());
+				cmd = "INSERT into Players (UserName, UserPassword, UserMail) VALUES (";
+				cmd += "'" + param1 + "'," + "'" + param2 + "'," + "'" + param3 + "')";
+				stmt->execute(cmd.c_str());
+				std::cout << cmd << std::endl;
 				return true;
 			}
 		}
@@ -446,12 +448,21 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAd
 			}
 			packet.clear();
 		}
+		else {
+			sf::Packet packet;
+			packet << ID_ALREADY_CONNECTED << pID;
+			statusServer = socketServer.send(packet, senderIP, senderPort);
+			if (statusServer != sf::Socket::Done) {
+				std::cout << "Error sending ACK_LOGIN to client " << std::to_string(clientID - 1) << std::endl;
+			}
+			packet.clear();
+		}
 
 	}
 	else if (cmd == SIGNUP) { 
 	
 
-		if (manager.Register(nickname, password, mail)){
+		if (manager.Register(nickname, password, mail)){ //no accepta els valors...si poso "anna", "pass" i "mail" escriu be a la base de dades
 
 			sf::Packet packet;
 			//pillar la  base ID del client a la base d dades;
@@ -471,14 +482,7 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAd
 					/*
 					packet << it->second.maxPlayers;*/
 				}
-				/*for (int8_t i = 0; i < partidas.size(); i++) {
-					packet << partidas[i];
-					packet << partidas[i]->name;
-					if(partidas[i]->jugadors.size() > 0)
-					packet << partidas[i]->jugadors.size();
-					else packet << 0;
-					packet << partidas[i]->maxPlayers;
-				}*/
+	
 			}
 			//std::cout << "manager id: " << manager.ReturnPlayerID(nickname) << std::endl;
 			clientsOnLobby.insert(std::make_pair(clientID, ClientLobby{ clientID, nickname, senderIP, senderPort, 1, 0, 0, true }));
@@ -492,6 +496,15 @@ void ManageReveivedData(int cmd, int32_t cID, int32_t gID, int32_t pID, sf::IpAd
 			statusServer = socketServer.send(packet, senderIP, senderPort);
 			if (statusServer != sf::Socket::Done) {
 				std::cout << "Error sending ACK_SIGNUP to client " << std::to_string(clientID - 1) << std::endl;
+			}
+			packet.clear();
+		}
+		else {
+			sf::Packet packet;
+			packet << ID_ALREADY_CONNECTED << pID;
+			statusServer = socketServer.send(packet, senderIP, senderPort);
+			if (statusServer != sf::Socket::Done) {
+				std::cout << "Error sending ACK_LOGIN to client " << std::to_string(clientID - 1) << std::endl;
 			}
 			packet.clear();
 		}
